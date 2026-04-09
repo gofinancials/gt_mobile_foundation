@@ -10,6 +10,7 @@ class AppCountryUtility {
 
       dynamic req = await rootBundle.loadString(
         'assets/resources/countries.json',
+        cache: true,
       );
       List rawData = await AppHelpers.parseJson(req);
       List<Country> countries = [];
