@@ -1,18 +1,12 @@
 import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 
-class AppFcmMockService implements AppFcmService {
+class AppFcmMockService implements AppPushNotificationService<String> {
   @override
   Future<String?> get token async => "mock-token";
 
   @override
-  Future<RemoteMessage?> getInitialMessage() async {
-    return const RemoteMessage(
-      notification: RemoteNotification(
-        title: "Mock Message",
-        body: "Mock Message Body",
-      ),
-    );
+  Future<String?> getInitialMessage() async {
+    return "Mock Message Body";
   }
 
   @override

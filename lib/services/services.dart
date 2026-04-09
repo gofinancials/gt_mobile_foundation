@@ -1,8 +1,10 @@
+export 'analytics/analytics.dart';
 export 'biometric_auth/biometric_auth.dart';
-export 'firebase/firebase.dart';
+export 'crashlytics/crashlytics.dart';
 export 'fs/fs.dart';
 export 'networking/networking.dart';
 export 'permission/permission.dart';
+export 'push_notifications/push_notifications.dart';
 export 'screen_shot/screen_shot.dart';
 export 'service_locator/service_locator.dart';
 export 'session/session.dart';
