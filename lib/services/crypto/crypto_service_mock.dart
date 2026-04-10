@@ -1,11 +1,6 @@
 import 'dart:convert';
 import 'package:gt_mobile_foundation/foundation.dart';
 
-/// TODO: One must fight to keep standards high; it is not given
-/// TODO: Write test for all things in foundation
-/// TODO: Foundation cannot be a dumping ground
-/// TODO: Minimise innovation
-
 class AppCryptoServiceMock implements AppCryptoService {
   @override
   String encrypt(String data, {AppCryptoMode mode = .base16}) {

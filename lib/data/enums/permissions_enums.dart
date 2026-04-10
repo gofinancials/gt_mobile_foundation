@@ -38,5 +38,5 @@ enum AppPermissions {
   calendarWriteOnly,
   calendarFullAccess,
   assistant,
-  backgroundRefresh;
+  backgroundRefresh,
 }

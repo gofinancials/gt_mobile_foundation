@@ -4,7 +4,7 @@ import 'package:gt_mobile_foundation/foundation.dart';
 abstract class AppConfig {
   Size? windowSize;
 
-  String get langCode;
+  String get defaultLanguageCode;
 
   String get appId;
 
@@ -21,8 +21,6 @@ abstract class AppConfig {
   Locale get defaultLocale;
 
   bool get isMock;
-
-  bool get allowCaching;
 
   List<Locale> get supportedLocales;
 
@@ -45,4 +43,10 @@ abstract class AppConfig {
   String get countryCode;
 
   AppConfigStrings get strings;
+
+  String get cipherKey;
+
+  String get cipherIV;
+
+  String? get rsaPublicKeyPath;
 }
