@@ -5,3 +5,4 @@ export 'app_helpers.dart';
 export 'app_http_overrides.dart';
 export 'app_logger.dart';
 export 'app_text_formatter.dart';
+export 'scaler_utility.dart';

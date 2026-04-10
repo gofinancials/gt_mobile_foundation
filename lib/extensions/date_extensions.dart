@@ -37,6 +37,14 @@ extension DateExtension on DateTime {
     return AppDateUtil.isSameYear(firstDate: this, secondDate: other);
   }
 
+  bool isBeforeToday(DateTime? other) {
+    return AppDateUtil.isBeforeToday(date: this);
+  }
+
+  bool isAfterToday() {
+    return AppDateUtil.isAfterToday(date: this);
+  }
+
   DateTime get startOfDay {
     return DateTime(year, month, day);
   }
