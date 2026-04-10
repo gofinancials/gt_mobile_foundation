@@ -3,7 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
-import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
+import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:easy_localization/easy_localization.dart' as l10n;
 
 extension StringExtension on String {

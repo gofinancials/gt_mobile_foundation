@@ -4,29 +4,7 @@ import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
-import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
-
-enum MediaOrigin { network, asset, file, memory, invalid }
-
-enum MediaType {
-  audio,
-  video,
-  youtube;
-
-  const MediaType();
-
-  bool get isYoutubeMedia => this == MediaType.youtube;
-  bool get isAudioMedia => this == MediaType.audio;
-  bool get isVideoMedia => this == MediaType.video;
-
-  static MediaType fromString(String? value) {
-    return switch (value) {
-      "youtube" => youtube,
-      "video" => video,
-      _ => audio,
-    };
-  }
-}
+import 'package:gt_mobile_foundation/foundation.dart';
 
 abstract class MediaData<T> {
   bool get isValid;

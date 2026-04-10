@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
+import 'package:gt_mobile_foundation/foundation.dart';
 
 abstract class AppSessionService {
   SessionData? get sessionData;

@@ -2,7 +2,7 @@ import 'package:easy_localization/easy_localization.dart'
     hide StringTranslateExtension;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
+import 'package:gt_mobile_foundation/foundation.dart';
 
 extension BuildContextExtension on BuildContext {
   ScrollableState? get scrollState => Scrollable.maybeOf(this);

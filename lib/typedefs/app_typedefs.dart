@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
+import 'package:gt_mobile_foundation/foundation.dart';
 
 typedef TaskNotifier<T> = ValueNotifier<Future<NetworkResponse<T>>?>;
 typedef OnPressed = void Function();

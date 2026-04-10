@@ -1,6 +1,7 @@
 export 'analytics/analytics.dart';
 export 'biometric_auth/biometric_auth.dart';
 export 'crashlytics/crashlytics.dart';
+export 'crypto/crypto.dart';
 export 'fs/fs.dart';
 export 'networking/networking.dart';
 export 'permission/permission.dart';

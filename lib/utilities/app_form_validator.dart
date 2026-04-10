@@ -1,4 +1,4 @@
-import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
+import 'package:gt_mobile_foundation/foundation.dart';
 
 class AppValidators {
   static bool _isEmpty(String? text) => !text.hasValue;

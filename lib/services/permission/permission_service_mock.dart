@@ -1,13 +1,13 @@
-import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
+import 'package:gt_mobile_foundation/foundation.dart';
 
 class AppPermissionServiceMock implements AppPermissionService {
   @override
-  Future<bool> isPermissionGranted(Permissions permissions) async {
+  Future<bool> isPermissionGranted(AppPermissions permissions) async {
     return AppHelpers.randomBool;
   }
 
   @override
-  Future<bool> requestPermission(Permissions permissions) async {
+  Future<bool> requestPermission(AppPermissions permissions) async {
     return AppHelpers.randomBool;
   }
 
@@ -17,7 +17,7 @@ class AppPermissionServiceMock implements AppPermissionService {
   }
 
   @override
-  Future<bool> requestPermissions(List<Permissions> permissions) async {
+  Future<bool> requestPermissions(List<AppPermissions> permissions) async {
     return AppHelpers.randomBool;
   }
 }

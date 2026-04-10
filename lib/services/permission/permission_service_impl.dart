@@ -1,9 +1,9 @@
-import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
+import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class AppPermissionServiceImpl implements AppPermissionService {
   @override
-  Future<bool> isPermissionGranted(Permissions permissions) async {
+  Future<bool> isPermissionGranted(AppPermissions permissions) async {
     try {
       final permission = Permission.byValue(permissions.index);
       final status = await Future.wait([
@@ -18,7 +18,7 @@ class AppPermissionServiceImpl implements AppPermissionService {
   }
 
   @override
-  Future<bool> requestPermission(Permissions permissions) async {
+  Future<bool> requestPermission(AppPermissions permissions) async {
     try {
       if (await isPermissionGranted(permissions)) return true;
 
@@ -46,7 +46,7 @@ class AppPermissionServiceImpl implements AppPermissionService {
   }
 
   @override
-  Future<bool> requestPermissions(List<Permissions> permissions) async {
+  Future<bool> requestPermissions(List<AppPermissions> permissions) async {
     if (permissions.isEmpty) return false;
     List<bool> statuses = [];
     for (int i = 0; i < permissions.length; i++) {

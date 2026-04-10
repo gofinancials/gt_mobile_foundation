@@ -1,12 +1,12 @@
 import 'package:file_picker/file_picker.dart';
 
-enum FSErrorType { unknown, oversized, empty }
+enum FsErrorType { unknown, oversized, empty }
 
-enum FSDocumentType {
-  image(FileType.image),
-  document(FileType.custom);
+enum FsDocumentType {
+  image(.image),
+  document(.custom);
 
-  const FSDocumentType(this.type);
+  const FsDocumentType(this.type);
   final FileType type;
 
   List<String>? get extensions {

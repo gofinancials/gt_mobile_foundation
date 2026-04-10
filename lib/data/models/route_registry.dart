@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
+import 'package:gt_mobile_foundation/foundation.dart';
 
 abstract class RouteRegistry {
   Map<String, Widget Function(BuildContext)> get staticRoutes;

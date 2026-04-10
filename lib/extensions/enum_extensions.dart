@@ -1,5 +1,5 @@
 extension EnumExtensions on Enum {
-  String get value {
+  String get label {
     return "$this".split(".").last;
   }
 }

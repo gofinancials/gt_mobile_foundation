@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
+import 'package:gt_mobile_foundation/foundation.dart';
 
 // ignore: must_be_immutable
 class Country extends Equatable {

@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:mime/mime.dart';
-import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
+import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -11,13 +11,13 @@ class AppFilePlugin {
 
   static Future<String?> getFileMimeType(
     File file, {
-    FSDocumentType? type,
+    FsDocumentType? type,
   }) async {
     try {
       final mimeType = lookupMimeType(file.path);
       if (!mimeType.hasValue && type != null) {
         return switch (type) {
-          FSDocumentType.image => "image/*",
+          .image => "image/*",
           _ => null,
         };
       }
@@ -39,9 +39,9 @@ class AppFilePlugin {
     return 1.hours;
   }
 
-  static Future<FSResponse> pickFile({
+  static Future<FsResponse> pickFile({
     String? title,
-    FSDocumentType documentType = FSDocumentType.document,
+    FsDocumentType documentType = .document,
     bool isProUser = false,
   }) async {
     try {
@@ -53,18 +53,18 @@ class AppFilePlugin {
       );
 
       if (pickedFile == null) {
-        return FSResponse(
+        return FsResponse(
           type: documentType,
-          error: const FSError(type: FSErrorType.empty),
+          error: const FsError(type: .empty),
         );
       }
 
       final choiceFile = pickedFile.files.first;
 
       if (choiceFile.path == null) {
-        return FSResponse(
+        return FsResponse(
           type: documentType,
-          error: const FSError(type: FSErrorType.empty),
+          error: const FsError(type: .empty),
         );
       }
 
@@ -73,26 +73,26 @@ class AppFilePlugin {
       final maxSizeInMb = getMaxSizeInMb(mimeType ?? "", isProUser);
 
       if (AppHelpers.fileSizeInMb(file) > maxSizeInMb) {
-        return FSResponse(
-          error: const FSError(type: FSErrorType.oversized),
+        return FsResponse(
+          error: const FsError(type: .oversized),
           type: documentType,
         );
       }
-      return FSResponse(
+      return FsResponse(
         file: file,
         name: choiceFile.name,
         type: documentType,
         mimeType: mimeType,
       );
     } catch (e) {
-      return FSResponse(
-        error: const FSError(type: FSErrorType.unknown),
+      return FsResponse(
+        error: const FsError(type: .unknown),
         type: documentType,
       );
     }
   }
 
-  static Future<FSResponse> saveFile(
+  static Future<FsResponse> saveFile(
     Uint8List bytes, {
     required String filename,
     String? dialogTitle,
@@ -113,17 +113,17 @@ class AppFilePlugin {
       );
 
       if (filePath == null) {
-        return const FSResponse(
-          type: FSDocumentType.document,
-          error: FSError(type: FSErrorType.empty),
+        return const FsResponse(
+          type: .document,
+          error: FsError(type: .empty),
         );
       }
 
-      return const FSResponse(type: FSDocumentType.document);
+      return const FsResponse(type: .document);
     } catch (e, t) {
-      return FSResponse(
-        error: FSError(type: FSErrorType.unknown, error: e, stackTrace: t),
-        type: FSDocumentType.document,
+      return FsResponse(
+        error: FsError(type: .unknown, error: e, stackTrace: t),
+        type: .document,
       );
     }
   }

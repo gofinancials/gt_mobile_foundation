@@ -1,5 +1,3 @@
-import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
-
 enum AppEvent {
   /// NAVIGATION EVENTS
   navigatedTo("NAVIGATED TO"),
@@ -39,22 +37,6 @@ enum AppEvent {
   const AppEvent(this.name);
 
   final String name;
-}
 
-class AppAnalyticsData extends Codable {
-  final AppEvent event;
-  final String? description;
-  final dynamic value;
-
-  AppAnalyticsData(this.event, {this.description, this.value});
-
-  @override
-  Map<String, Object> toJson() {
-    final data = {
-      "description": description ?? event.name.toLowerCase(),
-      "value": "$value",
-      "executedAt": DateTime.now().millisecondsSinceEpoch,
-    };
-    return data;
-  }
+  String get value => name;
 }

@@ -1,52 +1,11 @@
-enum Permissions {
-  calendar,
-  camera,
-  contacts,
-  location,
-  locationAlways,
-  locationWhenInUse,
-  mediaLibrary,
-  microphone,
-  phone,
-  photos,
-  photosAddOnly,
-  reminders,
-  sensors,
-  sms,
-  speech,
-  storage,
-  ignoreBatteryOptimizations,
-  notification,
-  accessMediaLocation,
-  activityRecognition,
-  unknown,
-  bluetooth,
-  manageExternalStorage,
-  systemAlertWindow,
-  requestInstallPackages,
-  appTrackingTransparency,
-  criticalAlerts,
-  accessNotificationPolicy,
-  bluetoothScan,
-  bluetoothAdvertise,
-  bluetoothConnect,
-  nearbyWifiDevices,
-  videos,
-  audio,
-  scheduleExactAlarm,
-  sensorsAlways,
-  calendarWriteOnly,
-  calendarFullAccess,
-  assistant,
-  backgroundRefresh,
-}
+import 'package:gt_mobile_foundation/foundation.dart';
 
 abstract class AppPermissionService {
-  Future<bool> isPermissionGranted(Permissions permission);
+  Future<bool> isPermissionGranted(AppPermissions permission);
 
-  Future<bool> requestPermission(Permissions permission);
+  Future<bool> requestPermission(AppPermissions permission);
 
-  Future<bool> requestPermissions(List<Permissions> permissions);
+  Future<bool> requestPermissions(List<AppPermissions> permissions);
 
   Future<bool> openAppPermissionsSettings();
 }

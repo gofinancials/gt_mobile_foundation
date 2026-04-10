@@ -1,27 +1,27 @@
 import 'dart:io';
 import 'package:equatable/equatable.dart';
-import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
+import 'package:gt_mobile_foundation/foundation.dart';
 
-class FSError {
-  final FSErrorType type;
+class FsError {
+  final FsErrorType type;
   final Object? error;
   final StackTrace? stackTrace;
 
-  const FSError({required this.type, this.error, this.stackTrace});
+  const FsError({required this.type, this.error, this.stackTrace});
 
-  bool get isTooLarge => type == FSErrorType.oversized;
-  bool get isEmpty => type == FSErrorType.empty;
-  bool get isUnknown => type == FSErrorType.unknown;
+  bool get isTooLarge => type == .oversized;
+  bool get isEmpty => type == .empty;
+  bool get isUnknown => type == .unknown;
 }
 
-class FSResponse extends Equatable {
+class FsResponse extends Equatable {
   final File? file;
   final String? name;
   final String? mimeType;
-  final FSError? error;
-  final FSDocumentType type;
+  final FsError? error;
+  final FsDocumentType type;
 
-  const FSResponse({
+  const FsResponse({
     this.error,
     this.file,
     this.name,
@@ -31,7 +31,7 @@ class FSResponse extends Equatable {
 
   bool get hasError => error != null;
   bool get hasFile => file != null;
-  bool get isImage => type == FSDocumentType.image;
+  bool get isImage => type == .image;
 
   Uri? get uri => file?.uri;
 

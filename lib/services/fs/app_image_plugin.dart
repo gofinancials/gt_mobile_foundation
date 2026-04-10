@@ -1,7 +1,7 @@
-import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
+import 'package:gt_mobile_foundation/foundation.dart';
 
 class AppImagePlugin {
-  static Future<FSResponse> pickImage() async {
-    return await AppFilePlugin.pickFile(documentType: FSDocumentType.image);
+  static Future<FsResponse> pickImage() async {
+    return await AppFilePlugin.pickFile(documentType: .image);
   }
 }

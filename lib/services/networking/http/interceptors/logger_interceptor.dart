@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:gt_mobile_foundation/gt_mobile_foundation.dart';
+import 'package:gt_mobile_foundation/foundation.dart';
 
 class LoggerInterceptor with AppAnalyticsMixin implements InterceptorsWrapper {
   const LoggerInterceptor();
@@ -28,7 +28,7 @@ class LoggerInterceptor with AppAnalyticsMixin implements InterceptorsWrapper {
       "method": options.method,
     });
     trackEvent(
-      AppEvent.apiRequest,
+      .apiRequest,
       description: options.method,
       value: "${options.baseUrl}${options.path}",
     );
