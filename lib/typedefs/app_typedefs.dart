@@ -24,5 +24,4 @@ typedef NetworkCallWithInput<T, K> = NetworkCallResponse<T> Function(K input);
 typedef Tuple2<T, K> = (T, K);
 typedef OnNavigate =
     Function(String routeName, {BuildContext? context, Object? arguments});
-typedef LayoutCallback = Widget Function(BuildContext context, ScalerUtili scaler, BoxConstraints constraints);
 
