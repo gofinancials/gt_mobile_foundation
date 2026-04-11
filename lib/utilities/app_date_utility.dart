@@ -1,3 +1,5 @@
+import 'package:easy_localization/easy_localization.dart';
+
 class AppDateUtil {
   static bool isSameYear({
     required DateTime firstDate,
@@ -34,5 +36,23 @@ class AppDateUtil {
     );
 
     return hasSameDayIndex && isInSameMonth && isInSameYear;
+  }
+
+  static bool isBeforeToday({required DateTime date}) {
+    final stringOther = DateFormat("yyyy-MM-dd").format(date);
+    final stringToday = DateFormat("yyyy-MM-dd").format(DateTime.now());
+    final otherDate = DateTime.parse(stringOther);
+    final todayDate = DateTime.parse(stringToday);
+
+    return todayDate.difference(otherDate).inDays > 0;
+  }
+
+  static bool isAfterToday({required DateTime date}) {
+    final stringOther = DateFormat("yyyy-MM-dd").format(date);
+    final stringToday = DateFormat("yyyy-MM-dd").format(DateTime.now());
+    final otherDate = DateTime.parse(stringOther);
+    final todayDate = DateTime.parse(stringToday);
+
+    return otherDate.difference(todayDate).inDays > 0;
   }
 }
