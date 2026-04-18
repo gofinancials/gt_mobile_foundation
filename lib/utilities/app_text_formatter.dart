@@ -111,7 +111,7 @@ class AppTextFormatter {
     return formatter.format(datetime);
   }
 
-  static String maskedCurrency(num? value, {String symbol = "\$"}) {
+  static String maskedCurrency(num? value, {String symbol = AppStrings.naira}) {
     return "$symbol*****";
   }
 
@@ -119,7 +119,7 @@ class AppTextFormatter {
     num? value, {
     bool spaceIcon = false,
     bool ignoreSymbol = false,
-    String symbol = "\$",
+    String symbol = AppStrings.naira,
   }) {
     if (value == null) return "";
 
@@ -144,7 +144,7 @@ class AppTextFormatter {
     num? value, {
     bool spaceIcon = false,
     bool ignoreSymbol = false,
-    String symbol = "\$",
+    String symbol = AppStrings.naira,
   }) {
     if (value == null) return "";
 
@@ -204,7 +204,7 @@ class AppTextFormatter {
   static String formatSalaryRange({
     num? from,
     num? to,
-    String currencySymbol = "\$",
+    String currencySymbol = AppStrings.naira,
     required String fromText,
     required String toText,
   }) {
@@ -228,7 +228,7 @@ class AppTextFormatter {
   static String formatSalaryRangeShort({
     num? from,
     num? to,
-    String currencySymbol = "\$",
+    String currencySymbol = AppStrings.naira,
     String? prefix,
   }) {
     final salaryFrom = AppTextFormatter.formatCurrency(

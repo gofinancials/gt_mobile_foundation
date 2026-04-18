@@ -3,5 +3,8 @@ class AppStrings {
   static const dotSeparator = " • ";
   static const mediumDot = "\u25CF";
   static const bigDot = "\u2B24";
-  static const scheme = "tr";
+  static const naira = "\u20A6";
+  static const dollar = "\$";
+  static const euro = "€";
+  static const pound = "£";
 }
