@@ -9,7 +9,7 @@ class AppCountryUtility {
       if (_countries.hasValue) return _countries;
 
       dynamic req = await rootBundle.loadString(
-        'assets/resources/countries.json',
+        'packages/gt_mobile_foundation/assets/resources/countries.json',
         cache: true,
       );
       List rawData = await AppHelpers.parseJson(req);
