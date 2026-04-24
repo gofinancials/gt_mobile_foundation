@@ -1,9 +1,13 @@
 import 'package:flutter/services.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// A utility class for fetching and searching country data.
 class AppCountryUtility {
   static List<Country> _countries = [];
 
+  /// Fetches a list of countries from the local JSON asset.
+  ///
+  /// Caches the result in memory for subsequent calls.
   static Future<List<Country>> fetchCountries() async {
     try {
       if (_countries.hasValue) return _countries;
@@ -27,6 +31,9 @@ class AppCountryUtility {
     }
   }
 
+  /// Searches for countries matching the given [query].
+  ///
+  /// Matches against both country name and country code.
   static Future<List<Country>> searchCountries(String query) async {
     try {
       if (!_countries.hasValue) await fetchCountries();

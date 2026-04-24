@@ -180,6 +180,9 @@ extension NullableStringExtension on String? {
     if (!isRTL) return TextDirection.ltr;
     return TextDirection.rtl;
   }
+
+  String? get initials => AppHelpers.getInitials(this);
+  String? get accronym => AppHelpers.getAccronym(this);
 }
 
 String randomNumString() {

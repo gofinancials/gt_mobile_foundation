@@ -1,5 +1,6 @@
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// A simple stack data structure for tracking changes.
 class ChangeStack<T> {
   final List<T> _storage;
 
@@ -7,9 +8,15 @@ class ChangeStack<T> {
 
   ChangeStack.of(Iterable<T> elements) : _storage = List<T>.of(elements);
 
+  /// Pushes a new [member] onto the stack.
   void push(T member) => _storage.add(member);
+
+  /// Removes and returns the top member of the stack.
   T pop() => _storage.removeLast();
+
+  /// Returns the top member of the stack without removing it.
   T? get peek => _storage.tryLast;
+
   bool get isEmpty => _storage.isEmpty;
   bool get isNotEmpty => _storage.isNotEmpty;
 
@@ -27,6 +34,7 @@ class ChangeStack<T> {
   int get hashCode => _storage.hashCode;
 }
 
+/// A model that manages undo and redo functionality for a list of [Identifiable] objects.
 class ChangeModel<T extends Identifiable> {
   final ChangeStack<List<T>> _undoStack;
   final ChangeStack<List<T>> _redoStack;
@@ -64,13 +72,16 @@ class ChangeModel<T extends Identifiable> {
     _changes.add(change);
   }
 
+  /// Clears all changes and returns a new empty [ChangeModel].
   clear() => ChangeModel<T>();
 
+  /// Records a change from [current] state to a new [change] state.
   ChangeModel<T> makeChange(T change, T current) {
     if (change == current) return this;
     return makeBatchChanges([change], [current]);
   }
 
+  /// Records multiple changes at once.
   ChangeModel<T> makeBatchChanges(List<T> changes, List<T> currents) {
     if (changes.isEmpty) return this;
 
@@ -86,6 +97,7 @@ class ChangeModel<T extends Identifiable> {
     );
   }
 
+  /// Reverts the last set of changes.
   undo() {
     if (!canUndo) return this;
     final previousStates = _undoStack.pop();
@@ -108,6 +120,7 @@ class ChangeModel<T extends Identifiable> {
     );
   }
 
+  /// Reapplies the last reverted set of changes.
   redo() {
     if (!canRedo) return this;
     final nextStates = _redoStack.pop();

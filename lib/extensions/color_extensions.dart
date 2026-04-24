@@ -4,13 +4,19 @@ import 'package:gt_mobile_foundation/foundation.dart';
 // ignore_for_file: deprecated_member_use
 
 extension ColorExtension on Color {
+  /// Sets the opacity of the color.
+  ///
+  /// Returns a new [Color] with the given [opacity] (alpha value).
   Color setOpacity(double opacity) {
     return withValues(alpha: opacity);
   }
 
+  /// Returns a [ColorSet] derived from the current color's value.
   ColorSet get colorSet => ColorSet(value);
 
-  // A color is considered bright if its luminance is greater than 0.5. This is very expensive to comput so avoid uisng it in performance critical code.
+  /// A color is considered bright if its luminance is greater than 0.5. 
+  /// 
+  /// Note: This is very expensive to compute so avoid using it in performance critical code.
   bool get isBright => computeLuminance() > 0.5 ? true : false;
 
   /// Converts a Flutter Color to a CSS hex string.
