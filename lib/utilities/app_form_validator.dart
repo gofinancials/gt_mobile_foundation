@@ -245,4 +245,44 @@ class AppValidators {
     }
     return null;
   }
+
+  static String? minLength(
+    String? text, {
+    bool isRequired = true,
+    int length = 6,
+  }) {
+    final isEmpty = _isEmpty(text?.trim());
+
+    if (!isRequired && isEmpty) return null;
+
+    if (isEmpty) {
+      return strings.fieldRequired.tr();
+    }
+
+    if ((text?.trim().length ?? 0) < length) {
+      return strings.minLength.tr({"num": "$length"});
+    }
+
+    return null;
+  }
+
+  static String? maxLength(
+    String? text, {
+    bool isRequired = true,
+    int length = 6,
+  }) {
+    final isEmpty = _isEmpty(text);
+
+    if (!isRequired && isEmpty) return null;
+
+    if (isEmpty) {
+      return strings.fieldRequired.tr();
+    }
+
+    if ((text?.length ?? 0) > length) {
+      return strings.maxLength.tr({"num": "$length"});
+    }
+
+    return null;
+  }
 }

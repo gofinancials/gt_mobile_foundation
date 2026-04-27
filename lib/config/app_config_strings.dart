@@ -15,6 +15,8 @@ class AppConfigStrings {
   final String yearsOld;
   final String yesterday;
   final String fieldRequired;
+  final String minLength;
+  final String maxLength;
   final String passwordRequired;
   final String passwordMustHaveNChars;
   final String invalidEmail;
@@ -59,5 +61,7 @@ class AppConfigStrings {
     required this.amountMaximum,
     required this.fieldsDontMatch,
     required this.invalidNumber,
+    required this.minLength,
+    required this.maxLength,
   });
 }
