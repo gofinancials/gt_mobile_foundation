@@ -231,6 +231,23 @@ class AppValidators {
     return null;
   }
 
+  static String? balanceValidator(String? value, {required num balance}) {
+    final isEmpty = _isEmpty(value);
+
+    if (isEmpty) {
+      return strings.fieldRequired.tr();
+    }
+
+    final num? amount = AppHelpers.extractAmount(value);
+    if (amount == null) {
+      return strings.invalidAmount.tr();
+    }
+    if (amount > balance) {
+      return strings.insufficentFunds.tr();
+    }
+    return null;
+  }
+
   static String? digitValidator(String? value, {bool isRequired = true}) {
     final isEmpty = _isEmpty(value);
 

@@ -28,6 +28,7 @@ class AppConfigStrings {
   final String invalidAmount;
   final String amountMinimum;
   final String amountMaximum;
+  final String insufficentFunds;
   final String fieldsDontMatch;
   final String invalidNumber;
 
@@ -63,5 +64,6 @@ class AppConfigStrings {
     required this.invalidNumber,
     required this.minLength,
     required this.maxLength,
+    required this.insufficentFunds,
   });
 }
