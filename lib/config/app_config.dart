@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
@@ -9,8 +11,6 @@ abstract class AppConfig {
   String get appId;
 
   String get appName;
-
-  String get package;
 
   String get dbName;
 
@@ -24,10 +24,6 @@ abstract class AppConfig {
 
   List<Locale> get supportedLocales;
 
-  String get logo;
-
-  String get copyrightText;
-
   String get termsOfUseUrl;
 
   String get aboutUsUrl;
@@ -36,17 +32,15 @@ abstract class AppConfig {
 
   String get supportUrl;
 
-  String get defaultAvatar;
-
   List<String> get webAppHosts;
 
   String get countryCode;
 
   AppConfigStrings get strings;
 
-  String get cipherKey;
+  FutureOr<String> get cipherKey;
 
-  String get cipherIV;
+  FutureOr<String> get cipherIV;
 
   String? get rsaPublicKeyPath;
 }
