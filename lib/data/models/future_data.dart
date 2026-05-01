@@ -65,17 +65,13 @@ class FutureData<T extends Equatable> extends AsyncData<T> {
     return FutureData(
       data: data ?? this.data,
       isLoading: isLoading ?? this.isLoading,
-      error: this.error,
+      error: error ?? this.error,
       updatedAt: DateTime.now(),
     );
   }
 
-  FutureData<T> reset({required bool isLoading}) {
-    return FutureData(
-      data: null,
-      isLoading: isLoading,
-      updatedAt: DateTime.now(),
-    );
+  FutureData<T> reset() {
+    return FutureData.pristine();
   }
 
   List<Object?> get props => [data, isLoading, error, updatedAt];
@@ -132,17 +128,13 @@ class FutureListData<T extends Equatable> extends AsyncData<T> {
     return FutureListData(
       data: data ?? this.data,
       isLoading: isLoading ?? this.isLoading,
-      error: this.error,
+      error: error ?? this.error,
       updatedAt: DateTime.now(),
     );
   }
 
-  FutureListData<T> reset({required bool isLoading}) {
-    return FutureListData(
-      data: [],
-      isLoading: isLoading,
-      updatedAt: DateTime.now(),
-    );
+  FutureListData<T> reset() {
+    return FutureListData.pristine();
   }
 
   FutureListData<T> updateSingleItem(T oldItem, T newItem) {
