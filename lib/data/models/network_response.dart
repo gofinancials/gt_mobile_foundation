@@ -1,29 +1,29 @@
 import 'package:gt_mobile_foundation/foundation.dart';
 
-sealed class NetworkResponse<T> {}
+sealed class TaskResponse<T> {}
 
-class NetworkSuccess<T> extends NetworkResponse<T> {
+class TaskSuccess<T> extends TaskResponse<T> {
   final T data;
-  NetworkSuccess({required this.data});
+  TaskSuccess({required this.data});
 }
 
-class NetworkFailure<T> extends NetworkResponse<T> {
-  final NetworkError error;
-  NetworkFailure({required this.error});
+class TaskFailure<T> extends TaskResponse<T> {
+  final TaskError error;
+  TaskFailure({required this.error});
 }
 
-extension NetworkResponseExtension<T> on NetworkResponse<T> {
-  bool get isSuccess => this is NetworkSuccess<T>;
-  bool get isFailure => this is NetworkFailure<T>;
+extension TaskResponseExtension<T> on TaskResponse<T> {
+  bool get isSuccess => this is TaskSuccess<T>;
+  bool get isFailure => this is TaskFailure<T>;
 
   T? get data {
     if (isFailure) return null;
-    return (this as NetworkSuccess<T>).data;
+    return (this as TaskSuccess<T>).data;
   }
 
-  NetworkError? get error {
+  TaskError? get error {
     if (!isFailure) return null;
-    return (this as NetworkFailure<T>).error;
+    return (this as TaskFailure<T>).error;
   }
 
   bool get hasData {
@@ -44,21 +44,17 @@ extension NetworkResponseExtension<T> on NetworkResponse<T> {
 
   String? get errorMessage {
     if (!isFailure) return null;
-    final error = (this as NetworkFailure<T>).error;
+    final error = (this as TaskFailure<T>).error;
     return error.message;
   }
 }
 
-class NetworkError {
+class TaskError {
   final String message;
   final int statusCode;
   final dynamic error;
 
-  const NetworkError({
-    required this.message,
-    this.statusCode = 500,
-    this.error,
-  });
+  const TaskError({required this.message, this.statusCode = 500, this.error});
 }
 
 final class NoResponse {

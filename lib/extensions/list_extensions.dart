@@ -47,7 +47,7 @@ extension IterableExtension<T> on Iterable<T>? {
   }
 
   /// Compares this iterable with [other] for equality.
-  /// 
+  ///
   /// Returns `true` if they have the same length and their elements are equal in order.
   bool equals(dynamic other) {
     if (other is! List<T>?) return false;

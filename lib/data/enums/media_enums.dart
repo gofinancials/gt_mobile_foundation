@@ -2,22 +2,28 @@
 enum MediaOrigin {
   /// Media loaded from a network URL.
   network,
+
   /// Media loaded from an app asset.
   asset,
+
   /// Media loaded from a local file.
   file,
+
   /// Media loaded from memory (e.g. Uint8List).
   memory,
+
   /// Invalid or unknown media origin.
-  invalid
+  invalid,
 }
 
 /// Specifies the type of media.
 enum MediaType {
   /// Audio media type.
   audio,
+
   /// Video media type.
   video,
+
   /// Image media type.
   image;
 
@@ -25,7 +31,7 @@ enum MediaType {
 
   /// Returns `true` if this media type is [audio].
   bool get isAudio => this == MediaType.audio;
-  
+
   /// Returns `true` if this media type is [video].
   bool get isVideo => this == MediaType.video;
 

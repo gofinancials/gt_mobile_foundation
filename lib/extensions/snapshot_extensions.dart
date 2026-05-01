@@ -18,7 +18,7 @@ extension SnapshotExtension on AsyncSnapshot {
   }
 }
 
-extension HttpSnapshotExtension<T> on AsyncSnapshot<NetworkResponse<T>> {
+extension HttpSnapshotExtension<T> on AsyncSnapshot<TaskResponse<T>> {
   bool get hasResponse {
     final firstCondition = !isLoading && hasData;
     bool secondCondition = this.data != null;

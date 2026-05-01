@@ -14,8 +14,8 @@ extension ColorExtension on Color {
   /// Returns a [ColorSet] derived from the current color's value.
   ColorSet get colorSet => ColorSet(value);
 
-  /// A color is considered bright if its luminance is greater than 0.5. 
-  /// 
+  /// A color is considered bright if its luminance is greater than 0.5.
+  ///
   /// Note: This is very expensive to compute so avoid using it in performance critical code.
   bool get isBright => computeLuminance() > 0.5 ? true : false;
 
