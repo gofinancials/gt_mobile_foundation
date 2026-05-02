@@ -104,6 +104,10 @@ extension TimeExtension on TimeOfDay {
     if (other == null) return false;
     return minute == other.minute;
   }
+
+  String formattedTime([String format = "hh:mm a"]) {
+    return asDate.format(format);
+  }
 }
 
 extension DateRangeExtension on DateTimeRange {
