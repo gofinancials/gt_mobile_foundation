@@ -1,15 +1,40 @@
+import 'package:equatable/equatable.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
-sealed class TaskResponse<T> {}
+sealed class TaskResponse<T> extends Equatable {}
 
 class TaskSuccess<T> extends TaskResponse<T> {
   final T data;
   TaskSuccess({required this.data});
+
+  @override
+  List<Object?> get props => [data];
 }
 
 class TaskFailure<T> extends TaskResponse<T> {
   final TaskError error;
   TaskFailure({required this.error});
+
+  @override
+  List<Object?> get props => [error];
+}
+
+class TaskError extends Equatable {
+  final String message;
+  final int statusCode;
+  final dynamic error;
+
+  const TaskError({required this.message, this.statusCode = 500, this.error});
+
+  @override
+  List<Object?> get props => [message, statusCode, error.hashCode];
+}
+
+final class NoResponse extends Equatable {
+  const NoResponse();
+
+  @override
+  List<Object?> get props => [hashCode];
 }
 
 extension TaskResponseExtension<T> on TaskResponse<T> {
@@ -47,16 +72,4 @@ extension TaskResponseExtension<T> on TaskResponse<T> {
     final error = (this as TaskFailure<T>).error;
     return error.message;
   }
-}
-
-class TaskError {
-  final String message;
-  final int statusCode;
-  final dynamic error;
-
-  const TaskError({required this.message, this.statusCode = 500, this.error});
-}
-
-final class NoResponse {
-  const NoResponse();
 }
