@@ -107,33 +107,9 @@ extension TimeExtension on TimeOfDay {
 }
 
 extension DateRangeExtension on DateTimeRange {
-  String get fmt => "MM/dd/yyyy";
-  String get longFmt => "MMMM dd yyyy";
-
-  String get formattedDateRange {
-    final startText = start.format(fmt);
-    final endText = end.format(fmt);
-
-    return "$startText - $endText";
-  }
-
-  String get formattedDateRangeLong {
-    final startText = start.format(longFmt);
-    final endText = end.format(longFmt);
-
-    return "$startText - $endText";
-  }
-
-  String get formattedDateTimeRange {
-    final startText = start.format("$fmt hh:mm");
-    final endText = end.format("$fmt hh:mm");
-
-    return "$startText - $endText";
-  }
-
-  String get formattedDateTimeRangeLong {
-    final startText = start.format("$longFmt hh:mm");
-    final endText = end.format("$longFmt hh:mm");
+  String formattedDateRange([String format = "dd-MM-yyy"]) {
+    final startText = start.format(format);
+    final endText = end.format(format);
 
     return "$startText - $endText";
   }
