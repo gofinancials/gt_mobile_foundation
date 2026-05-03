@@ -79,9 +79,9 @@ class Country extends Equatable {
     return countryName ?? officialNameEnglish ?? combinedNameAndCode;
   }
 
-  String get pngFlagUrl {
+  String get rasterFlagUrl {
     if (!isoCode.hasValue) return "";
-    return "https://flagcdn.com/w40/${isoCode?.lower ?? 'ng'}.png";
+    return "https://flagcdn.com/36x27/${isoCode?.lower ?? 'ng'}.webp";
   }
 
   String get svgFlagUrl {
