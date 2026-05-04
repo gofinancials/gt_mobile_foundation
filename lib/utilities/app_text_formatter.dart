@@ -19,15 +19,61 @@ class AppTextFormatter {
   static String? get languageCode => locale?.languageCode.upper;
 
   static String formatPhone(String tel) {
-    if (tel.length < 10) return tel.trim();
+    String digits = tel.withoutWhiteSpaceAndSpecialChar;
+    digits = digits.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return tel.trim();
 
-    if (tel.length == 10) {
-      return "${tel.substring(0, 3)} ${tel.substring(3, 6)} ${tel.substring(6)}";
+    bool hasPlus = tel.trim().startsWith('+');
+    String prefix = hasPlus ? '+' : '';
+
+    if (digits.length <= 4) {
+      return '$prefix$digits';
     }
-    if (tel.length == 11) {
-      return "${tel.substring(0, 4)} ${tel.substring(4, 7)} ${tel.substring(7)}";
+
+    switch (digits.length) {
+      case 5:
+        return '$prefix${digits.substring(0, 3)} ${digits.substring(3)}';
+      case 6:
+        return '$prefix${digits.substring(0, 3)} ${digits.substring(3)}';
+      case 7:
+        return '$prefix${digits.substring(0, 3)} ${digits.substring(3)}';
+      case 8:
+        return '$prefix${digits.substring(0, 4)} ${digits.substring(4)}';
+      case 9:
+        return '$prefix${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
+      case 10:
+        return '$prefix${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
+      case 11:
+        return '$prefix${digits.substring(0, 4)} ${digits.substring(4, 7)} ${digits.substring(7)}';
+      default:
+        List<String> chunks = [];
+        chunks.add(digits.substring(0, 3));
+        int remaining = digits.length - 3;
+        int offset = 3;
+
+        while (remaining > 0) {
+          if (remaining == 4) {
+            chunks.add(digits.substring(offset, offset + 4));
+            break;
+          } else if (remaining == 7) {
+            chunks.add(digits.substring(offset, offset + 3));
+            chunks.add(digits.substring(offset + 3, offset + 7));
+            break;
+          } else if (remaining == 8) {
+            chunks.add(digits.substring(offset, offset + 4));
+            chunks.add(digits.substring(offset + 4, offset + 8));
+            break;
+          } else if (remaining >= 3) {
+            chunks.add(digits.substring(offset, offset + 3));
+            offset += 3;
+            remaining -= 3;
+          } else {
+            chunks.add(digits.substring(offset));
+            break;
+          }
+        }
+        return "$prefix${chunks.join(' ')}";
     }
-    return "+${tel.substring(0, 3)} ${tel.substring(3, 6)} ${tel.substring(6, 9)} ${tel.substring(9)}";
   }
 
   static String age(DateTime? datetime) {
@@ -303,6 +349,102 @@ class AppAmountFormatter extends TextInputFormatter {
       } else {
         return newValue;
       }
+    } catch (e, t) {
+      AppLogger.severe("$e", stackTrace: t, error: e);
+      return oldValue;
+    }
+  }
+}
+
+class AppCardInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    try {
+      final newText = newValue.text.withoutWhiteSpaceAndSpecialChar;
+      final oldText = oldValue.text.withoutWhiteSpaceAndSpecialChar;
+
+      if (newValue.text.length < oldText.length) {
+        return newValue;
+      }
+
+      if (newText.length > 19) return oldValue;
+
+      if (num.tryParse(newText) == null) return oldValue;
+
+      final formattedText = AppTextFormatter.formatCardNumber(newText);
+
+      return TextEditingValue(
+        text: formattedText,
+        selection: TextSelection.collapsed(offset: formattedText.length),
+        composing: TextRange.empty,
+      );
+    } catch (e, t) {
+      AppLogger.severe("$e", stackTrace: t, error: e);
+      return oldValue;
+    }
+  }
+}
+
+class AppCardDateFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    try {
+      final newText = newValue.text.withoutWhiteSpaceAndSpecialChar;
+      final oldText = oldValue.text.withoutWhiteSpaceAndSpecialChar;
+
+      if (newValue.text.length < oldText.length) return newValue;
+
+      if (newText.length > 4) return oldValue;
+
+      if (num.tryParse(newText) == null) return oldValue;
+
+      if (newText.length <= 2) return newValue;
+
+      String formattedText = AppTextFormatter.formatCardExpiry(newText);
+
+      return TextEditingValue(
+        text: formattedText,
+        selection: TextSelection.collapsed(offset: formattedText.length),
+        composing: TextRange.empty,
+      );
+    } catch (e, t) {
+      AppLogger.severe("$e", stackTrace: t, error: e);
+      return oldValue;
+    }
+  }
+}
+
+class AppPhoneNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    try {
+      final newText = newValue.text.withoutWhiteSpaceAndSpecialChar;
+      final oldText = oldValue.text.withoutWhiteSpaceAndSpecialChar;
+
+      if (newText.length <= 4) return newValue;
+
+      if (newValue.text.length < oldText.length) return newValue;
+
+      if (newText.length > 15) return oldValue;
+
+      if (num.tryParse(newText) == null) return oldValue;
+
+      final formattedText = AppTextFormatter.formatPhone(newText);
+
+      return TextEditingValue(
+        text: formattedText,
+        selection: TextSelection.collapsed(offset: formattedText.length),
+        composing: TextRange.empty,
+      );
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t, error: e);
       return oldValue;
