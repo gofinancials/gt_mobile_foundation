@@ -84,6 +84,11 @@ class Country extends Equatable {
     return "https://flagcdn.com/w40/${isoCode?.lower ?? 'ng'}.webp";
   }
 
+  String get circleSvgFlagUrl {
+    if (!isoCode.hasValue) return "";
+    return "https://hatscripts.github.io/circle-flags/flags/${isoCode?.lower ?? 'ng'}.svg";
+  }
+
   String get svgFlagUrl {
     if (!isoCode.hasValue) return "";
     return "https://flagcdn.com/${isoCode?.lower ?? 'ng'}.svg";
