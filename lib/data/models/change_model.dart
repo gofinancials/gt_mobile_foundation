@@ -1,5 +1,6 @@
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Data}
 /// A simple stack data structure for tracking changes.
 class ChangeStack<T> {
   final List<T> _storage;
@@ -34,6 +35,7 @@ class ChangeStack<T> {
   int get hashCode => _storage.hashCode;
 }
 
+/// {@category Data}
 /// A model that manages undo and redo functionality for a list of [Identifiable] objects.
 class ChangeModel<T extends Identifiable> {
   final ChangeStack<List<T>> _undoStack;

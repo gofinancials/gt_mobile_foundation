@@ -1,6 +1,8 @@
 import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:dio/dio.dart';
 
+/// {@category Data}
+/// Represents the configuration and state for the application's HTTP client.
 final class AppHttpModel {
   late final Dio http;
   final String baseUrl;

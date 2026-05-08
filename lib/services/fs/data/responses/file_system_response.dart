@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Services}
+/// Represents an error that occurred during a file system operation.
 class FsError {
   final FsErrorType type;
   final Object? error;
@@ -14,6 +16,8 @@ class FsError {
   bool get isUnknown => type == .unknown;
 }
 
+/// {@category Services}
+/// Contains the response data from a file system operation, including the file or error.
 class FsResponse extends Equatable {
   final File? file;
   final String? name;

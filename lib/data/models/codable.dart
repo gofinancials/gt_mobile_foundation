@@ -1,3 +1,5 @@
+/// {@category Data}
+/// Base class for all model objects that can be serialized to JSON.
 abstract class Codable {
   const Codable();
 

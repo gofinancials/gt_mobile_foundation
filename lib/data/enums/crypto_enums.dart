@@ -1,3 +1,4 @@
+/// {@category Data}
 /// Defines the supported cryptographic encoding modes.
 enum AppCryptoMode {
   /// Base16 (Hexadecimal) encoding.

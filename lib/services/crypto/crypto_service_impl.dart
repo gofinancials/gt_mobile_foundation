@@ -3,18 +3,31 @@ import 'package:encrypt/encrypt_io.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:pointycastle/pointycastle.dart';
 
+/// {@category Services}
+/// The standard implementation of [AppCryptoService] using AES and RSA algorithms.
 class AppCryptoServiceImpl implements AppCryptoService {
+  /// The symmetric key used for AES encryption.
   final String aesKey;
+
+  /// The initialization vector (IV) used for AES encryption.
   final String aesVector;
 
+  /// Optional file path to the RSA public key for asymmetric encryption.
   final String? rsaPublicKeyPath;
 
+  /// Internal RSA encrypter instance.
   Encrypter? _rsaCipher;
+
+  /// Internal RSA public key instance.
   RSAPublicKey? _rsaPublicKey;
 
+  /// Internal AES encrypter instance.
   late final Encrypter _aesCipher;
+
+  /// Internal IV instance for AES.
   late final IV _iv;
 
+  /// Initializes the service with [aesKey], [aesVector], and an optional [rsaPublicKeyPath].
   AppCryptoServiceImpl({
     required this.aesKey,
     required this.aesVector,

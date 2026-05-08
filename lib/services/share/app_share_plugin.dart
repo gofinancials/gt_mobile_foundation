@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
+/// {@category Services}
+/// A plugin for sharing text and files using the `share_plus` package.
 class AppSharePlugin {
   static Rect _getContextRect(BuildContext context) {
     final RenderBox box = context.findRenderObject() as RenderBox;
@@ -12,6 +14,8 @@ class AppSharePlugin {
     return Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height);
   }
 
+  /// Shares a simple [text] snippet to the device's native share sheet.
+  /// An optional [title] can be provided for email subjects or similar contexts.
   static shareText(
     BuildContext context, {
     String? title,
@@ -26,6 +30,9 @@ class AppSharePlugin {
     );
   }
 
+  /// Shares file [data] to the device's native share sheet.
+  /// You can optionally provide a [title], a [fileName] (default: `transcribr_file`),
+  /// and a [mimeType] (default: `application/pdf`).
   static shareFile(
     BuildContext context, {
     String? title,

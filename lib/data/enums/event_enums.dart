@@ -1,3 +1,5 @@
+/// {@category Data}
+/// Defines the specific events tracked by the application's analytics engine.
 enum AppEvent {
   /// NAVIGATION EVENTS
   navigatedTo("NAVIGATED TO"),

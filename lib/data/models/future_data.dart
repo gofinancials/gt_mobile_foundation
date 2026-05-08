@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Data}
+/// Base class representing the state of an asynchronous operation.
 abstract class AsyncData<T extends Equatable> {
   bool get isLoading;
   bool get isPristine;

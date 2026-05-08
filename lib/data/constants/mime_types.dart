@@ -1,3 +1,5 @@
+/// {@category Data}
+/// Contains a set of common MIME type strings used for file and network operations.
 class AppMimeTypes {
   static const jpeg = "image/jpeg";
   static const png = "image/png";

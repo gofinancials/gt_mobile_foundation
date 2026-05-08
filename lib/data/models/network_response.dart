@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Data}
+/// Represents the result of a remote task (success or failure).
 sealed class TaskResponse<T> extends Equatable {}
 
 class TaskSuccess<T> extends TaskResponse<T> {

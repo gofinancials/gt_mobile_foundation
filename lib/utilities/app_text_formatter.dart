@@ -4,6 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:intl/intl.dart';
 
+/// {@category Utilities}
+/// A centralized utility class for formatting text, numbers, currencies, dates,
+/// and phone numbers according to the app's locale and configuration settings.
 class AppTextFormatter {
   static Locale? locale;
 
@@ -18,6 +21,7 @@ class AppTextFormatter {
 
   static String? get languageCode => locale?.languageCode.upper;
 
+  /// Formats the given [tel] string as a standardized phone number layout.
   static String formatPhone(String tel) {
     String digits = tel.withoutWhiteSpaceAndSpecialChar;
     digits = digits.replaceAll(RegExp(r'\D'), '');
@@ -76,6 +80,7 @@ class AppTextFormatter {
     }
   }
 
+  /// Returns a localized, human-readable age string representing the time elapsed since [datetime].
   static String age(DateTime? datetime) {
     if (datetime == null) {
       return strings.momentsAgo.tr();
@@ -102,6 +107,7 @@ class AppTextFormatter {
     return strings.yearsOld.tr({"age": "$yearsSince"});
   }
 
+  /// Returns a localized string representing the time elapsed since [date] compared to [comparisonDate].
   static String timeSince(
     String? date, {
     DateTime? comparisonDate,
@@ -148,6 +154,7 @@ class AppTextFormatter {
     );
   }
 
+  /// Parses and formats the given [date] string using the specified [format] or [fallback].
   static String formatDate(String? date, {String? format, String? fallback}) {
     final formatter = DateFormat(format ?? "MM-dd-yyyy", _locale);
     final datetime = DateTime.tryParse(date ?? "");
@@ -157,10 +164,12 @@ class AppTextFormatter {
     return formatter.format(datetime);
   }
 
+  /// Returns a masked string representation of a currency value (e.g., "$*****").
   static String maskedCurrency(num? value, {String symbol = AppStrings.naira}) {
     return "$symbol*****";
   }
 
+  /// Returns a short, compact formatted currency string (e.g., "1.5K").
   static String formatCurrencyShort(
     num? value, {
     bool spaceIcon = false,
@@ -186,6 +195,7 @@ class AppTextFormatter {
     return formatter.format(amountDouble);
   }
 
+  /// Returns a fully formatted currency string with comma separators.
   static String formatCurrency(
     num? value, {
     bool spaceIcon = false,
@@ -210,6 +220,7 @@ class AppTextFormatter {
     return formatter.format(amountDouble);
   }
 
+  /// Formats the numeric [amount] using a custom formatting [pattern].
   static String formatNumberCutsom(
     String amount,
     String pattern, [
@@ -225,6 +236,7 @@ class AppTextFormatter {
     return formatter.format(num.tryParse(amount));
   }
 
+  /// Returns a short, compact formatted number string without currency symbol.
   static String formatNumber(String amount, [bool ignoreLocale = false]) {
     if (!amount.hasValue) return "";
 
@@ -237,6 +249,7 @@ class AppTextFormatter {
     return formatter.format(amountDouble);
   }
 
+  /// Returns a fully formatted number string with comma separators.
   static String formatNumberLong(String amount) {
     if (!amount.hasValue) return "";
 
@@ -247,6 +260,7 @@ class AppTextFormatter {
     return formatter.format(amountDouble);
   }
 
+  /// Returns a formatted string representing a salary range.
   static String formatSalaryRange({
     num? from,
     num? to,
@@ -271,6 +285,7 @@ class AppTextFormatter {
     return "$fromText $salaryFrom $toText $salaryTo";
   }
 
+  /// Returns a compact formatted string representing a salary range.
   static String formatSalaryRangeShort({
     num? from,
     num? to,
@@ -295,6 +310,7 @@ class AppTextFormatter {
     return "$prefixText$salaryFrom - $salaryTo";
   }
 
+  /// Formats the given [value] into a standard card expiry format (MM/YY).
   static String formatCardExpiry(String value) {
     String text = value.withoutWhiteSpaceAndSpecialChar;
 
@@ -303,6 +319,7 @@ class AppTextFormatter {
     return text;
   }
 
+  /// Formats the given [value] into grouped blocks representing a credit card number.
   static String formatCardNumber(String value) {
     final text = value.withoutWhiteSpaceAndSpecialChar;
     if (text.length <= 4) return text;
@@ -321,6 +338,8 @@ class AppTextFormatter {
   }
 }
 
+/// {@category Utilities}
+/// A [TextInputFormatter] that automatically formats the input as a number with commas.
 class AppAmountFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -356,6 +375,8 @@ class AppAmountFormatter extends TextInputFormatter {
   }
 }
 
+/// {@category Utilities}
+/// A [TextInputFormatter] that automatically formats the input as a grouped credit card number.
 class AppCardInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -388,6 +409,8 @@ class AppCardInputFormatter extends TextInputFormatter {
   }
 }
 
+/// {@category Utilities}
+/// A [TextInputFormatter] that automatically formats the input as a card expiry date (MM/YY).
 class AppCardDateFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -420,6 +443,8 @@ class AppCardDateFormatter extends TextInputFormatter {
   }
 }
 
+/// {@category Utilities}
+/// A [TextInputFormatter] that automatically formats the input as a phone number.
 class AppPhoneNumberFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(

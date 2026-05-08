@@ -1,5 +1,6 @@
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Extensions}
 /// Extensions on nullable [Iterable] for safer data manipulation.
 extension IterableExtension<T> on Iterable<T>? {
   /// Returns the first element matching the [onValidate] condition, or `null` if none match or an error occurs.
@@ -87,6 +88,7 @@ extension IterableExtension<T> on Iterable<T>? {
   }
 }
 
+/// {@category Extensions}
 /// Extensions on nullable [List] for safer data manipulation.
 extension ListExtension<T> on List<T>? {
   /// Tries to add an [object] to the list, catching any potential errors.
@@ -202,6 +204,7 @@ extension ListExtension<T> on List<T>? {
   List<T> get value => this ?? [];
 }
 
+/// {@category Extensions}
 /// Extensions on non-nullable [List] for data manipulation.
 extension NonNullListExtension<T> on List<T> {
   /// Inserts [interspersend] between each element of the list.

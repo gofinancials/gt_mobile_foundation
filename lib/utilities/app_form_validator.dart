@@ -1,5 +1,8 @@
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Utilities}
+/// Provides a comprehensive suite of static methods for validating form inputs
+/// such as emails, passwords, dates, amounts, and custom regex patterns.
 class AppValidators {
   static bool _isEmpty(String? text) => !text.hasValue;
 
@@ -7,6 +10,7 @@ class AppValidators {
     return locator<AppConfig>().strings;
   }
 
+  /// Validates a [password] ensuring it's not empty and meets the [minLength] requirement.
   static String? passwordValidator(
     String? password, {
     String? errorMessage,
@@ -30,6 +34,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates that [base] matches [comparison].
   static String? matchValidator(
     String? base,
     String? comparison, {
@@ -51,6 +56,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates the [email] format using regex.
   static String? emailValidator(
     String? email, {
     String? errorMessage,
@@ -72,6 +78,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates the [url] format using regex.
   static String? urlValidator(
     String? url, {
     String? errorMessage,
@@ -93,6 +100,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates the [tel] (phone number) format using regex.
   static String? phoneValidator(
     String? tel, {
     String? errorMessage,
@@ -114,6 +122,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates that a parsed [date] meets the [minAge] requirement.
   static String? dobValidator(
     String? date, {
     String? errorMessage,
@@ -144,6 +153,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates a [date] string, optionally ensuring it is greater/less than [otherDate].
   static String? dateValidator(
     String? date, {
     String? errorMessage,
@@ -193,6 +203,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates that [data] is not empty.
   static String? required(
     String? data, {
     String? errorMessage,
@@ -205,6 +216,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates that the [data] list is not empty.
   static String? requiredList(
     List? data, {
     String? errorMessage,
@@ -219,6 +231,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates that [name] is not empty.
   static String? nameValidator(
     String? name, {
     String? errorMessage,
@@ -236,6 +249,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates that [value] parses to a valid amount within [minAmount] and [maxAmount].
   static String? amountValidator(
     String? value, {
     String? errorMessage,
@@ -267,6 +281,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates that the numeric [value] does not exceed the provided [balance].
   static String? balanceValidator(
     String? value, {
     String? errorMessage,
@@ -289,6 +304,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates that [value] parses successfully to a numeric digit.
   static String? digitValidator(
     String? value, {
     String? errorMessage,
@@ -309,6 +325,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates that [text] meets the minimum [length] requirement.
   static String? minLength(
     String? text, {
     String? errorMessage,
@@ -331,6 +348,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates that [text] does not exceed the maximum [length] requirement.
   static String? maxLength(
     String? text, {
     String? errorMessage,
@@ -353,6 +371,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates the credit card expiry [text] is not in the past.
   static String? cardExpiryValidator(
     String? text, {
     String? errorMessage,
@@ -373,6 +392,7 @@ class AppValidators {
     return null;
   }
 
+  /// Validates the credit [text] (card number) format based on known card regex patterns.
   static String? cardNumberValidator(
     String? text, {
     required String errorMessage,
@@ -396,6 +416,7 @@ class AppValidators {
     return errorMessage;
   }
 
+  /// Validates the credit card [text] (CVV) format.
   static String? cvvValidator(
     String? text, {
     required String errorMessage,
@@ -414,6 +435,7 @@ class AppValidators {
     return errorMessage;
   }
 
+  /// Validates the [text] matches the standard Nigerian BVN format.
   static String? bvnValidator(
     String? text, {
     required String errorMessage,
@@ -432,6 +454,7 @@ class AppValidators {
     return errorMessage;
   }
 
+  /// Validates the [text] matches the standard Nigerian NUBAN format.
   static String? nubanValidator(
     String? text, {
     required String errorMessage,

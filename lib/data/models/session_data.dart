@@ -1,3 +1,5 @@
+/// {@category Data}
+/// Holds session information for an authenticated user.
 class SessionData {
   int id;
   String accessToken;

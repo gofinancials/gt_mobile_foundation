@@ -1,3 +1,6 @@
+/// {@category Data}
+/// Defines standard string constants used across the application,
+/// such as currency symbols and bullet points.
 class AppStrings {
   static const dot = "\u2022";
   static const dotSeparator = " • ";

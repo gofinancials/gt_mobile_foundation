@@ -1,7 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Services}
+/// An interceptor that checks for active internet connection before executing a network request.
 class NetworkInterceptor extends Interceptor {
+  /// Creates a new instance of [NetworkInterceptor].
   const NetworkInterceptor();
 
   @override

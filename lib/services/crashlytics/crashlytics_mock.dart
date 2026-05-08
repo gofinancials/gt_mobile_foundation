@@ -1,5 +1,7 @@
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Services}
+/// A mock implementation of [AppCrashlyticsService] that logs errors to the console.
 class AppCrashlyticsMockService implements AppCrashlyticsService {
   @override
   Future init() async {}
