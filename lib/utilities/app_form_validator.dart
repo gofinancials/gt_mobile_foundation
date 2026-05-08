@@ -9,6 +9,8 @@ class AppValidators {
 
   static String? passwordValidator(
     String? password, {
+    String? errorMessage,
+    String? emptyMessage,
     bool isRequired = true,
     int minLength = 3,
   }) {
@@ -17,11 +19,12 @@ class AppValidators {
     if (!isRequired && isEmpty) return null;
 
     if (isEmpty) {
-      return strings.passwordRequired.tr();
+      return emptyMessage ?? strings.passwordRequired.tr();
     }
 
     if ((password?.length ?? 0) < minLength) {
-      return strings.passwordMustHaveNChars.tr({"num": "$minLength"});
+      return errorMessage ??
+          strings.passwordMustHaveNChars.tr({"num": "$minLength"});
     }
 
     return null;
@@ -30,7 +33,9 @@ class AppValidators {
   static String? matchValidator(
     String? base,
     String? comparison, {
-    String? message,
+    String? errorMessage,
+    String? emptyMessage,
+
     bool isRequired = true,
   }) {
     final isEmpty = _isEmpty(base);
@@ -38,41 +43,51 @@ class AppValidators {
     if (!isRequired && isEmpty) return null;
 
     if (isEmpty) {
-      return strings.fieldRequired.tr();
+      return emptyMessage ?? strings.fieldRequired.tr();
     }
 
-    if (base != comparison) return message ?? strings.fieldsDontMatch.tr();
+    if (base != comparison) return errorMessage ?? strings.fieldsDontMatch.tr();
 
     return null;
   }
 
-  static String? emailValidator(String? email, {bool isRequired = true}) {
+  static String? emailValidator(
+    String? email, {
+    String? errorMessage,
+    String? emptyMessage,
+    bool isRequired = true,
+  }) {
     final isEmpty = _isEmpty(email);
 
     if (!isRequired && isEmpty) return null;
 
     if (isEmpty) {
-      return strings.fieldRequired.tr();
+      return emptyMessage ?? strings.fieldRequired.tr();
     }
 
     if (!AppRegex.mailRegEx.hasMatch(email!)) {
-      return strings.provideValidEmail.tr();
+      return errorMessage ?? strings.provideValidEmail.tr();
     }
 
     return null;
   }
 
-  static String? urlValidator(String? url, {bool isRequired = true}) {
+  static String? urlValidator(
+    String? url, {
+    String? errorMessage,
+    String? emptyMessage,
+    bool isRequired = true,
+  }) {
     final isEmpty = _isEmpty(url);
 
     if (!isRequired && isEmpty) return null;
 
     if (isEmpty) {
-      return strings.fieldRequired.tr();
+      return emptyMessage ?? strings.fieldRequired.tr();
     }
 
     if (!AppRegex.urlRegex.hasMatch(url!)) {
-      return strings.invalidUrl.tr();
+      return errorMessage ?? strings.invalidUrl.tr();
     }
 
     return null;
@@ -80,6 +95,8 @@ class AppValidators {
 
   static String? phoneValidator(
     String? tel, {
+    String? errorMessage,
+    String? emptyMessage,
     String countryCode = "",
     bool isRequired = true,
   }) {
@@ -88,17 +105,19 @@ class AppValidators {
     if (!isRequired && isEmpty) return null;
 
     if (isEmpty) {
-      return strings.fieldRequired.tr();
+      return emptyMessage ?? strings.fieldRequired.tr();
     }
 
     if (!AppRegex.phoneRegex.hasMatch("$countryCode$tel")) {
-      return strings.invalidPhone.tr();
+      return errorMessage ?? strings.invalidPhone.tr();
     }
     return null;
   }
 
   static String? dobValidator(
     String? date, {
+    String? errorMessage,
+    String? emptyMessage,
     int minAge = 18,
     bool isRequired = true,
   }) {
@@ -107,19 +126,19 @@ class AppValidators {
     if (!isRequired && isEmpty) return null;
 
     if (isEmpty) {
-      return strings.fieldRequired.tr();
+      return emptyMessage ?? strings.fieldRequired.tr();
     }
 
     final parsedDate = DateTime.tryParse(date ?? '');
 
-    if (parsedDate == null) return strings.invalidDate.tr();
+    if (parsedDate == null) return errorMessage ?? strings.invalidDate.tr();
 
     final now = DateTime.now();
 
     final yearsSinceDate = (now.difference(parsedDate).inDays / 365);
 
     if (yearsSinceDate < minAge) {
-      return strings.mustBeNYears.tr({"age": "$minAge"});
+      return errorMessage ?? strings.mustBeNYears.tr({"age": "$minAge"});
     }
 
     return null;
@@ -127,6 +146,8 @@ class AppValidators {
 
   static String? dateValidator(
     String? date, {
+    String? errorMessage,
+    String? emptyMessage,
     String? otherDate,
     bool? shouldBeGreaterThan,
     String? comparisonErrorMessage,
@@ -137,12 +158,12 @@ class AppValidators {
     if (!isRequired && isEmpty) return null;
 
     if (isEmpty) {
-      return strings.fieldRequired.tr();
+      return emptyMessage ?? strings.fieldRequired.tr();
     }
 
     final parsedDate = DateTime.tryParse(date ?? '');
 
-    if (parsedDate == null) return strings.invalidDate.tr();
+    if (parsedDate == null) return errorMessage ?? strings.invalidDate.tr();
 
     if (!_isEmpty(otherDate) && shouldBeGreaterThan != null) {
       final parsedOtherDate = DateTime.tryParse(otherDate ?? '');
@@ -150,7 +171,7 @@ class AppValidators {
       if (parsedOtherDate == null) return null;
 
       final defaultErrorMessage =
-          comparisonErrorMessage ?? strings.invalidDate.tr();
+          comparisonErrorMessage ?? errorMessage ?? strings.invalidDate.tr();
 
       String? message;
 
@@ -172,31 +193,44 @@ class AppValidators {
     return null;
   }
 
-  static String? required(String? data) {
+  static String? required(
+    String? data, {
+    String? errorMessage,
+    String? emptyMessage,
+  }) {
     bool isEmpty = _isEmpty(data);
 
-    if (isEmpty) return strings.fieldRequired.tr();
+    if (isEmpty) return emptyMessage ?? strings.fieldRequired.tr();
 
     return null;
   }
 
-  static String? requiredList(List? data) {
+  static String? requiredList(
+    List? data, {
+    String? errorMessage,
+    String? emptyMessage,
+  }) {
     final isEmpty = !data.hasValue;
 
     if (isEmpty) {
-      return strings.fieldRequired.tr();
+      return emptyMessage ?? strings.fieldRequired.tr();
     }
 
     return null;
   }
 
-  static String? nameValidator(String? name, {bool isRequired = true}) {
+  static String? nameValidator(
+    String? name, {
+    String? errorMessage,
+    String? emptyMessage,
+    bool isRequired = true,
+  }) {
     final isEmpty = _isEmpty(name);
 
     if (!isRequired && isEmpty) return null;
 
     if (isEmpty) {
-      return strings.fieldRequired.tr();
+      return emptyMessage ?? strings.fieldRequired.tr();
     }
 
     return null;
@@ -204,6 +238,8 @@ class AppValidators {
 
   static String? amountValidator(
     String? value, {
+    String? errorMessage,
+    String? emptyMessage,
     num? minAmount,
     num? maxAmount,
     bool isRequired = true,
@@ -213,58 +249,70 @@ class AppValidators {
     if (!isRequired && isEmpty) return null;
 
     if (isEmpty) {
-      return strings.fieldRequired.tr();
+      return emptyMessage ?? strings.fieldRequired.tr();
     }
 
     final num? amount = AppHelpers.extractAmount(value);
     if (amount == null) {
-      return strings.invalidAmount.tr();
+      return errorMessage ?? strings.invalidAmount.tr();
     }
     if (minAmount != null && amount < minAmount) {
       final min = AppTextFormatter.formatCurrency(minAmount);
-      return strings.amountMinimum.tr({"amount": min});
+      return errorMessage ?? strings.amountMinimum.tr({"amount": min});
     }
     if (maxAmount != null && amount > maxAmount) {
       final max = AppTextFormatter.formatCurrency(maxAmount);
-      return strings.amountMaximum.tr({"amount": max});
+      return errorMessage ?? strings.amountMaximum.tr({"amount": max});
     }
     return null;
   }
 
-  static String? balanceValidator(String? value, {required num balance}) {
+  static String? balanceValidator(
+    String? value, {
+    String? errorMessage,
+    String? emptyMessage,
+    required num balance,
+  }) {
     final isEmpty = _isEmpty(value);
 
     if (isEmpty) {
-      return strings.fieldRequired.tr();
+      return emptyMessage ?? strings.fieldRequired.tr();
     }
 
     final num? amount = AppHelpers.extractAmount(value);
     if (amount == null) {
-      return strings.invalidAmount.tr();
+      return errorMessage ?? strings.invalidAmount.tr();
     }
     if (amount > balance) {
-      return strings.insufficentFunds.tr();
+      return errorMessage ?? strings.insufficentFunds.tr();
     }
     return null;
   }
 
-  static String? digitValidator(String? value, {bool isRequired = true}) {
+  static String? digitValidator(
+    String? value, {
+    String? errorMessage,
+    String? emptyMessage,
+    bool isRequired = true,
+  }) {
     final isEmpty = _isEmpty(value);
 
     if (!isRequired && isEmpty) return null;
 
     if (isEmpty) {
-      return strings.fieldRequired.tr();
+      return emptyMessage ?? strings.fieldRequired.tr();
     }
     final num? amount = AppHelpers.extractAmount(value);
     if (amount == null) {
-      return strings.invalidNumber.tr();
+      return errorMessage ?? strings.invalidNumber.tr();
     }
     return null;
   }
 
   static String? minLength(
     String? text, {
+    String? errorMessage,
+    String? emptyMessage,
     bool isRequired = true,
     int length = 6,
   }) {
@@ -273,11 +321,11 @@ class AppValidators {
     if (!isRequired && isEmpty) return null;
 
     if (isEmpty) {
-      return strings.fieldRequired.tr();
+      return emptyMessage ?? strings.fieldRequired.tr();
     }
 
     if ((text?.trim().length ?? 0) < length) {
-      return strings.minLength.tr({"num": "$length"});
+      return errorMessage ?? strings.minLength.tr({"num": "$length"});
     }
 
     return null;
@@ -285,6 +333,8 @@ class AppValidators {
 
   static String? maxLength(
     String? text, {
+    String? errorMessage,
+    String? emptyMessage,
     bool isRequired = true,
     int length = 6,
   }) {
@@ -293,13 +343,110 @@ class AppValidators {
     if (!isRequired && isEmpty) return null;
 
     if (isEmpty) {
-      return strings.fieldRequired.tr();
+      return emptyMessage ?? strings.fieldRequired.tr();
     }
 
     if ((text?.length ?? 0) > length) {
-      return strings.maxLength.tr({"num": "$length"});
+      return errorMessage ?? strings.maxLength.tr({"num": "$length"});
     }
 
     return null;
+  }
+
+  static String? cardExpiryValidator(
+    String? text, {
+    String? errorMessage,
+    String? emptyMessage,
+  }) {
+    if (!text.hasValue) return emptyMessage ?? strings.fieldRequired.tr();
+
+    DateTime now = DateTime.now();
+    now = DateTime(now.year, now.month);
+    final parsedDate = text?.fromCardExpiryTextToDate;
+
+    if (parsedDate == null) return errorMessage ?? strings.invalidDate.tr();
+
+    final isAfterNow = parsedDate >= now;
+
+    if (!isAfterNow) return errorMessage ?? strings.invalidDate.tr();
+
+    return null;
+  }
+
+  static String? cardNumberValidator(
+    String? text, {
+    required String errorMessage,
+    String? emptyMessage,
+    bool isRequired = true,
+  }) {
+    final number = text.value.withoutWhiteSpaceAndSpecialChar;
+    final isEmpty = _isEmpty(number);
+
+    if (!isRequired && isEmpty) return null;
+
+    if (isEmpty) return emptyMessage ?? strings.fieldRequired.tr();
+
+    if (AppRegex.masterRegex.hasMatch(number)) return null;
+    if (AppRegex.visaRegex.hasMatch(number)) return null;
+    if (AppRegex.maestroRegex.hasMatch(number)) return null;
+    if (AppRegex.jcbRegex.hasMatch(number)) return null;
+    if (AppRegex.unionpayRegex.hasMatch(number)) return null;
+    if (AppRegex.amexRegex.hasMatch(number)) return null;
+
+    return errorMessage;
+  }
+
+  static String? cvvValidator(
+    String? text, {
+    required String errorMessage,
+    String? emptyMessage,
+    bool isRequired = true,
+  }) {
+    final number = text.value.withoutWhiteSpaceAndSpecialChar;
+    final isEmpty = _isEmpty(number);
+
+    if (!isRequired && isEmpty) return null;
+
+    if (isEmpty) return emptyMessage ?? strings.fieldRequired.tr();
+
+    if (AppRegex.cvvRegex.hasMatch(number)) return null;
+
+    return errorMessage;
+  }
+
+  static String? bvnValidator(
+    String? text, {
+    required String errorMessage,
+    String? emptyMessage,
+    bool isRequired = true,
+  }) {
+    final number = text.value.withoutWhiteSpaceAndSpecialChar;
+    final isEmpty = _isEmpty(number);
+
+    if (!isRequired && isEmpty) return null;
+
+    if (isEmpty) return emptyMessage ?? strings.fieldRequired.tr();
+
+    if (AppRegex.bvnRegex.hasMatch(number)) return null;
+
+    return errorMessage;
+  }
+
+  static String? nubanValidator(
+    String? text, {
+    required String errorMessage,
+    String? emptyMessage,
+    bool isRequired = true,
+  }) {
+    final number = text.value.withoutWhiteSpaceAndSpecialChar;
+    final isEmpty = _isEmpty(number);
+
+    if (!isRequired && isEmpty) return null;
+
+    if (isEmpty) return emptyMessage ?? strings.fieldRequired.tr();
+
+    if (AppRegex.nubanRegex.hasMatch(number)) return null;
+
+    return errorMessage;
   }
 }

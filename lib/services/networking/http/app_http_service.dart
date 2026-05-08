@@ -2,9 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
 abstract class AppHttpService {
-  late final Dio _http;
+  AppHttpService(this._httpModel);
+  final AppHttpModel _httpModel;
 
-  Dio get http => _http;
+  Dio get _http => _httpModel.http;
 
   FormData generateFormData(Map<String, dynamic> data) {
     return FormData.fromMap(data);
@@ -18,11 +19,17 @@ abstract class AppHttpService {
     _http.interceptors.addAll(interceptors);
   }
 
-  Future<Response> get(String path, {Codable? query, Options? options}) async {
+  Future<Response> get(
+    String path, {
+    Codable? query,
+    Options? options,
+    ProgressCallback? onReceiveProgress,
+  }) async {
     return await _http.get(
       path,
       queryParameters: query?.toJson(),
       options: options,
+      onReceiveProgress: onReceiveProgress,
     );
   }
 
@@ -45,12 +52,16 @@ abstract class AppHttpService {
     Codable? query,
     Codable? body,
     Options? options,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
   }) {
     return _http.put(
       path,
       data: body?.toJson(),
       queryParameters: query?.toJson(),
       options: options,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
     );
   }
 
@@ -59,12 +70,16 @@ abstract class AppHttpService {
     Codable? query,
     Codable? body,
     Options? options,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
   }) {
     return _http.patch(
       path,
       data: body?.toJson(),
       queryParameters: query?.toJson(),
       options: options,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
     );
   }
 
@@ -73,12 +88,16 @@ abstract class AppHttpService {
     Codable? query,
     Codable? body,
     Options? options,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
   }) {
     return _http.post(
       path,
       data: body?.toJson(),
       queryParameters: query?.toJson(),
       options: options,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
     );
   }
 
@@ -87,17 +106,14 @@ abstract class AppHttpService {
     Codable? query,
     FormData? body,
     ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
   }) {
     return _http.post(
       path,
       data: body,
       queryParameters: query?.toJson(),
-      onReceiveProgress: (bytes, total) {
-        onSendProgress?.call(bytes ~/ 2, total);
-      },
-      onSendProgress: (bytes, total) {
-        onSendProgress?.call(bytes, total);
-      },
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
       options: Options(
         sendTimeout: 10.minutes,
         receiveTimeout: 10.minutes,

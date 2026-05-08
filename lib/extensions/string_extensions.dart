@@ -155,6 +155,25 @@ extension StringExtension on String {
       return [].cast();
     }
   }
+
+  DateTime? get fromCardExpiryTextToDate {
+    if (!hasValue) return null;
+
+    final parts = split("/");
+
+    final isPair = parts.length == 2;
+    final containsPairParts = parts.every((it) => it.length == 2);
+    final containsDigits = parts.every((it) => it.asInt != null);
+
+    if (!(isPair && containsDigits && containsPairParts)) return null;
+
+    final month = parts.first.asInt ?? 0;
+    final year = 2000 + (parts.last.asInt ?? 0);
+
+    if (month > 12 || month < 1) return null;
+
+    return DateTime(year, month);
+  }
 }
 
 extension NullableStringExtension on String? {
