@@ -1,7 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Services}
+/// An interceptor that logs detailed request, response, and error information, and pushes events to analytics.
 class LoggerInterceptor with AppAnalyticsMixin implements InterceptorsWrapper {
+  /// Creates a new instance of [LoggerInterceptor].
   const LoggerInterceptor();
 
   @override

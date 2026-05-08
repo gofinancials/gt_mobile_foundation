@@ -1,6 +1,7 @@
 import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+/// {@category Services}
 /// Implementation of [AppPermissionService] using the `permission_handler` package.
 class AppPermissionServiceImpl implements AppPermissionService {
   /// Checks if the given [permissions] are granted, limited, or restricted.

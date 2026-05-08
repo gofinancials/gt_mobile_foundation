@@ -2,6 +2,10 @@
 
 import 'dart:ui';
 
+/// {@category Data}
+/// A custom [Color] subclass that manages a light and dark theme pair.
+///
+/// It automatically calculates an inverted color for dark mode if none is provided.
 class ColorSet extends Color {
   final int? _dark;
 

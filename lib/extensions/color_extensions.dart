@@ -3,6 +3,8 @@ import 'package:gt_mobile_foundation/foundation.dart';
 
 // ignore_for_file: deprecated_member_use
 
+/// {@category Extensions}
+/// Extensions on [Color] providing opacity, brightness, and CSS hex conversions.
 extension ColorExtension on Color {
   /// Sets the opacity of the color.
   ///

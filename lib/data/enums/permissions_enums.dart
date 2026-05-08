@@ -1,3 +1,5 @@
+/// {@category Data}
+/// Defines all the operating system permissions that the app may request.
 enum AppPermissions {
   calendar,
   camera,

@@ -1,6 +1,9 @@
 import 'package:dio/dio.dart';
 
+/// {@category Services}
+/// An interceptor that automatically attaches the appropriate `Content-Type` header based on the request data format.
 class ContentTypeInterceptor extends Interceptor {
+  /// Creates a new instance of [ContentTypeInterceptor].
   const ContentTypeInterceptor();
 
   @override

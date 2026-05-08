@@ -1,5 +1,7 @@
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Services}
+/// A mock implementation of [AppPermissionService] for testing.
 class AppPermissionServiceMock implements AppPermissionService {
   @override
   Future<bool> isPermissionGranted(AppPermissions permissions) async {

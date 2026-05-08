@@ -7,9 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:flutter/rendering.dart';
 
+/// {@category Services}
+/// A service for capturing screenshots of the application's UI, including long scrollable areas.
 class ScreenShotService {
+  /// Global key used to identify the widget boundary to capture.
   final GlobalKey screenShotKey = GlobalKey();
 
+  /// Captures a long screenshot by scrolling through the provided [scrollController].
+  /// Useful for capturing scrollable content like lists or forms.
   Future<List<Uint8List?>> captureLongScreen(
     BuildContext context, {
     required ScrollController scrollController,
@@ -51,6 +56,8 @@ class ScreenShotService {
     }
   }
 
+  /// Captures a screenshot of the widget currently associated with [screenShotKey].
+  /// Returns the image data as a PNG-encoded `Uint8List`.
   Future<Uint8List?> captureScreen(
     BuildContext context, {
     double? pixelRatio,

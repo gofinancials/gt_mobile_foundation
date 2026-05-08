@@ -1,10 +1,17 @@
 import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 
+/// {@category Services}
+/// The standard implementation of [BiometricAuthService] utilizing the
+/// `local_auth` package for device-level biometrics.
 class BiometricAuthServiceImpl implements BiometricAuthService {
+  /// Cached value representing if the device has biometric capabilities.
   static bool? _hasBioCapabilities;
+
+  /// The local authentication instance.
   late final LocalAuthentication _auth = LocalAuthentication();
 
+  /// Creates a new instance of [BiometricAuthServiceImpl].
   BiometricAuthServiceImpl();
 
   @override

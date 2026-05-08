@@ -6,9 +6,14 @@ import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
+/// {@category Services}
+/// A plugin for handling file system operations such as picking and saving files.
 class AppFilePlugin {
+  /// Internal instance of [FilePicker].
   static final FilePicker _picker = FilePicker.platform;
 
+  /// Retrieves the MIME type of the given [file].
+  /// Fallbacks to "image/*" if the document type is [FsDocumentType.image] and MIME lookup fails.
   static Future<String?> getFileMimeType(
     File file, {
     FsDocumentType? type,
@@ -28,6 +33,7 @@ class AppFilePlugin {
     }
   }
 
+  /// Calculates the maximum allowed file size in MB based on [mimeType] and user subscription tier.
   static int getMaxSizeInMb(String mimeType, bool isProUser) {
     final mime = mimeType.lower;
     if (mime.startsWith("image")) return 5;
@@ -35,10 +41,13 @@ class AppFilePlugin {
     return 200;
   }
 
+  /// Calculates the maximum duration allowed based on [mimeType] and user subscription tier.
   static Duration getMaxDuration(String mimeType, bool isProUser) {
     return 1.hours;
   }
 
+  /// Opens the device's native file picker to let the user select a file.
+  /// Validates file size against limits based on the user's tier.
   static Future<FsResponse> pickFile({
     String? title,
     FsDocumentType documentType = .document,
@@ -92,6 +101,7 @@ class AppFilePlugin {
     }
   }
 
+  /// Saves the provided [bytes] as a new file on the device with the given [filename] and [ext].
   static Future<FsResponse> saveFile(
     Uint8List bytes, {
     required String filename,

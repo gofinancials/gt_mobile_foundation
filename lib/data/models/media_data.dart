@@ -6,6 +6,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Data}
+/// Defines the structure of generic media data containing its type and metadata.
 abstract class MediaData<T> {
   bool get isValid;
   bool get isUrl;

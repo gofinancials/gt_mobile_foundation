@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Services}
+/// A mock implementation of [AppCryptoService] that uses Base64 encoding.
 class AppCryptoServiceMock implements AppCryptoService {
   @override
   String encrypt(String data, {AppCryptoMode mode = .base16}) {

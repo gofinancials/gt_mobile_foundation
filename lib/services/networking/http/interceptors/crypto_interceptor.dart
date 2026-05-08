@@ -1,9 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Services}
+/// An interceptor that intercepts outgoing requests and encrypts the body data using [AppCryptoService].
 class EncryptInterceptor extends QueuedInterceptorsWrapper {
+  /// The cryptography service used for encryption.
   final AppCryptoService _service;
 
+  /// Creates a new instance of [EncryptInterceptor].
   EncryptInterceptor(this._service);
 
   @override
@@ -21,9 +25,13 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
   }
 }
 
+/// {@category Services}
+/// An interceptor that intercepts incoming responses and decrypts the body data using [AppCryptoService].
 class DecryptInterceptor extends QueuedInterceptorsWrapper {
+  /// The cryptography service used for decryption.
   final AppCryptoService _service;
 
+  /// Creates a new instance of [DecryptInterceptor].
   DecryptInterceptor(this._service);
 
   @override

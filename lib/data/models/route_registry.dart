@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Data}
+/// Defines the structure for configuring and handling application routes.
 abstract class RouteRegistry {
   Map<String, Widget Function(BuildContext)> get staticRoutes;
   Route<dynamic> dynamicRoutes(RouteSettings settings, Route fallbackRoute);

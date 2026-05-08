@@ -1,3 +1,5 @@
+/// {@category Data}
+/// A centralized repository of regular expressions for form validation and string parsing.
 class AppRegex {
   static final mailRegEx = RegExp(
     r"\b[\w\d\W\D]+(?:@(?:[\w\d\W\D]+(?:\.(?:[\w\d\W\D]+))))\b",

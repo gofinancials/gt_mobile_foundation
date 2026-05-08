@@ -8,6 +8,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Utilities}
+/// A collection of miscellaneous helper functions including JSON parsing,
+/// connection checking, file size calculation, and error extraction.
 class AppHelpers {
   static bool get randomBool {
     final list = [true, false];

@@ -1,3 +1,4 @@
+/// {@category Data}
 /// Specifies the origin of a media asset.
 enum MediaOrigin {
   /// Media loaded from a network URL.

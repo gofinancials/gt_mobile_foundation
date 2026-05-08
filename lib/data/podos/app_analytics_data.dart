@@ -1,5 +1,8 @@
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Data}
+/// Represents a structured analytics event containing an [event] type,
+/// [description], execution timestamp, and optional [value].
 class AppAnalyticsData extends Codable {
   final AppEvent event;
   final String? description;

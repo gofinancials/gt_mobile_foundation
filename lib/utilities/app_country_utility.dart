@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+/// {@category Utilities}
 /// A utility class for fetching and searching country data.
 class AppCountryUtility {
   static List<Country> _countries = [];

@@ -2,7 +2,10 @@ import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 
+/// {@category Utilities}
+/// A simple logger wrapper that prints colored output only in debug mode.
 class AppLogger {
+  /// Logs an informational [data] message in green.
   static info(dynamic data) {
     if (!kDebugMode) return;
     log(
@@ -13,6 +16,7 @@ class AppLogger {
     );
   }
 
+  /// Logs a severe/error [message] in red with optional [stackTrace] and [error] details.
   static severe(dynamic message, {StackTrace? stackTrace, Object? error}) {
     if (!kDebugMode) return;
     log(
@@ -25,6 +29,7 @@ class AppLogger {
     );
   }
 
+  /// Updates the default logging prefix tag.
   static setTag(String tag) => _tag = tag;
 
   static DateTime get _now => DateTime.now();
