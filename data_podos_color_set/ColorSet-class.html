@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the ColorSet class from the color_set library, for the Dart programming language.">
+  <title>ColorSet class - color_set library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../static-assets/styles.css?v1">
+  <link rel="icon" href="../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../index.html">gt_mobile_foundation</a></li>
+    <li><a href="../data_podos_color_set/">data&#47;podos&#47;color_set.dart</a></li>
+    <li class="self-crumb">ColorSet class</li>
+  </ol>
+  <div class="self-name">ColorSet</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="data_podos_color_set&#47;data_podos_color_set-library-sidebar.html"
+    data-below-sidebar="data_podos_color_set&#47;ColorSet-class-sidebar.html">
+    <div>
+<h1><span class="kind-class">ColorSet</span> class 
+ 
+</h1></div>
+
+    
+<section class="desc markdown">
+  <p>A custom <a href="https://api.flutter.dev/flutter/dart-ui/Color-class.html">Color</a> subclass that manages a light and dark theme pair.</p>
+<p>It automatically calculates an inverted color for dark mode if none is provided.</p>
+</section>
+
+
+    <section>
+      <dl class="dl-horizontal">
+        
+  <dt>Inheritance</dt>
+  <dd>
+    <ul class="gt-separated dark clazz-relationships">
+      <li><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a></li>
+        <li><a href="https://api.flutter.dev/flutter/dart-ui/Color-class.html">Color</a></li>
+      <li>ColorSet</li>
+    </ul>
+  </dd>
+
+        
+        
+
+
+        
+  <dt>Available extensions</dt>
+  <dd><ul class="comma-separated clazz-relationships">
+      <li><a href="../extensions_color_extensions/ColorExtension.html">ColorExtension</a></li>
+  </ul></dd>
+        
+
+
+      </dl>
+    </section>
+
+    
+  <section class="summary offset-anchor" id="constructors">
+    <h2>Constructors</h2>
+    <dl class="constructor-summary-list">
+        <dt id="ColorSet.new" class="callable">
+          <span class="name"><a href="../data_podos_color_set/ColorSet/ColorSet.html">ColorSet</a></span><span class="signature">(<span class="parameter" id="-param-value"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">value</span>, [</span><span class="parameter" id="-param-_dark"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a>?</span> <span class="parameter-name">_dark</span></span>])</span>
+        </dt>
+        <dd>
+          
+            <div class="constructor-modifier features">const</div>
+        </dd>
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-properties">
+    <h2>Properties</h2>
+    <dl class="properties">
+        <dt id="a" class="property inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-ui/Color/a.html">a</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The alpha channel of this color.
+  <div class="features"><span class="feature">final</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="alpha" class="property inherited">
+  <span class="name"><a class="deprecated" href="https://api.flutter.dev/flutter/dart-ui/Color/alpha.html">alpha</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The alpha channel of this color in an 8 bit value.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="b" class="property inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-ui/Color/b.html">b</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The blue channel of this color.
+  <div class="features"><span class="feature">final</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="blue" class="property inherited">
+  <span class="name"><a class="deprecated" href="https://api.flutter.dev/flutter/dart-ui/Color/blue.html">blue</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The blue channel of this color in an 8 bit value.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="colorSet" class="property">
+  <span class="name"><a href="../extensions_color_extensions/ColorExtension/colorSet.html">colorSet</a></span>
+  <span class="signature">&#8594; <a href="../data_podos_color_set/ColorSet-class.html">ColorSet</a></span>
+  
+
+</dt>
+<dd>
+      <p class="from-extension">
+        <span>Available on <a href="https://api.flutter.dev/flutter/dart-ui/Color-class.html">Color</a>,
+        provided by the <a href="../extensions_color_extensions/ColorExtension.html">ColorExtension</a> extension</span>
+      </p>
+  Returns a <a href="../data_podos_color_set/ColorSet-class.html">ColorSet</a> derived from the current color's value.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="colorSpace" class="property">
+  <span class="name"><a href="../data_podos_color_set/ColorSet/colorSpace.html">colorSpace</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-ui/ColorSpace.html">ColorSpace</a></span>
+  
+
+</dt>
+<dd>
+  The color space of this color.
+  <div class="features"><span class="feature">no setter</span><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="dark" class="property">
+  <span class="name"><a href="../data_podos_color_set/ColorSet/dark.html">dark</a></span>
+  <span class="signature">&#8594; <a href="../data_podos_color_set/ColorSet-class.html">ColorSet</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="g" class="property inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-ui/Color/g.html">g</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The green channel of this color.
+  <div class="features"><span class="feature">final</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="green" class="property inherited">
+  <span class="name"><a class="deprecated" href="https://api.flutter.dev/flutter/dart-ui/Color/green.html">green</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The green channel of this color in an 8 bit value.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="hashCode" class="property inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-ui/Color/hashCode.html">hashCode</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The hash code for this object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="isBright" class="property">
+  <span class="name"><a href="../extensions_color_extensions/ColorExtension/isBright.html">isBright</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+      <p class="from-extension">
+        <span>Available on <a href="https://api.flutter.dev/flutter/dart-ui/Color-class.html">Color</a>,
+        provided by the <a href="../extensions_color_extensions/ColorExtension.html">ColorExtension</a> extension</span>
+      </p>
+  A color is considered bright if its luminance is greater than 0.5.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="opacity" class="property inherited">
+  <span class="name"><a class="deprecated" href="https://api.flutter.dev/flutter/dart-ui/Color/opacity.html">opacity</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The alpha channel of this color as a double.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="r" class="property inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-ui/Color/r.html">r</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The red channel of this color.
+  <div class="features"><span class="feature">final</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="red" class="property inherited">
+  <span class="name"><a class="deprecated" href="https://api.flutter.dev/flutter/dart-ui/Color/red.html">red</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The red channel of this color in an 8 bit value.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="runtimeType" class="property inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/runtimeType.html">runtimeType</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Type-class.html">Type</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  A representation of the runtime type of the object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="value" class="property inherited">
+  <span class="name"><a class="deprecated" href="https://api.flutter.dev/flutter/dart-ui/Color/value.html">value</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  A 32 bit value representing this color.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-methods">
+    <h2>Methods</h2>
+    <dl class="callables">
+        <dt id="computeLuminance" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-ui/Color/computeLuminance.html">computeLuminance</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns a brightness value between 0 for darkest and 1 for lightest.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="forTheme" class="callable">
+  <span class="name"><a href="../data_podos_color_set/ColorSet/forTheme.html">forTheme</a></span><span class="signature">(<wbr><span class="parameter" id="forTheme-param-inDarkMode"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">inDarkMode</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../data_podos_color_set/ColorSet-class.html">ColorSet</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="noSuchMethod" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
+    <span class="returntype parameter">&#8594; dynamic</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Invoked when a nonexistent method or property is accessed.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="setOpacity" class="callable">
+  <span class="name"><a href="../extensions_color_extensions/ColorExtension/setOpacity.html">setOpacity</a></span><span class="signature">(<wbr><span class="parameter" id="setOpacity-param-opacity"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">opacity</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-ui/Color-class.html">Color</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+      <p class="from-extension">
+        <span>Available on <a href="https://api.flutter.dev/flutter/dart-ui/Color-class.html">Color</a>,
+        provided by the <a href="../extensions_color_extensions/ColorExtension.html">ColorExtension</a> extension</span>
+      </p>
+  Sets the opacity of the color.
+  
+
+</dd>
+
+        <dt id="toARGB32" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-ui/Color/toARGB32.html">toARGB32</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns a 32-bit value representing this color.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="toCssHex" class="callable">
+  <span class="name"><a href="../extensions_color_extensions/ColorExtension/toCssHex.html">toCssHex</a></span><span class="signature">(<wbr>{<span class="parameter" id="toCssHex-param-includeAlpha"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">includeAlpha</span> = <span class="default-value">false</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+      <p class="from-extension">
+        <span>Available on <a href="https://api.flutter.dev/flutter/dart-ui/Color-class.html">Color</a>,
+        provided by the <a href="../extensions_color_extensions/ColorExtension.html">ColorExtension</a> extension</span>
+      </p>
+  Converts a Flutter Color to a CSS hex string.
+  
+
+</dd>
+
+        <dt id="toString" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-ui/Color/toString.html">toString</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  A string representation of this object.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="withAlpha" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-ui/Color/withAlpha.html">withAlpha</a></span><span class="signature">(<wbr><span class="parameter" id="withAlpha-param-a"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">a</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-ui/Color-class.html">Color</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns a new color that matches this color with the alpha channel
+replaced with <code>a</code> (which ranges from 0 to 255).
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="withBlue" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-ui/Color/withBlue.html">withBlue</a></span><span class="signature">(<wbr><span class="parameter" id="withBlue-param-b"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">b</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-ui/Color-class.html">Color</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns a new color that matches this color with the blue channel replaced
+with <code>b</code> (which ranges from 0 to 255).
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="withGreen" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-ui/Color/withGreen.html">withGreen</a></span><span class="signature">(<wbr><span class="parameter" id="withGreen-param-g"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">g</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-ui/Color-class.html">Color</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns a new color that matches this color with the green channel
+replaced with <code>g</code> (which ranges from 0 to 255).
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="withOpacity" class="callable inherited">
+  <span class="name deprecated"><a class="deprecated" href="https://api.flutter.dev/flutter/dart-ui/Color/withOpacity.html">withOpacity</a></span><span class="signature">(<wbr><span class="parameter" id="withOpacity-param-opacity"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">opacity</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-ui/Color-class.html">Color</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns a new color that matches this color with the alpha channel
+replaced with the given <code>opacity</code> (which ranges from 0.0 to 1.0).
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="withRed" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-ui/Color/withRed.html">withRed</a></span><span class="signature">(<wbr><span class="parameter" id="withRed-param-r"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">r</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-ui/Color-class.html">Color</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns a new color that matches this color with the red channel replaced
+with <code>r</code> (which ranges from 0 to 255).
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="withValues" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-ui/Color/withValues.html">withValues</a></span><span class="signature">(<wbr>{<span class="parameter" id="withValues-param-alpha"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a>?</span> <span class="parameter-name">alpha</span>, </span><span class="parameter" id="withValues-param-red"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a>?</span> <span class="parameter-name">red</span>, </span><span class="parameter" id="withValues-param-green"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a>?</span> <span class="parameter-name">green</span>, </span><span class="parameter" id="withValues-param-blue"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a>?</span> <span class="parameter-name">blue</span>, </span><span class="parameter" id="withValues-param-colorSpace"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-ui/ColorSpace.html">ColorSpace</a>?</span> <span class="parameter-name">colorSpace</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-ui/Color-class.html">Color</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns a new color with the provided components updated.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="operators">
+    <h2>Operators</h2>
+    <dl class="callables">
+        <dt id="operator ==" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-ui/Color/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  The equality operator.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+    
+    
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../index.html">gt_mobile_foundation</a></li>
+    <li><a href="../data_podos_color_set/">color_set</a></li>
+    <li class="self-crumb">ColorSet class</li>
+</ol>
+
+    <h5>color_set library</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    gt_mobile_foundation
+      0.0.1
+  </span>
+  
+</footer>
+
+
+<script src="../static-assets/highlight.pack.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

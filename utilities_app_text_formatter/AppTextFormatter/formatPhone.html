@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the formatPhone method from the AppTextFormatter class, for the Dart programming language.">
+  <title>formatPhone method - AppTextFormatter class - app_text_formatter library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">gt_mobile_foundation</a></li>
+    <li><a href="../../utilities_app_text_formatter/">utilities&#47;app_text_formatter.dart</a></li>
+    <li><a href="../../utilities_app_text_formatter/AppTextFormatter-class.html">AppTextFormatter</a></li>
+    <li class="self-crumb">formatPhone static method</li>
+  </ol>
+  <div class="self-name">formatPhone</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="utilities_app_text_formatter&#47;AppTextFormatter-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">formatPhone</span> static method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>
+<span class="name ">formatPhone</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="formatPhone-param-tel"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">tel</span></span></li>
+</ol>)
+
+      
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Formats the given <code>tel</code> string as a standardized phone number layout.</p>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">static String formatPhone(String tel) {
+  String digits = tel.withoutWhiteSpaceAndSpecialChar;
+  digits = digits.replaceAll(RegExp(r&#39;\D&#39;), &#39;&#39;);
+  if (digits.isEmpty) return tel.trim();
+
+  bool hasPlus = tel.trim().startsWith(&#39;+&#39;);
+  String prefix = hasPlus ? &#39;+&#39; : &#39;&#39;;
+
+  if (digits.length &lt;= 4) {
+    return &#39;$prefix$digits&#39;;
+  }
+
+  switch (digits.length) {
+    case 5:
+      return &#39;$prefix${digits.substring(0, 3)} ${digits.substring(3)}&#39;;
+    case 6:
+      return &#39;$prefix${digits.substring(0, 3)} ${digits.substring(3)}&#39;;
+    case 7:
+      return &#39;$prefix${digits.substring(0, 3)} ${digits.substring(3)}&#39;;
+    case 8:
+      return &#39;$prefix${digits.substring(0, 4)} ${digits.substring(4)}&#39;;
+    case 9:
+      return &#39;$prefix${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}&#39;;
+    case 10:
+      return &#39;$prefix${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}&#39;;
+    case 11:
+      return &#39;$prefix${digits.substring(0, 4)} ${digits.substring(4, 7)} ${digits.substring(7)}&#39;;
+    default:
+      List&lt;String&gt; chunks = [];
+      chunks.add(digits.substring(0, 3));
+      int remaining = digits.length - 3;
+      int offset = 3;
+
+      while (remaining &gt; 0) {
+        if (remaining == 4) {
+          chunks.add(digits.substring(offset, offset + 4));
+          break;
+        } else if (remaining == 7) {
+          chunks.add(digits.substring(offset, offset + 3));
+          chunks.add(digits.substring(offset + 3, offset + 7));
+          break;
+        } else if (remaining == 8) {
+          chunks.add(digits.substring(offset, offset + 4));
+          chunks.add(digits.substring(offset + 4, offset + 8));
+          break;
+        } else if (remaining &gt;= 3) {
+          chunks.add(digits.substring(offset, offset + 3));
+          offset += 3;
+          remaining -= 3;
+        } else {
+          chunks.add(digits.substring(offset));
+          break;
+        }
+      }
+      return &quot;$prefix${chunks.join(&#39; &#39;)}&quot;;
+  }
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">gt_mobile_foundation</a></li>
+    <li><a href="../../utilities_app_text_formatter/">app_text_formatter</a></li>
+    <li><a href="../../utilities_app_text_formatter/AppTextFormatter-class.html">AppTextFormatter</a></li>
+    <li class="self-crumb">formatPhone static method</li>
+</ol>
+
+    <h5>AppTextFormatter class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    gt_mobile_foundation
+      0.0.1
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+
