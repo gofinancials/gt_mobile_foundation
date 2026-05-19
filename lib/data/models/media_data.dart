@@ -25,7 +25,7 @@ abstract class MediaData<T> {
   String get mimeType;
 }
 
-class AppMediaData<T> extends Equatable implements MediaData<T> {
+class AppDocumentData<T> extends Equatable implements MediaData<T> {
   final T document;
   final String? id;
   final String? name;
@@ -33,8 +33,8 @@ class AppMediaData<T> extends Equatable implements MediaData<T> {
   final String? createdAt;
   final MediaType? mediaType;
 
-  const AppMediaData({
-    required this.document,
+  const AppDocumentData(
+    this.document, {
     this.contentType,
     this.name,
     this.createdAt,
@@ -153,6 +153,7 @@ class AppImageData<T> extends Equatable implements MediaData<T> {
   final String? createdAt;
   final String? contentType;
 
+  @Deprecated("")
   const AppImageData({
     required this.imageData,
     this.name,
@@ -160,6 +161,46 @@ class AppImageData<T> extends Equatable implements MediaData<T> {
     this.createdAt,
     this.contentType,
   });
+
+  const AppImageData.asset(
+    String assetPath, {
+    this.name,
+    this.id,
+    this.createdAt,
+    this.contentType,
+  }) : imageData = assetPath as T;
+
+  const AppImageData.network(
+    String imageUrl, {
+    this.name,
+    this.id,
+    this.createdAt,
+    this.contentType,
+  }) : imageData = imageUrl as T;
+
+  const AppImageData.bytes(
+    Uint8List bytes, {
+    this.name,
+    this.id,
+    this.createdAt,
+    this.contentType,
+  }) : imageData = bytes as T;
+
+  const AppImageData.file(
+    File file, {
+    this.name,
+    this.id,
+    this.createdAt,
+    this.contentType,
+  }) : imageData = file as T;
+
+  const AppImageData.icon(
+    IconData iconData, {
+    this.name,
+    this.id,
+    this.createdAt,
+    this.contentType,
+  }) : imageData = iconData as T;
 
   @override
   bool get hasId => id != null;
@@ -172,7 +213,7 @@ class AppImageData<T> extends Equatable implements MediaData<T> {
   @override
   bool get isValid {
     if (!_hasData) return false;
-    return isString || isUrl || isFile;
+    return isString || isUrl || isFile || isIcon || isBytes;
   }
 
   @override
@@ -195,6 +236,11 @@ class AppImageData<T> extends Equatable implements MediaData<T> {
   bool get isFile {
     if (!_hasData) return false;
     return imageData is File;
+  }
+
+  bool get isBytes {
+    if (!_hasData) return false;
+    return imageData is Uint8List;
   }
 
   @override
@@ -223,6 +269,21 @@ class AppImageData<T> extends Equatable implements MediaData<T> {
   String? get fileUrl {
     if (!isUrl) return null;
     return imageData as String;
+  }
+
+  IconData? get iconData {
+    if (!isIcon) return null;
+    return imageData as IconData;
+  }
+
+  Uint8List? get bytesData {
+    if (!isBytes) return null;
+    return imageData as Uint8List;
+  }
+
+  MemoryImage? get bytesImageData {
+    if (!isBytes) return null;
+    return MemoryImage(bytesData!);
   }
 
   AssetImage? get stringImageData {
@@ -256,6 +317,11 @@ class AppImageData<T> extends Equatable implements MediaData<T> {
     return file?.path.lower.endsWith(r'.jp(e)?g') ?? false;
   }
 
+  bool get isIcon {
+    if (!_hasData) return false;
+    return imageData is IconData;
+  }
+
   @override
   String get mimeType {
     if (contentType.hasValue) return contentType!;
@@ -278,5 +344,6 @@ class AppImageData<T> extends Equatable implements MediaData<T> {
     file,
     fileName,
     fileUrl,
+    iconData,
   ];
 }

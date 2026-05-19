@@ -244,6 +244,9 @@ extension NullableStringExtension on String? {
 
   /// Returns the acronym parsed from the string.
   String? get accronym => AppHelpers.getAccronym(this);
+
+  /// Attempts to extract a numeric currency/amount value from this string.
+  num? get asAmount => AppHelpers.extractAmount(this);
 }
 
 /// Generates a random numeric string.
