@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the file property from the AppMediaData class, for the Dart programming language.">
-  <title>file property - AppMediaData class - media_data library - Dart API</title>
+  <meta name="description" content="API docs for the isUrl property from the AppDocumentData class, for the Dart programming language.">
+  <title>isUrl property - AppDocumentData class - media_data library - Dart API</title>
 
 
   
@@ -26,10 +26,10 @@
   <ol class="breadcrumbs gt-separated dark hidden-xs">
     <li><a href="../../index.html">gt_mobile_foundation</a></li>
     <li><a href="../../data_models_media_data/">data&#47;models&#47;media_data.dart</a></li>
-    <li><a href="../../data_models_media_data/AppMediaData-class.html">AppMediaData<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></a></li>
-    <li class="self-crumb">file property</li>
+    <li><a href="../../data_models_media_data/AppDocumentData-class.html">AppDocumentData<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></a></li>
+    <li class="self-crumb">isUrl property</li>
   </ol>
-  <div class="self-name">file</div>
+  <div class="self-name">isUrl</div>
   <form class="search navbar-right" role="search">
     <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
   </form>
@@ -46,10 +46,10 @@
 <div
     id="dartdoc-main-content"
     class="main-content"
-    data-above-sidebar="data_models_media_data&#47;AppMediaData-class-sidebar.html"
+    data-above-sidebar="data_models_media_data&#47;AppDocumentData-class-sidebar.html"
     data-below-sidebar="">
     <div>
-<h1><span class="kind-property">file</span> property 
+<h1><span class="kind-property">isUrl</span> property 
 </h1></div>
 
     
@@ -64,9 +64,9 @@
         <li>@<a href="https://api.flutter.dev/flutter/dart-core/override-constant.html">override</a></li>
     </ol>
   </div>
-      <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-io/File-class.html">File</a>?</span>
+      <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
       get
-      <span class="name ">file</span>
+      <span class="name ">isUrl</span>
       <div class="features"><span class="feature">override</span></div>
 
     </section>
@@ -76,14 +76,9 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">@override
-File? get file {
-  if (!isFile) return null;
-  if (&quot;$document&quot;.startsWith(&quot;data:&quot;)) {
-    final base64 = &quot;$document&quot;.replaceAll(&quot;data:&quot;, &quot;&quot;);
-    final data = base64Decode(base64);
-    return File.fromRawPath(data);
-  }
-  return document as File;
+bool get isUrl {
+  if (!isString) return false;
+  return AppRegex.urlRegex.hasMatch(document as String);
 }</code></pre>
 </section>
 
@@ -101,11 +96,11 @@ File? get file {
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
     <li><a href="../../index.html">gt_mobile_foundation</a></li>
     <li><a href="../../data_models_media_data/">media_data</a></li>
-    <li><a href="../../data_models_media_data/AppMediaData-class.html">AppMediaData<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></a></li>
-    <li class="self-crumb">file property</li>
+    <li><a href="../../data_models_media_data/AppDocumentData-class.html">AppDocumentData<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></a></li>
+    <li class="self-crumb">isUrl property</li>
 </ol>
 
-  <h5>AppMediaData class</h5>
+  <h5>AppDocumentData class</h5>
   <div id="dartdoc-sidebar-left-content"></div>
 </div><!--/.sidebar-offcanvas-->
 <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">

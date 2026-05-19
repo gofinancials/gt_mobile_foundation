@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the mediaType property from the AppMediaData class, for the Dart programming language.">
-  <title>mediaType property - AppMediaData class - media_data library - Dart API</title>
+  <meta name="description" content="API docs for the asAmount property from the NullableStringExtension extension, for the Dart programming language.">
+  <title>asAmount property - NullableStringExtension extension - string_extensions library - Dart API</title>
 
 
   
@@ -25,11 +25,11 @@
   <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
   <ol class="breadcrumbs gt-separated dark hidden-xs">
     <li><a href="../../index.html">gt_mobile_foundation</a></li>
-    <li><a href="../../data_models_media_data/">data&#47;models&#47;media_data.dart</a></li>
-    <li><a href="../../data_models_media_data/AppMediaData-class.html">AppMediaData<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></a></li>
-    <li class="self-crumb">mediaType property</li>
+    <li><a href="../../extensions_string_extensions/">extensions&#47;string_extensions.dart</a></li>
+    <li><a href="../../extensions_string_extensions/NullableStringExtension.html">NullableStringExtension</a></li>
+    <li class="self-crumb">asAmount property</li>
   </ol>
-  <div class="self-name">mediaType</div>
+  <div class="self-name">asAmount</div>
   <form class="search navbar-right" role="search">
     <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
   </form>
@@ -46,30 +46,39 @@
 <div
     id="dartdoc-main-content"
     class="main-content"
-    data-above-sidebar="data_models_media_data&#47;AppMediaData-class-sidebar.html"
+    data-above-sidebar="extensions_string_extensions&#47;NullableStringExtension-extension-sidebar.html"
     data-below-sidebar="">
     <div>
-<h1><span class="kind-property">mediaType</span> property 
+<h1><span class="kind-property">asAmount</span> property 
 </h1></div>
 
     
-      <section class="multi-line-signature">
-        
-        <a href="../../data_enums_media_enums/MediaType.html">MediaType</a>?
-        <span class="name ">mediaType</span>
-        <div class="features"><span class="feature">final</span></div>
-
-      </section>
-      
-
-      
-<section class="summary source-code" id="source">
-  <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">final MediaType? mediaType;</code></pre>
-</section>
-
 
     
+        
+  <section id="getter">
+    <section class="multi-line-signature">
+      
+      <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/num-class.html">num</a>?</span>
+      get
+      <span class="name ">asAmount</span>
+      
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Attempts to extract a numeric currency/amount value from this string.</p>
+</section>
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">num? get asAmount =&gt; AppHelpers.extractAmount(this);</code></pre>
+</section>
+
+  </section>
+
+
 </div> <!-- /.main-content -->
 <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
   <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
@@ -80,12 +89,12 @@
 </header>
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
     <li><a href="../../index.html">gt_mobile_foundation</a></li>
-    <li><a href="../../data_models_media_data/">media_data</a></li>
-    <li><a href="../../data_models_media_data/AppMediaData-class.html">AppMediaData<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></a></li>
-    <li class="self-crumb">mediaType property</li>
+    <li><a href="../../extensions_string_extensions/">string_extensions</a></li>
+    <li><a href="../../extensions_string_extensions/NullableStringExtension.html">NullableStringExtension</a></li>
+    <li class="self-crumb">asAmount property</li>
 </ol>
 
-  <h5>AppMediaData class</h5>
+  <h5>NullableStringExtension extension on <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</h5>
   <div id="dartdoc-sidebar-left-content"></div>
 </div><!--/.sidebar-offcanvas-->
 <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">

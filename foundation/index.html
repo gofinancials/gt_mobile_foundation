@@ -193,6 +193,14 @@
   A utility class that debounces rapidly firing events or function calls.
 </dd>
 
+          <dt id="AppDocumentData">
+  <span class="name "><a href="../data_models_media_data/AppDocumentData-class.html">AppDocumentData</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span> 
+
+</dt>
+<dd>
+  
+</dd>
+
           <dt id="AppFcmMockService">
   <span class="name "><a href="../services_push_notifications_app_push_notification_mock/AppFcmMockService-class.html">AppFcmMockService</a></span> 
 
@@ -264,14 +272,6 @@ connection checking, file size calculation, and error extraction.
 </dt>
 <dd>
   A simple logger wrapper that prints colored output only in debug mode.
-</dd>
-
-          <dt id="AppMediaData">
-  <span class="name "><a href="../data_models_media_data/AppMediaData-class.html">AppMediaData</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span> 
-
-</dt>
-<dd>
-  
 </dd>
 
           <dt id="AppMimeTypes">
@@ -993,8 +993,7 @@ the main configuration and localized strings.
 
 </dt>
 <dd>
-  {@category Services}
-The global instance of <a href="https://pub.dev/documentation/get_it/8.3.0/get_it/GetIt-class.html">GetIt</a> used for dependency injection throughout the app.
+  The global instance of <a href="https://pub.dev/documentation/get_it/8.3.0/get_it/GetIt-class.html">GetIt</a> used for dependency injection throughout the app.
   <div class="features"><span class="feature">getter/setter pair</span></div>
 
 </dd>
@@ -1083,7 +1082,7 @@ The global instance of <a href="https://pub.dev/documentation/get_it/8.3.0/get_i
           
   <dt id="FutureCall" class="callable">
     <span class="name"><a href="../typedefs_app_typedefs/FutureCall.html">FutureCall</a></span>&lt;<wbr><span class="type-parameter">T</span>&gt;<span class="signature">
-      <span class="returntype parameter">= <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span> Function<span class="signature">()</span></span>
+      <span class="returntype parameter">= <a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span> Function<span class="signature">()</span></span>
     </span>
     
 
@@ -1167,7 +1166,7 @@ The global instance of <a href="https://pub.dev/documentation/get_it/8.3.0/get_i
           
   <dt id="OnChangedAsync" class="callable">
     <span class="name"><a href="../typedefs_app_typedefs/OnChangedAsync.html">OnChangedAsync</a></span>&lt;<wbr><span class="type-parameter">T</span>&gt;<span class="signature">
-      <span class="returntype parameter">= <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span> Function<span class="signature">(<span class="parameter" id="param-value"><span class="type-annotation">T</span> <span class="parameter-name">value</span></span>)</span></span>
+      <span class="returntype parameter">= <a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span> Function<span class="signature">(<span class="parameter" id="param-value"><span class="type-annotation">T</span> <span class="parameter-name">value</span></span>)</span></span>
     </span>
     
 
@@ -1223,7 +1222,7 @@ The global instance of <a href="https://pub.dev/documentation/get_it/8.3.0/get_i
           
   <dt id="OnPressedAsync" class="callable">
     <span class="name"><a href="../typedefs_app_typedefs/OnPressedAsync.html">OnPressedAsync</a></span><span class="signature">
-      <span class="returntype parameter">= <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span> Function<span class="signature">()</span></span>
+      <span class="returntype parameter">= <a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span> Function<span class="signature">()</span></span>
     </span>
     
 
@@ -1251,7 +1250,7 @@ The global instance of <a href="https://pub.dev/documentation/get_it/8.3.0/get_i
           
   <dt id="TaskCallResponse" class="">
   <span class="name"><a href="../typedefs_app_typedefs/TaskCallResponse.html">TaskCallResponse</a></span>&lt;<wbr><span class="type-parameter">T</span>&gt;
-    = <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../data_models_network_response/TaskResponse-class.html">TaskResponse</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span>
+    = <a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../data_models_network_response/TaskResponse-class.html">TaskResponse</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span>
   </span>
   
 
@@ -1280,13 +1279,13 @@ The global instance of <a href="https://pub.dev/documentation/get_it/8.3.0/get_i
           
   <dt id="TaskNotifier" class="">
   <span class="name"><a href="../typedefs_app_typedefs/TaskNotifier.html">TaskNotifier</a></span>&lt;<wbr><span class="type-parameter">T</span>&gt;
-    = <a href="https://api.flutter.dev/flutter/foundation/ValueNotifier-class.html">ValueNotifier</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../data_models_network_response/TaskResponse-class.html">TaskResponse</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span>?</span>&gt;</span>
+    = <a href="https://api.flutter.dev/flutter/foundation/ValueNotifier-class.html">ValueNotifier</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../data_models_network_response/TaskResponse-class.html">TaskResponse</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span>?</span>&gt;</span>
   </span>
   
 
 </dt>
 <dd>
-  A <a href="https://api.flutter.dev/flutter/foundation/ValueNotifier-class.html">ValueNotifier</a> that holds a <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a> resulting in a <a href="../data_models_network_response/TaskResponse-class.html">TaskResponse</a> of type <code>T</code>.
+  A <a href="https://api.flutter.dev/flutter/foundation/ValueNotifier-class.html">ValueNotifier</a> that holds a <a href="https://api.flutter.dev/flutter/dart-async/Future-class.html">Future</a> resulting in a <a href="../data_models_network_response/TaskResponse-class.html">TaskResponse</a> of type <code>T</code>.
 Useful for tracking asynchronous operations and their loading/error states.
   
 

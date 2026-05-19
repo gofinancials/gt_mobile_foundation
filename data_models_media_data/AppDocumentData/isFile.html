@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the props property from the AppMediaData class, for the Dart programming language.">
-  <title>props property - AppMediaData class - media_data library - Dart API</title>
+  <meta name="description" content="API docs for the isFile property from the AppDocumentData class, for the Dart programming language.">
+  <title>isFile property - AppDocumentData class - media_data library - Dart API</title>
 
 
   
@@ -26,10 +26,10 @@
   <ol class="breadcrumbs gt-separated dark hidden-xs">
     <li><a href="../../index.html">gt_mobile_foundation</a></li>
     <li><a href="../../data_models_media_data/">data&#47;models&#47;media_data.dart</a></li>
-    <li><a href="../../data_models_media_data/AppMediaData-class.html">AppMediaData<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></a></li>
-    <li class="self-crumb">props property</li>
+    <li><a href="../../data_models_media_data/AppDocumentData-class.html">AppDocumentData<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></a></li>
+    <li class="self-crumb">isFile property</li>
   </ol>
-  <div class="self-name">props</div>
+  <div class="self-name">isFile</div>
   <form class="search navbar-right" role="search">
     <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
   </form>
@@ -46,10 +46,10 @@
 <div
     id="dartdoc-main-content"
     class="main-content"
-    data-above-sidebar="data_models_media_data&#47;AppMediaData-class-sidebar.html"
+    data-above-sidebar="data_models_media_data&#47;AppDocumentData-class-sidebar.html"
     data-below-sidebar="">
     <div>
-<h1><span class="kind-property">props</span> property 
+<h1><span class="kind-property">isFile</span> property 
 </h1></div>
 
     
@@ -64,33 +64,23 @@
         <li>@<a href="https://api.flutter.dev/flutter/dart-core/override-constant.html">override</a></li>
     </ol>
   </div>
-      <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a>?</span>&gt;</span></span>
+      <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
       get
-      <span class="name ">props</span>
+      <span class="name ">isFile</span>
       <div class="features"><span class="feature">override</span></div>
 
     </section>
     
-<section class="desc markdown">
-  <p>The list of properties that will be used to determine whether
-two instances are equal.</p>
-</section>
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">@override
-List&lt;Object?&gt; get props =&gt; [
-  id,
-  document,
-  name,
-  createdAt,
-  file,
-  fileName,
-  filePath,
-  fileUrl,
-  mimeType,
-];</code></pre>
+bool get isFile {
+  if (!_hasData) return false;
+  if (&quot;$document&quot;.startsWith(&quot;data:&quot;)) return true;
+  return document is File;
+}</code></pre>
 </section>
 
   </section>
@@ -107,11 +97,11 @@ List&lt;Object?&gt; get props =&gt; [
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
     <li><a href="../../index.html">gt_mobile_foundation</a></li>
     <li><a href="../../data_models_media_data/">media_data</a></li>
-    <li><a href="../../data_models_media_data/AppMediaData-class.html">AppMediaData<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></a></li>
-    <li class="self-crumb">props property</li>
+    <li><a href="../../data_models_media_data/AppDocumentData-class.html">AppDocumentData<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></a></li>
+    <li class="self-crumb">isFile property</li>
 </ol>
 
-  <h5>AppMediaData class</h5>
+  <h5>AppDocumentData class</h5>
   <div id="dartdoc-sidebar-left-content"></div>
 </div><!--/.sidebar-offcanvas-->
 <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
