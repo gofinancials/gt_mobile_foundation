@@ -153,9 +153,8 @@ class AppImageData<T> extends Equatable implements MediaData<T> {
   final String? createdAt;
   final String? contentType;
 
-  @Deprecated("")
-  const AppImageData({
-    required this.imageData,
+  const AppImageData(
+    this.imageData, {
     this.name,
     this.id,
     this.createdAt,
