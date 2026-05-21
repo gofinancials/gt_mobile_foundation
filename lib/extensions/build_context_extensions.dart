@@ -23,11 +23,7 @@ extension BuildContextExtension on BuildContext {
       final palette = Theme.of(this).colorScheme;
       ScaffoldMessenger.maybeOf(this)?.showSnackBar(
         SnackBar(
-          padding: .symmetric(horizontal: 16, vertical: 8),
-          elevation: 5,
-          shape: RoundedRectangleBorder(borderRadius: .circular(12)),
-          showCloseIcon: true,
-          closeIconColor: palette.onPrimary,
+          duration: 2.seconds,
           backgroundColor: palette.primary,
           content: Text(
             message,
