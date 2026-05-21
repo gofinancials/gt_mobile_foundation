@@ -11,15 +11,40 @@ extension BuildContextExtension on BuildContext {
   ScrollableState? get scrollState => Scrollable.maybeOf(this);
 
   /// Copies the provided [value] to the system clipboard.
-  copyTextToClipboard(String? value, {String? message}) {
+  copyTextToClipboard(String? value) {
     if (!value.hasValue) return;
     Clipboard.setData(ClipboardData(text: value!));
+    showSnackBar("coppiedToClipboard".tr({"value": value}));
+  }
+
+  /// Shows a snackbar
+  showSnackBar(String message) {
+    try {
+      final palette = Theme.of(this).colorScheme;
+      ScaffoldMessenger.maybeOf(this)?.showSnackBar(
+        SnackBar(
+          padding: .symmetric(horizontal: 16, vertical: 8),
+          elevation: 5,
+          shape: RoundedRectangleBorder(borderRadius: .circular(12)),
+          showCloseIcon: true,
+          closeIconColor: palette.onPrimary,
+          backgroundColor: palette.primary,
+          content: Text(
+            message,
+            style: TextStyle(fontSize: 10, color: palette.onPrimary),
+          ),
+        ),
+      );
+    } catch (e) {
+      AppLogger.severe("$e", error: e);
+    }
   }
 
   /// Asynchronously retrieves the current plain text from the system clipboard.
   Future<String?> getClipboardText() async {
     try {
       final data = await Clipboard.getData(Clipboard.kTextPlain);
+      showSnackBar("coppiedFromClipboard".tr({"value": data?.text ?? ""}));
       return data?.text;
     } catch (e) {
       return null;
