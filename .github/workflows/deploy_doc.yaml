@@ -2,12 +2,22 @@ name: Deploy Widgetbook to GitHub Pages
 
 on:
   push:
+    tags:
+      - "v*"
+  pull_request:
     branches:
       - main
+    types: [closed]
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    if: >-
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.state == 'closed' &&
+        github.event.pull_request.merged == true
+      ) || (github.event_name == 'push' && github.ref_type == 'tag')
     permissions:
       contents: write # Required for publishing to gh-pages
     steps:
@@ -17,7 +27,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: "stable"
           cache: true
 
       - name: Install Dependencies
