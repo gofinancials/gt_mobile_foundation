@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:gt_mobile_foundation/foundation.dart';
 
 /// {@category Data}
 /// A contract for form management.
