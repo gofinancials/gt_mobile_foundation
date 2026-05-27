@@ -11,12 +11,12 @@ extension NumExtension on num {
   }
 
   /// Formats this number as a currency string with a custom [symbol].
-  String asCurrency([String symbol = "\$"]) {
+  String asCurrency([String symbol = AppStrings.naira]) {
     return AppTextFormatter.formatCurrency(this, symbol: symbol);
   }
 
   /// Formats this number as a short currency string, abbreviating large values (e.g., "$1k").
-  String asCurrencyShort([String symbol = "\$"]) {
+  String asCurrencyShort([String symbol = AppStrings.naira]) {
     return AppTextFormatter.formatCurrencyShort(this, symbol: symbol);
   }
 

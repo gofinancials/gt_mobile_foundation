@@ -7,6 +7,10 @@ abstract class AppCrashlyticsService {
   /// Tracks a non-fatal or fatal error with a [message], optional [error] object, and [trace].
   trackError(String message, {Object? error, StackTrace? trace, bool fatal});
 
-  /// Associates subsequent crash reports with a specific user [id], [email], and optional [name].
-  identifyUser({required dynamic id, required String email, String? name});
+  /// Associates subsequent crash reports with a specific user [id], [accountNumber], and optional [name].
+  identifyUser({
+    required dynamic id,
+    required String accountNumber,
+    String? name,
+  });
 }

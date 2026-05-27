@@ -90,6 +90,29 @@ class AppRegex {
   static final ngPassportRegex = RegExp(r"^[A-Z]\d{8}");
   static final bvnRegex = RegExp(r"^\d{11}$");
   static final nubanRegex = RegExp(r"^\d{10}$");
+  static final audioFileRegex = RegExp(
+    r"^.+(\.(mp4|mp3|aac|flac|aiff|wav|m4a))$",
+    caseSensitive: false,
+  );
+  static final videoFileRegex = RegExp(
+    r"^.+(\.(mp4|mov|avi|wmv|flv|webm|mkv|mpg|mpeg|m2v|vob|qt))$",
+    caseSensitive: false,
+  );
+  static final audioMp4Regex = RegExp(r"^.+(\.(mp4))$", caseSensitive: false);
+  static final audioMp3Regex = RegExp(r"^.+(\.(mp3))$", caseSensitive: false);
+  static final audioM4aRegex = RegExp(r"^.+(\.(m4a))$", caseSensitive: false);
+  static final audioAacRegex = RegExp(r"^.+(\.(aac))$", caseSensitive: false);
+  static final audioFlacRegex = RegExp(r"^.+(\.(flac))$", caseSensitive: false);
+  static final audioAiffRegex = RegExp(r"^.+(\.(aiff))$", caseSensitive: false);
+  static final audioWavRegex = RegExp(r"^.+(\.(wav))$", caseSensitive: false);
+  static final audioUrlRegex = RegExp(
+    r"^https?:\/\/(.+\/)+.+(\.(mp4|mp3|aac|flac|aiff|wav|m4a))$",
+    caseSensitive: false,
+  );
+  static final youtubeRegex = RegExp(
+    r"^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$",
+    multiLine: true,
+  );
 
   static String getMatchGroupValue({
     required RegExp pattern,

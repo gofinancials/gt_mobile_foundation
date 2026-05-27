@@ -8,30 +8,199 @@ import 'package:gt_mobile_foundation/foundation.dart';
 
 /// {@category Data}
 /// Defines the structure of generic media data containing its type and metadata.
-abstract class MediaData<T> {
+abstract class AppMediaData<T> {
+  /// Returns `true` if the media data is valid and accessible.
   bool get isValid;
+
+  /// Returns `true` if the media is hosted on a remote URL.
   bool get isUrl;
+
+  /// Returns `true` if the underlying data is a string (e.g., URL or asset path).
   bool get isString;
+
+  /// Returns `true` if the underlying data is a local file.
   bool get isFile;
+
+  /// Returns `true` if the media has a unique identifier.
   bool get hasId;
+
+  /// Returns `true` if the media has an assigned name.
   bool get hasName;
 
+  /// Returns the name of the file, parsing it from the path or URL if not explicitly set.
   String get fileName;
 
+  /// Returns the file URL if [isUrl] is true, otherwise `null`.
   String? get fileUrl;
+
+  /// Returns the local file path or asset path if applicable, otherwise `null`.
   String? get filePath;
+
+  /// Returns the [File] object if [isFile] is true, otherwise `null`.
   File? get file;
 
+  /// Returns the MIME type (e.g., 'video/mp4', 'image/png') of the media data.
   String get mimeType;
 }
 
-class AppDocumentData<T> extends Equatable implements MediaData<T> {
+/// Represents audio and video media data, including YouTube links.
+///
+/// This model encapsulates a media payload ([document]), which can be a URL string,
+/// a local [File], or raw bytes, along with relevant metadata such as [contentType]
+/// and [mediaType].
+class AppAvData<T> extends Equatable implements AppMediaData<T> {
   final T document;
   final String? id;
   final String? name;
   final String? contentType;
   final String? createdAt;
-  final MediaType? mediaType;
+  final AppMediaType? mediaType;
+
+  const AppAvData({
+    required this.document,
+    this.contentType,
+    this.name,
+    this.createdAt,
+    this.id,
+    this.mediaType,
+  });
+
+  @override
+  bool get hasName => name != null || (name?.isNotEmpty ?? false);
+
+  bool get _hasData => document != null;
+
+  @override
+  bool get hasId => id != null;
+
+  @override
+  bool get isValid {
+    if (!_hasData) return false;
+    return isString || isUrl || isFile;
+  }
+
+  @override
+  bool get isString {
+    if (!_hasData) return false;
+    if ("$document".startsWith("data:")) return false;
+    return document is String;
+  }
+
+  @override
+  bool get isUrl {
+    if (!isString) return false;
+    return AppRegex.urlRegex.hasMatch(document as String);
+  }
+
+  @override
+  bool get isFile {
+    if (!_hasData) return false;
+    if ("$document".startsWith("data:")) return true;
+    return document is File;
+  }
+
+  @override
+  String get fileName {
+    if (hasName) return name!;
+    if (!isValid) return "";
+    if (isString) {
+      return (document as String);
+    }
+    return file?.path.split('/').tryLast ?? "";
+  }
+
+  @override
+  File? get file {
+    if (!isFile) return null;
+    if ("$document".startsWith("data:")) {
+      final base64 = "$document".replaceAll("data:", "");
+      final data = base64Decode(base64);
+      return File.fromRawPath(data);
+    }
+    return document as File;
+  }
+
+  @override
+  String? get filePath {
+    if (!isString) return null;
+    return document as String;
+  }
+
+  @override
+  String? get fileUrl {
+    if (!isUrl) return null;
+    return document as String;
+  }
+
+  bool get isAudio {
+    if (mediaType != null) return mediaType == .audio;
+    return AppRegex.audioFileRegex.hasMatch(file?.path ?? fileUrl ?? "");
+  }
+
+  bool get isVideo {
+    if (mediaType != null) return mediaType == .video;
+    return AppRegex.videoFileRegex.hasMatch(file?.path ?? fileUrl ?? "");
+  }
+
+  bool get isYoutube {
+    if (mediaType != null) return mediaType == .youtube;
+    return AppRegex.youtubeRegex.hasMatch(file?.path ?? fileUrl ?? "");
+  }
+
+  @override
+  String get mimeType {
+    if (contentType.hasValue) return contentType!;
+
+    final ext = fileName.split(".").tryLast?.lower;
+    String prefix = "*";
+
+    if (isAudio) prefix = "audio";
+    if (isVideo) prefix = "video";
+
+    return "$prefix/${ext ?? "*"}";
+  }
+
+  AppMediaOrigin get mediaOrigin {
+    if (document is File) return .file;
+    if (document is Uint8List) return .memory;
+    if (document is String) {
+      if (AppRegex.urlRegex.hasMatch(document as String)) {
+        return .network;
+      }
+      return .asset;
+    }
+
+    return .invalid;
+  }
+
+  @override
+  List<Object?> get props => [
+    id,
+    document,
+    name,
+    createdAt,
+    file,
+    fileName,
+    filePath,
+    fileUrl,
+    isAudio,
+    isVideo,
+    isYoutube,
+    mimeType,
+  ];
+}
+
+/// Represents standard document media data, such as PDFs, Word documents, or CSV files.
+///
+/// This model encapsulates the document payload, which can be accessed from a network URL,
+/// a local [File], or raw bytes, and provides utility methods for resolving its MIME type.
+class AppDocumentData<T> extends Equatable implements AppMediaData<T> {
+  final T document;
+  final String? id;
+  final String? name;
+  final String? contentType;
+  final String? createdAt;
+  final AppMediaType? mediaType;
 
   const AppDocumentData(
     this.document, {
@@ -119,17 +288,17 @@ class AppDocumentData<T> extends Equatable implements MediaData<T> {
     return "$prefix/${ext ?? "*"}";
   }
 
-  MediaOrigin get mediaOrigin {
-    if (document is File) return MediaOrigin.file;
-    if (document is Uint8List) return MediaOrigin.memory;
+  AppMediaOrigin get mediaOrigin {
+    if (document is File) return .file;
+    if (document is Uint8List) return .memory;
     if (document is String) {
       if (AppRegex.urlRegex.hasMatch(document as String)) {
-        return MediaOrigin.network;
+        return .network;
       }
-      return MediaOrigin.asset;
+      return .asset;
     }
 
-    return MediaOrigin.invalid;
+    return .invalid;
   }
 
   @override
@@ -146,7 +315,13 @@ class AppDocumentData<T> extends Equatable implements MediaData<T> {
   ];
 }
 
-class AppImageData<T> extends Equatable implements MediaData<T> {
+/// Represents image media data.
+///
+/// This model supports a wide variety of image sources including network URLs,
+/// local assets, file system images, raw bytes, and Flutter [IconData].
+/// It provides utility getters to seamlessly convert the raw data into Flutter
+/// image providers (e.g., [NetworkImage], [FileImage], [AssetImage], [MemoryImage]).
+class AppImageData<T> extends Equatable implements AppMediaData<T> {
   final T imageData;
   final String? id;
   final String? name;

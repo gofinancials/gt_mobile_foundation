@@ -15,7 +15,7 @@ enum FsDocumentType {
 
   List<String>? get extensions {
     return switch (type) {
-      .custom => ["pdf", "doc", "docx"],
+      .custom => ["pdf", "doc", "docx", "csv", "xlsx", "pptx"],
       _ => null,
     };
   }

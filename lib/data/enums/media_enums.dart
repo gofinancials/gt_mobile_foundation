@@ -1,47 +1,75 @@
-/// {@category Data}
-/// Specifies the origin of a media asset.
-enum MediaOrigin {
-  /// Media loaded from a network URL.
+/// Defines the origin or source location of a media file.
+enum AppMediaOrigin {
+  /// The media is hosted on the internet and accessed via a URL.
   network,
 
-  /// Media loaded from an app asset.
+  /// The media is bundled with the application as a local asset.
   asset,
 
-  /// Media loaded from a local file.
+  /// The media is stored locally on the device's file system.
   file,
 
-  /// Media loaded from memory (e.g. Uint8List).
+  /// The media is stored in memory as a byte array (Uint8List).
   memory,
 
-  /// Invalid or unknown media origin.
+  /// The media origin is unknown or invalid.
   invalid,
 }
 
-/// Specifies the type of media.
-enum MediaType {
-  /// Audio media type.
+/// Represents the specific type or format of a media file.
+enum AppMediaType {
+  /// An image file (e.g., JPEG, PNG, WEBP).
+  image,
+
+  /// A Microsoft Word document.
+  docx,
+
+  /// A Portable Document Format (PDF) file.
+  pdf,
+
+  /// A Comma-Separated Values file.
+  csv,
+
+  /// An audio file (e.g., MP3, WAV).
   audio,
 
-  /// Video media type.
+  /// A standard video file (e.g., MP4).
   video,
 
-  /// Image media type.
-  image;
+  /// A video hosted on YouTube.
+  youtube;
 
-  const MediaType();
+  /// Returns `true` if the media type is a YouTube video.
+  bool get isYoutubeMedia => this == AppMediaType.youtube;
 
-  /// Returns `true` if this media type is [audio].
-  bool get isAudio => this == MediaType.audio;
+  /// Returns `true` if the media type is an audio file.
+  bool get isAudioMedia => this == AppMediaType.audio;
 
-  /// Returns `true` if this media type is [video].
-  bool get isVideo => this == MediaType.video;
+  /// Returns `true` if the media type is a standard video file.
+  bool get isVideoMedia => this == AppMediaType.video;
 
-  /// Parses a string representation into a [MediaType].
-  /// Defaults to [image] if the string doesn't match known types.
-  static MediaType fromString(String? value) {
+  /// Returns `true` if the media type is an image.
+  bool get isImage => this == AppMediaType.image;
+
+  /// Returns `true` if the media type is a Word document.
+  bool get isDoc => this == AppMediaType.docx;
+
+  /// Returns `true` if the media type is a PDF.
+  bool get isPdf => this == AppMediaType.pdf;
+
+  /// Returns `true` if the media type is a CSV file.
+  bool get isCsv => this == AppMediaType.csv;
+
+  /// Parses a string representation into an [AppMediaType].
+  /// Defaults to [image] if the string does not match a known type.
+  static AppMediaType fromString(String? value) {
     return switch (value) {
+      "youtube" => youtube,
       "video" => video,
       "audio" => audio,
+      "docx" => docx,
+      "pdf" => pdf,
+      "csv" => csv,
       _ => image,
     };
   }

@@ -53,7 +53,7 @@ class AppHelpers {
   static num? extractAmount(String? amount) {
     if (!amount.hasValue) return null;
 
-    final pattern = RegExp(r"(\$|£|€)");
+    final pattern = RegExp(r"(\$|£|€|N)");
     final val = (amount!.startsWith(pattern) ? amount.substring(1) : amount)
         .trim();
     final number = num.tryParse(val.replaceAll(RegExp(r'[^0-9\.]'), "").trim());

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 /// {@category Data}
-/// A contract for form management.
+/// A contract for form management mixins.
+///
+/// ### Example Usage
+///
 /// ```dart
-/// mixin FormValidationMixin on State<StatefulWidget> implements FormMixin {
+/// mixin FormValidationMixin<T extends StatefulWidget> on State<T> implements FormMixin {
 ///   @override
 ///   final formKey = GlobalKey<FormState>();
 ///   @override
@@ -36,6 +39,8 @@ import 'package:flutter/material.dart';
 ///     AppLogger.info(textEditingController.text);
 ///   }
 /// }
+///
+///
 /// class FormWidget extends StatefulWidget {
 ///   const FormWidget({super.key});
 ///
@@ -75,10 +80,36 @@ import 'package:flutter/material.dart';
 /// }
 /// ```
 abstract class FormMixin {
+  /// The global key used to uniquely identify and validate the [Form] widget.
+  ///
+  /// This key must be passed to the `key` property of the [Form] widget.
+  /// It is typically used during [submit] to trigger standard form validation.
   final formKey = GlobalKey<FormState>();
+
+  /// A notifier that emits the current validity status of the form.
+  ///
+  /// Listeners (such as submission buttons) can subscribe to this notifier
+  /// to dynamically enable or disable themselves based on the form's validity.
   ValueNotifier<bool> get formStateEmitter;
 
+  /// Registers listeners on form input controllers to track change events.
+  ///
+  /// This method is typically invoked in `initState` to monitor changes to
+  /// text controllers, dropdowns, and other fields, updating [formStateEmitter]
+  /// with the result of [formValidityStatus].
   void trackValidity();
+
+  /// Computes and returns the overall validity status of the form.
+  ///
+  /// This is used to determine the initial and dynamic status of the form before
+  /// full [FormState.validate] is called, enabling real-time UI feedback.
+  ///
+  /// Returns `true` if the form is valid, and `false` otherwise.
   bool formValidityStatus();
+
+  /// Executes the form submission logic.
+  ///
+  /// This method should validate the fields via [formKey], and if valid,
+  /// perform the final submission action (e.g. API request, navigation).
   void submit();
 }

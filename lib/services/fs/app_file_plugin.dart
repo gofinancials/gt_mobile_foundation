@@ -34,16 +34,10 @@ class AppFilePlugin {
   }
 
   /// Calculates the maximum allowed file size in MB based on [mimeType] and user subscription tier.
-  static int getMaxSizeInMb(String mimeType, bool isProUser) {
+  static int getMaxSizeInMb(String mimeType) {
     final mime = mimeType.lower;
     if (mime.startsWith("image")) return 5;
-    if (!isProUser) return 100;
     return 200;
-  }
-
-  /// Calculates the maximum duration allowed based on [mimeType] and user subscription tier.
-  static Duration getMaxDuration(String mimeType, bool isProUser) {
-    return 1.hours;
   }
 
   /// Opens the device's native file picker to let the user select a file.
@@ -51,7 +45,6 @@ class AppFilePlugin {
   static Future<FsResponse> pickFile({
     String? title,
     FsDocumentType documentType = .document,
-    bool isProUser = false,
   }) async {
     try {
       final pickedFile = await _picker.pickFiles(
@@ -79,7 +72,7 @@ class AppFilePlugin {
 
       final File file = File(choiceFile.path!);
       final mimeType = await getFileMimeType(file, type: documentType);
-      final maxSizeInMb = getMaxSizeInMb(mimeType ?? "", isProUser);
+      final maxSizeInMb = getMaxSizeInMb(mimeType ?? "");
 
       if (AppHelpers.fileSizeInMb(file) > maxSizeInMb) {
         return FsResponse(
