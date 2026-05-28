@@ -354,20 +354,38 @@ class AppAmountFormatter extends TextInputFormatter {
           composing: TextRange.empty,
         );
       }
+
       final amount = newValue.text.isNotEmpty
           ? newValue.text.replaceAll(RegExp(r'[^0-9\.]'), "")
           : "";
-      final isValidNum = amount.isNotEmpty && int.tryParse(amount) != null;
-      if (isValidNum) {
-        final formattedText = AppTextFormatter.formatNumberLong(amount);
-        return TextEditingValue(
-          text: formattedText,
-          selection: TextSelection.collapsed(offset: formattedText.length),
-          composing: TextRange.empty,
-        );
-      } else {
-        return newValue;
+
+      if (amount.isEmpty) {
+        return newValue.copyWith(text: "");
       }
+
+      // Prevent multiple decimal points
+      final parts = amount.split('.');
+      if (parts.length > 2) return oldValue;
+
+      final integerPart = parts[0];
+      final decimalPart = parts.length > 1 ? parts[1] : null;
+
+      String formattedInteger = integerPart.isNotEmpty
+          ? AppTextFormatter.formatNumberLong(integerPart)
+          : (amount.startsWith('.') ? "0" : "");
+
+      String formattedText = formattedInteger;
+      if (decimalPart != null) {
+        formattedText += ".$decimalPart";
+      } else if (amount.endsWith('.')) {
+        formattedText += ".";
+      }
+
+      return TextEditingValue(
+        text: formattedText,
+        selection: TextSelection.collapsed(offset: formattedText.length),
+        composing: TextRange.empty,
+      );
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t, error: e);
       return oldValue;

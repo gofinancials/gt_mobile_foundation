@@ -17,7 +17,9 @@ class AppCrashlyticsMockService implements AppCrashlyticsService {
   }
 
   @override
-  identifyUser({required id, required String email, String? name}) {
-    AppLogger.info("ID -> $id; EMAIL -> $email; NAME -> ${name ?? 'no-name'}");
+  identifyUser({required id, required String accountNumber, String? name}) {
+    AppLogger.info(
+      "ID -> $id; AccountNumber -> $accountNumber; NAME -> ${name ?? 'no-name'}",
+    );
   }
 }

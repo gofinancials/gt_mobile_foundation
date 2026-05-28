@@ -5,7 +5,14 @@ import 'package:flutter/material.dart';
 /// A mock implementation of [AppAnalyticsService] for testing purposes.
 class AppAnalyticsMockService implements AppAnalyticsService {
   @override
-  identifyUser({required id, required String email, String? name}) async {}
+  identifyUser({
+    required id,
+    String? accountNumber,
+    String? name,
+    String? email,
+    String? telephone,
+    String? bvn,
+  }) async {}
 
   @override
   trackEvent(AppAnalyticsData eventData) async {}

@@ -14,7 +14,7 @@ extension BuildContextExtension on BuildContext {
   copyTextToClipboard(String? value) {
     if (!value.hasValue) return;
     Clipboard.setData(ClipboardData(text: value!));
-    showSnackBar("coppiedToClipboard".tr({"value": value}));
+    showSnackBar("copiedToClipboard".tr({"value": value}));
   }
 
   /// Shows a snackbar
@@ -40,7 +40,7 @@ extension BuildContextExtension on BuildContext {
   Future<String?> getClipboardText() async {
     try {
       final data = await Clipboard.getData(Clipboard.kTextPlain);
-      showSnackBar("coppiedFromClipboard".tr({"value": data?.text ?? ""}));
+      showSnackBar("copiedFromClipboard".tr({"value": data?.text ?? ""}));
       return data?.text;
     } catch (e) {
       return null;
