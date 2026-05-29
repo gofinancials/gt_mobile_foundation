@@ -61,9 +61,6 @@ class MediaPlayerService {
   /// Returns `true` if the active player has completed playback.
   bool get isCompleted => _activePlayer?.isCompleted ?? false;
 
-  /// Returns the currently active [MediaSource].
-  MediaSource? get currentSource => _currentSource;
-
   /// Retrieves a snapshot of the current playback data from the active player.
   MediaPlayStreamData get playData {
     return _activePlayer?.playData ??
@@ -153,7 +150,6 @@ class MediaPlayerService {
   Future<void> unloadSource(MediaSource source) async {
     await _activePlayer?.unloadSource();
     _activePlayer = null;
-    _currentSource = null;
   }
 
   /// Resets the active player to the beginning and pauses playback.
@@ -165,6 +161,5 @@ class MediaPlayerService {
   Future<void> dispose() async {
     await _activePlayer?.dispose();
     _activePlayer = null;
-    _currentSource = null;
   }
 }
