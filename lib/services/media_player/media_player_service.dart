@@ -16,49 +16,49 @@ class MediaPlayerService {
 
   /// Retrieves and loads a media source for the provided [AppAvData].
   /// Returns the initialized [MediaSource] if successful, or `null` otherwise.
-  Future<MediaSource?> getSource(AppAvData data) async {
+  Future<MediaSource?> createSource(
+    AppAvData data, {
+    bool autoPlay = true,
+  }) async {
     _currentSource = null;
     final source = _retrieveSource(data);
     if (source == null || !source.isValidSource) return null;
     _currentSource = source;
-    await _loadSource(_currentSource);
+    await _loadSource(_currentSource, autoPlay);
     return _currentSource;
   }
 
   /// Retrieves a source from the internal cache, or creates and caches it if it does not exist.
   MediaSource? _retrieveSource(AppAvData data) {
     final source = MediaSource(data);
-    final id = source.id;
+    final id = "${source.id ?? source.hashCode}";
 
     if (!id.hasValue || !source.isValidSource) return null;
-    if (!_sourceCache.containsKey(id)) _sourceCache[id!] = source;
+    if (!_sourceCache.containsKey(id)) _sourceCache[id] = source;
 
     return _sourceCache[id];
   }
 
   /// Instantiates the appropriate [AppMediaPlayer] for the given [source] and loads it.
-  Future<void> _loadSource(MediaSource? source) async {
-    if (_activePlayer != null) {
-      await _activePlayer!.dispose();
-    }
+  Future<void> _loadSource(MediaSource? source, bool autoPlay) async {
+    if (_activePlayer != null) await _activePlayer?.reset();
 
     if (source == null || !source.isValidSource) {
       _activePlayer = null;
       return;
     }
 
-    if (source.isYoutube) {
-      _activePlayer = YoutubePlayerService();
-    } else if (source.isVideo) {
-      _activePlayer = VideoPlayerService();
-    } else if (source.isAudio) {
-      _activePlayer = AudioPlayerService();
-    } else {
-      _activePlayer = null;
-      return;
+    if (source.youtube != null) {
+      _activePlayer = YoutubePlayerService(source.youtube!);
+    }
+    if (source.video != null) {
+      _activePlayer = VideoPlayerService(source.video!);
+    }
+    if (source.audio != null) {
+      _activePlayer = AudioPlayerService(source.audio!);
     }
 
-    await _activePlayer!.load(source);
+    await _activePlayer?.load(autoPlay: autoPlay);
   }
 
   /// Returns `true` if the active player is currently playing.

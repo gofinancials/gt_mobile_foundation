@@ -10,6 +10,8 @@ import 'package:just_audio/just_audio.dart' hide PlayerState;
 /// to the player's internal streams and broadcasts state changes via [stateStream],
 /// allowing the rest of the application to react to audio events uniformly.
 class AudioPlayerService implements AppMediaPlayer {
+  final AudioSource _audioSource;
+
   final AudioPlayer _player = AudioPlayer(
     audioLoadConfiguration: AudioLoadConfiguration(
       darwinLoadControl: DarwinLoadControl(
@@ -18,6 +20,8 @@ class AudioPlayerService implements AppMediaPlayer {
       ),
     ),
   );
+
+  AudioPlayerService(this._audioSource);
 
   @override
   MediaPlayStreamData get playData {
@@ -32,10 +36,10 @@ class AudioPlayerService implements AppMediaPlayer {
   }
 
   @override
-  Future<void> load(MediaSource source) async {
+  Future<void> load({bool autoPlay = true, bool loop = false}) async {
     try {
       await pause();
-      await _loadSound(source.audio);
+      await _loadSound(autoPlay: autoPlay, loop: loop);
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }
@@ -51,10 +55,11 @@ class AudioPlayerService implements AppMediaPlayer {
     return _player.processingState == ProcessingState.completed;
   }
 
-  Future<void> _loadSound(AudioSource? source) async {
-    if (source == null) return;
+  Future<void> _loadSound({bool autoPlay = true, bool loop = false}) async {
     try {
-      await _player.setAudioSource(source);
+      await _player.setAudioSource(_audioSource, preload: true);
+      await _player.setLoopMode(loop ? LoopMode.one : LoopMode.off);
+      if (autoPlay) await play();
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }
@@ -155,19 +160,19 @@ class AudioPlayerService implements AppMediaPlayer {
     final durationStream = _player.durationStream
         .asBroadcastStream()
         .handleError((e) => AppLogger.severe("$e", error: e));
-        
+
     final playerStream = _player.playerEventStream
         .asBroadcastStream()
         .handleError((e) => AppLogger.severe("$e", error: e));
-        
+
     final stateStream = _player.playerStateStream
         .asBroadcastStream()
         .handleError((e) => AppLogger.severe("$e", error: e));
-        
+
     final speedStream = _player.speedStream.asBroadcastStream().handleError(
       (e) => AppLogger.severe("$e", error: e),
     );
-    
+
     final volumeStream = _player.volumeStream.asBroadcastStream().handleError(
       (e) => AppLogger.severe("$e", error: e),
     );
@@ -199,8 +204,7 @@ class AudioPlayerService implements AppMediaPlayer {
   Future<void> unloadSource() async {
     try {
       await stop();
-      // wait, `_player.clearAudioSources()` doesn't exist? Actually let's just stop or set a blank source.
-      // We removed `_player.clearAudioSources();` because it causes issues if not an extension.
+      _player.removeAudioSourceAt(0);
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }
