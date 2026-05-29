@@ -45,7 +45,6 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
       final isInitialised = _controller.value.isInitialized;
       if (!isInitialised) await _controller.initialize();
       if (autoPlay) await play();
-      _onControllerUpdate();
     } catch (e, t) {
       AppLogger.severe("$e", error: e, stackTrace: t);
     }

@@ -141,9 +141,8 @@ class MediaPlayerService {
 
   /// Sets the closed caption file for players that support it (e.g., VideoPlayer).
   Future<void> setCaption(SubRipCaptionFile caption) async {
-    if (_activePlayer is CaptionablePlayer) {
-      await (_activePlayer as CaptionablePlayer).setCaption(caption);
-    }
+    if (_activePlayer is! CaptionablePlayer) return;
+    await (_activePlayer as CaptionablePlayer).setCaption(caption);
   }
 
   /// Unloads the specified [source], disposing of its player and removing it from the cache.

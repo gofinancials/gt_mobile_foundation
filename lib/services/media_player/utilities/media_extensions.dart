@@ -26,9 +26,9 @@ extension MediaExtensions on AppAvData {
       initialVideoId: videoId,
       flags: YoutubePlayerFlags(
         hideControls: true,
-        autoPlay: false,
+        autoPlay: true,
         enableCaption: false,
-        loop: true,
+        loop: false,
         showLiveFullscreenButton: false,
       ),
     );
