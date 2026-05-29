@@ -10,8 +10,6 @@ import 'package:video_player/video_player.dart';
 /// based on the [MediaSource] type (audio, video, or youtube) and delegates
 /// playback commands to it.
 class MediaPlayerService {
-  final Map<String, MediaSource> _sourceCache = {};
-  MediaSource? _currentSource;
   AppMediaPlayer? _activePlayer;
 
   /// Retrieves and loads a media source for the provided [AppAvData].
@@ -20,23 +18,19 @@ class MediaPlayerService {
     AppAvData data, {
     bool autoPlay = true,
   }) async {
-    _currentSource = null;
     final source = _retrieveSource(data);
     if (source == null || !source.isValidSource) return null;
-    _currentSource = source;
-    await _loadSource(_currentSource, autoPlay);
-    return _currentSource;
+    await _loadSource(source, autoPlay);
+    return source;
   }
 
   /// Retrieves a source from the internal cache, or creates and caches it if it does not exist.
   MediaSource? _retrieveSource(AppAvData data) {
     final source = MediaSource(data);
-    final id = "${source.id ?? source.hashCode}";
+    final id = source.id;
 
     if (!id.hasValue || !source.isValidSource) return null;
-    if (!_sourceCache.containsKey(id)) _sourceCache[id] = source;
-
-    return _sourceCache[id];
+    return source;
   }
 
   /// Instantiates the appropriate [AppMediaPlayer] for the given [source] and loads it.
@@ -157,15 +151,9 @@ class MediaPlayerService {
 
   /// Unloads the specified [source], disposing of its player and removing it from the cache.
   Future<void> unloadSource(MediaSource source) async {
-    final id = source.id;
-    if (id != null && _sourceCache.containsKey(id)) {
-      _sourceCache.remove(id);
-    }
-    if (_currentSource?.id == id) {
-      await _activePlayer?.unloadSource();
-      _activePlayer = null;
-      _currentSource = null;
-    }
+    await _activePlayer?.unloadSource();
+    _activePlayer = null;
+    _currentSource = null;
   }
 
   /// Resets the active player to the beginning and pauses playback.
@@ -178,11 +166,5 @@ class MediaPlayerService {
     await _activePlayer?.dispose();
     _activePlayer = null;
     _currentSource = null;
-    _sourceCache.clear();
-  }
-
-  /// Returns a list of all currently cached [MediaSource] objects.
-  List<MediaSource> get sources {
-    return _sourceCache.values.toList();
   }
 }

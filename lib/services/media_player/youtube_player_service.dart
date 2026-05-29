@@ -36,7 +36,7 @@ class YoutubePlayerService implements AppMediaPlayer {
   }
 
   @override
-  Future<void> load({bool autoPlay = true, bool loop = false}) async {
+  Future<void> load({bool autoPlay = true}) async {
     try {
       await unloadSource();
       _controller.addListener(_onControllerUpdate);

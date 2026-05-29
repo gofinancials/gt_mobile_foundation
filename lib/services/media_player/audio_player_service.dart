@@ -39,7 +39,7 @@ class AudioPlayerService implements AppMediaPlayer {
   Future<void> load({bool autoPlay = true, bool loop = false}) async {
     try {
       await pause();
-      await _loadSound(autoPlay: autoPlay, loop: loop);
+      await _loadSound(autoPlay: autoPlay);
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }
@@ -55,10 +55,9 @@ class AudioPlayerService implements AppMediaPlayer {
     return _player.processingState == ProcessingState.completed;
   }
 
-  Future<void> _loadSound({bool autoPlay = true, bool loop = false}) async {
+  Future<void> _loadSound({bool autoPlay = true}) async {
     try {
       await _player.setAudioSource(_audioSource, preload: true);
-      await _player.setLoopMode(loop ? LoopMode.one : LoopMode.off);
       if (autoPlay) await play();
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
@@ -214,7 +213,6 @@ class AudioPlayerService implements AppMediaPlayer {
   Future<void> dispose() async {
     try {
       await unloadSource();
-      await _player.dispose();
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }

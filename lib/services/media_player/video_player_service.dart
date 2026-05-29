@@ -36,7 +36,7 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
   }
 
   @override
-  Future<void> load({bool autoPlay = true, bool loop = false}) async {
+  Future<void> load({bool autoPlay = true}) async {
     try {
       await unloadSource();
 
@@ -44,8 +44,6 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
 
       final isInitialised = _controller.value.isInitialized;
       if (!isInitialised) await _controller.initialize();
-
-      await _controller.setLooping(loop);
       if (autoPlay) await play();
       _onControllerUpdate();
     } catch (e, t) {
