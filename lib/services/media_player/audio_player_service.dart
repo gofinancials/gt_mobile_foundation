@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:async/async.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:just_audio/just_audio.dart' hide PlayerState;
 
@@ -9,8 +8,11 @@ import 'package:just_audio/just_audio.dart' hide PlayerState;
 /// This service encapsulates a `just_audio` [AudioPlayer] instance. It listens
 /// to the player's internal streams and broadcasts state changes via [stateStream],
 /// allowing the rest of the application to react to audio events uniformly.
-class AudioPlayerService implements AppMediaPlayer {
+class AudioPlayerService implements AppMediaPlayerService {
   final AudioSource _audioSource;
+  @override
+  final OnChanged<MediaPlayStreamData>? onUpdate;
+  late final StreamController<MediaPlayStreamData> _stateStreamController;
 
   final AudioPlayer _player = AudioPlayer(
     audioLoadConfiguration: AudioLoadConfiguration(
@@ -21,7 +23,10 @@ class AudioPlayerService implements AppMediaPlayer {
     ),
   );
 
-  AudioPlayerService(this._audioSource);
+  AudioPlayerService(this._audioSource, {this.onUpdate}) {
+    _stateStreamController = StreamController<MediaPlayStreamData>();
+    _observePlayback();
+  }
 
   @override
   MediaPlayStreamData get playData {
@@ -147,55 +152,28 @@ class AudioPlayerService implements AppMediaPlayer {
   }
 
   @override
-  Stream<MediaPlayStreamData> get stateStream async* {
-    final positionStream = _player.positionStream
-        .asBroadcastStream()
-        .handleError((e) => AppLogger.severe("$e", error: e));
+  Stream<MediaPlayStreamData> get stateStream => _stateStreamController.stream;
 
+  Stream<MediaPlayStreamData> _observePlayback() async* {
     final eventStream = _player.playbackEventStream
         .asBroadcastStream()
         .handleError((e) => AppLogger.severe("$e", error: e));
 
-    final durationStream = _player.durationStream
-        .asBroadcastStream()
-        .handleError((e) => AppLogger.severe("$e", error: e));
+    await for (final event in eventStream) {
+      if (_stateStreamController.isClosed) break;
 
-    final playerStream = _player.playerEventStream
-        .asBroadcastStream()
-        .handleError((e) => AppLogger.severe("$e", error: e));
-
-    final stateStream = _player.playerStateStream
-        .asBroadcastStream()
-        .handleError((e) => AppLogger.severe("$e", error: e));
-
-    final speedStream = _player.speedStream.asBroadcastStream().handleError(
-      (e) => AppLogger.severe("$e", error: e),
-    );
-
-    final volumeStream = _player.volumeStream.asBroadcastStream().handleError(
-      (e) => AppLogger.severe("$e", error: e),
-    );
-
-    final streams = StreamGroup.merge([
-      positionStream,
-      eventStream,
-      durationStream,
-      speedStream,
-      stateStream,
-      volumeStream,
-      playerStream,
-    ]);
-
-    await for (final _ in streams) {
       final inDoneState = _player.processingState == ProcessingState.completed;
-      yield (
-        duration: _player.duration ?? 0.seconds,
+      final data = (
+        duration: event.duration ?? playData.duration,
         paused: !_player.playing || inDoneState,
-        position: _player.position,
+        position: event.updatePosition,
         playbackSpeed: _player.speed,
-        state: MediaPlayerState.from(_player.processingState),
+        state: MediaPlayerState.from(event.processingState),
         volume: _player.volume,
       );
+      _stateStreamController.add(data);
+      onUpdate?.call(data);
+      yield data;
     }
   }
 
@@ -213,6 +191,7 @@ class AudioPlayerService implements AppMediaPlayer {
   Future<void> dispose() async {
     try {
       await unloadSource();
+      _stateStreamController.close();
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }

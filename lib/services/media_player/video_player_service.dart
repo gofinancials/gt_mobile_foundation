@@ -8,12 +8,22 @@ import 'package:video_player/video_player.dart';
 /// This service encapsulates a [VideoPlayerController]. It internally converts
 /// the controller's [ValueNotifier] updates into a reactive [stateStream] so that
 /// the UI can bind to video playback state seamlessly using the unified pattern.
-class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
+class VideoPlayerService implements AppMediaPlayerService, CaptionablePlayer {
   final VideoPlayerController _controller;
-  final StreamController<MediaPlayStreamData> _stateStreamController =
-      StreamController<MediaPlayStreamData>.broadcast();
+  @override
+  final OnChanged<MediaPlayStreamData>? onUpdate;
+  late final StreamController<MediaPlayStreamData> _stateStreamController;
 
-  VideoPlayerService(this._controller);
+  VideoPlayerService(this._controller, {this.onUpdate}) {
+    _stateStreamController = StreamController<MediaPlayStreamData>.broadcast();
+    _controller.addListener(_ctrlListener);
+  }
+
+  void _ctrlListener() {
+    onUpdate?.call(playData);
+    if (_stateStreamController.isClosed) return;
+    _stateStreamController.add(playData);
+  }
 
   @override
   MediaPlayStreamData get playData {
@@ -30,18 +40,10 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
   @override
   Stream<MediaPlayStreamData> get stateStream => _stateStreamController.stream;
 
-  void _onControllerUpdate() {
-    if (_stateStreamController.isClosed) return;
-    _stateStreamController.add(playData);
-  }
-
   @override
   Future<void> load({bool autoPlay = true}) async {
     try {
-      await unloadSource();
-
-      _controller.addListener(_onControllerUpdate);
-
+      pause();
       final isInitialised = _controller.value.isInitialized;
       if (!isInitialised) await _controller.initialize();
       if (autoPlay) await play();
@@ -165,14 +167,14 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
   @override
   Future<void> unloadSource() async {
     await reset();
-    _controller.removeListener(_onControllerUpdate);
+    _controller.removeListener(_ctrlListener);
+    await _stateStreamController.close();
   }
 
   @override
   Future<void> dispose() async {
     try {
       await unloadSource();
-      await _stateStreamController.close();
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }

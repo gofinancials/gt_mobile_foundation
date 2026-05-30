@@ -1,7 +1,7 @@
 export 'audio_player_service.dart';
 export 'data/data.dart';
-export 'media_player_interface.dart';
 export 'media_player_service.dart';
+export 'app_media_player.dart';
 export 'utilities/utilities.dart';
 export 'video_player_service.dart';
 export 'youtube_player_service.dart';

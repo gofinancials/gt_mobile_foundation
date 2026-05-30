@@ -8,12 +8,16 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 /// This service encapsulates a [YoutubePlayerController] from `youtube_player_flutter`.
 /// It converts the controller's state changes into the unified [MediaPlayStreamData]
 /// format and broadcasts them via [stateStream].
-class YoutubePlayerService implements AppMediaPlayer {
+class YoutubePlayerService implements AppMediaPlayerService {
   final YoutubePlayerController _controller;
-  final StreamController<MediaPlayStreamData> _stateStreamController =
-      StreamController<MediaPlayStreamData>.broadcast();
+  @override
+  final OnChanged<MediaPlayStreamData>? onUpdate;
+  late final StreamController<MediaPlayStreamData> _stateStreamController;
 
-  YoutubePlayerService(this._controller);
+  YoutubePlayerService(this._controller, {this.onUpdate}) {
+    _stateStreamController = StreamController<MediaPlayStreamData>.broadcast();
+    _controller.addListener(_ctrlListener);
+  }
 
   @override
   MediaPlayStreamData get playData {
@@ -30,7 +34,8 @@ class YoutubePlayerService implements AppMediaPlayer {
   @override
   Stream<MediaPlayStreamData> get stateStream => _stateStreamController.stream;
 
-  void _onControllerUpdate() {
+  void _ctrlListener() {
+    onUpdate?.call(playData);
     if (_stateStreamController.isClosed) return;
     _stateStreamController.add(playData);
   }
@@ -38,8 +43,7 @@ class YoutubePlayerService implements AppMediaPlayer {
   @override
   Future<void> load({bool autoPlay = true}) async {
     try {
-      await unloadSource();
-      _controller.addListener(_onControllerUpdate);
+      pause();
       _controller.load(_controller.initialVideoId);
       if (autoPlay) await play();
     } catch (e, t) {
@@ -162,14 +166,14 @@ class YoutubePlayerService implements AppMediaPlayer {
   @override
   Future<void> unloadSource() async {
     await reset();
-    _controller.removeListener(_onControllerUpdate);
+    _controller.removeListener(_ctrlListener);
+    await _stateStreamController.close();
   }
 
   @override
   Future<void> dispose() async {
     try {
       await unloadSource();
-      await _stateStreamController.close();
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }
