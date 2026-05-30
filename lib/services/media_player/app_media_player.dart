@@ -20,7 +20,7 @@ class AppMediaPlayer {
   }) async {
     final source = _retrieveSource(data);
     if (source == null || !source.isValidSource) return null;
-    await _loadSource(source, autoPlay);
+    _loadSource(source, autoPlay);
     return source;
   }
 
@@ -35,7 +35,7 @@ class AppMediaPlayer {
 
   /// Instantiates the appropriate [AppMediaPlayer] for the given [source] and loads it.
   Future<void> _loadSource(MediaSource? source, bool autoPlay) async {
-    if (_activePlayer != null) await _activePlayer?.reset();
+    if (_activePlayer != null) await _activePlayer?.dispose();
 
     if (source == null || !source.isValidSource) {
       _activePlayer = null;
