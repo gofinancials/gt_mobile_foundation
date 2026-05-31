@@ -32,11 +32,11 @@ class MediaSource extends Equatable {
   }
 
   bool get isValidSource {
-    if (!media.isValid) return false;
+    if (!media.isValid || mediaType == null) return false;
     return isAudio || isVideo || isYoutube;
   }
 
-  String? get id => media.id;
+  String get id => "${media.id ?? media.hashCode}";
 
   bool get isAudio => media.isAudio && audio != null;
   bool get isVideo => media.isVideo && video != null;

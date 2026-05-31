@@ -8,60 +8,45 @@ import 'package:video_player/video_player.dart';
 /// This service encapsulates a [VideoPlayerController]. It internally converts
 /// the controller's [ValueNotifier] updates into a reactive [stateStream] so that
 /// the UI can bind to video playback state seamlessly using the unified pattern.
-class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
-  VideoPlayerController? _controller;
-  final StreamController<MediaPlayStreamData> _stateStreamController =
-      StreamController<MediaPlayStreamData>.broadcast();
+class VideoPlayerService implements AppMediaPlayerService, CaptionablePlayer {
+  final VideoPlayerController _controller;
+  @override
+  final OnChanged<MediaPlayStreamData>? onUpdate;
+  late final StreamController<MediaPlayStreamData> _stateStreamController;
 
-  VideoPlayerService();
+  VideoPlayerService(this._controller, {this.onUpdate}) {
+    _stateStreamController = StreamController<MediaPlayStreamData>.broadcast();
+    _controller.addListener(_ctrlListener);
+  }
+
+  void _ctrlListener() {
+    onUpdate?.call(playData);
+    if (_stateStreamController.isClosed) return;
+    _stateStreamController.add(playData);
+  }
 
   @override
   MediaPlayStreamData get playData {
-    if (_controller == null) {
-      return (
-        duration: 1.seconds,
-        paused: true,
-        position: 0.seconds,
-        playbackSpeed: 1,
-        state: MediaPlayerState.idle,
-        volume: 1,
-      );
-    }
     return (
-      duration: _controller!.value.duration,
-      paused: !(_controller!.value.isPlaying),
-      position: _controller!.value.position,
-      playbackSpeed: _controller!.value.playbackSpeed,
-      state: MediaPlayerState.fromVideoPlayerValue(_controller!.value),
-      volume: _controller!.value.volume,
+      duration: _controller.value.duration,
+      paused: !(_controller.value.isPlaying),
+      position: _controller.value.position,
+      playbackSpeed: _controller.value.playbackSpeed,
+      state: MediaPlayerState.fromVideoPlayerValue(_controller.value),
+      volume: _controller.value.volume,
     );
   }
 
   @override
   Stream<MediaPlayStreamData> get stateStream => _stateStreamController.stream;
 
-  void _onControllerUpdate() {
-    if (!_stateStreamController.isClosed) {
-      _stateStreamController.add(playData);
-    }
-  }
-
   @override
-  Future<void> load(MediaSource source) async {
+  Future<void> load({bool autoPlay = true}) async {
     try {
-      if (source.video == null) return;
-      
-      await unloadSource();
-
-      _controller = source.video;
-      _controller!.addListener(_onControllerUpdate);
-
-      final isInitialised = _controller!.value.isInitialized;
-      if (!isInitialised) {
-        await _controller!.initialize();
-      }
-      await _controller!.setLooping(true);
-      _onControllerUpdate();
+      pause();
+      final isInitialised = _controller.value.isInitialized;
+      if (!isInitialised) await _controller.initialize();
+      if (autoPlay) await play();
     } catch (e, t) {
       AppLogger.severe("$e", error: e, stackTrace: t);
     }
@@ -70,7 +55,7 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
   @override
   bool get isPlaying {
     try {
-      return _controller?.value.isPlaying ?? false;
+      return _controller.value.isPlaying;
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
       return false;
@@ -80,7 +65,7 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
   @override
   bool get isCompleted {
     try {
-      return _controller?.value.isCompleted ?? false;
+      return _controller.value.isCompleted;
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
       return false;
@@ -90,8 +75,8 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
   @override
   Future<void> play() async {
     try {
-      if (_controller == null || _controller!.value.isPlaying) return;
-      await _controller!.play();
+      if (_controller.value.isPlaying) return;
+      await _controller.play();
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }
@@ -100,8 +85,8 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
   @override
   Future<void> pause() async {
     try {
-      if (_controller == null || !_controller!.value.isPlaying) return;
-      await _controller!.pause();
+      if (!_controller.value.isPlaying) return;
+      await _controller.pause();
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }
@@ -110,12 +95,12 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
   @override
   Future<void> togglePlay() async {
     try {
-      final playing = _controller?.value.isPlaying ?? false;
+      final playing = _controller.value.isPlaying;
       if (playing) {
         await pause();
-      } else {
-        await play();
+        return;
       }
+      await play();
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }
@@ -124,9 +109,8 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
   @override
   Future<void> toggleMute() async {
     try {
-      if (_controller == null) return;
-      final volume = _controller!.value.volume;
-      await _controller!.setVolume(volume > 0 ? 0 : 1);
+      final volume = _controller.value.volume;
+      await _controller.setVolume(volume > 0 ? 0 : 1);
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }
@@ -135,7 +119,7 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
   @override
   Future<void> seekTo(Duration duration) async {
     try {
-      await _controller?.seekTo(duration);
+      await _controller.seekTo(duration);
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }
@@ -144,7 +128,7 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
   @override
   Duration? get duration {
     try {
-      return _controller?.value.duration;
+      return _controller.value.duration;
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
       return null;
@@ -154,7 +138,7 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
   @override
   Duration? get position {
     try {
-      return _controller?.value.position;
+      return _controller.value.position;
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
       return null;
@@ -164,7 +148,7 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
   @override
   Future<void> setSpeed(double speed) async {
     try {
-      await _controller?.setPlaybackSpeed(speed);
+      await _controller.setPlaybackSpeed(speed);
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }
@@ -182,18 +166,15 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
 
   @override
   Future<void> unloadSource() async {
-    if (_controller != null) {
-      await reset();
-      _controller!.removeListener(_onControllerUpdate);
-      _controller = null;
-    }
+    await reset();
+    _controller.removeListener(_ctrlListener);
+    await _stateStreamController.close();
   }
 
   @override
   Future<void> dispose() async {
     try {
       await unloadSource();
-      await _stateStreamController.close();
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }
@@ -202,7 +183,7 @@ class VideoPlayerService implements AppMediaPlayer, CaptionablePlayer {
   @override
   Future<void> setCaption(SubRipCaptionFile caption) async {
     try {
-      await _controller?.setClosedCaptionFile(Future.value(caption));
+      await _controller.setClosedCaptionFile(Future.value(caption));
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }
