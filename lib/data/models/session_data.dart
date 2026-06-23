@@ -1,68 +1,65 @@
 /// {@category Data}
 /// Holds session information for an authenticated user.
 class SessionData {
-  int id;
   String accessToken;
   String refreshToken;
-  String? deviceToken;
-  int createdAt;
-  int expiresAt;
-  int refreshAt;
+  String? biometricToken;
+  int lastLoginTime;
+  int accessTokenExpiresAt;
+  int refreshTokenExpiresAt;
+  int? biometricTokenExpiresAt;
   bool hasEnabledBioAuth;
   String deviceId;
-  String? userUuid;
-  String? lastEmail;
+  String? userRole;
+  String? userName;
+  String? userId;
+  bool isTwoFactorEnabled;
 
   SessionData({
     required this.accessToken,
-    required this.expiresAt,
-    required this.refreshAt,
+    required this.accessTokenExpiresAt,
     required this.refreshToken,
+    required this.refreshTokenExpiresAt,
     required this.deviceId,
     this.hasEnabledBioAuth = false,
-    this.lastEmail,
-    this.userUuid,
-    this.deviceToken,
-  }) : id = 1,
-       createdAt = DateTime.now().millisecondsSinceEpoch;
+    this.userName,
+    this.userId,
+    this.userRole,
+    this.biometricToken,
+    this.isTwoFactorEnabled = false,
+    this.biometricTokenExpiresAt,
+  }) : lastLoginTime = DateTime.now().millisecondsSinceEpoch;
 
   SessionData copyWith({
     String? accessToken,
     String? refreshToken,
-    String? deviceToken,
-    int? expiresAt,
-    int? refreshAt,
+    String? biometricToken,
+    int? lastLoginTime,
+    int? accessTokenExpiresAt,
+    int? refreshTokenExpiresAt,
+    int? biometricTokenExpiresAt,
     bool? hasEnabledBioAuth,
-    bool? hasActiveSubscription,
-    bool? hasVerifiedEmail,
-    String? lastEmail,
-    String? userUuid,
     String? deviceId,
+    String? userName,
+    String? userRole,
+    String? userId,
+    bool? isTwoFactorEnabled,
   }) {
     return SessionData(
       accessToken: accessToken ?? this.accessToken,
-      deviceToken: deviceToken ?? this.deviceToken,
+      accessTokenExpiresAt: accessTokenExpiresAt ?? this.accessTokenExpiresAt,
       refreshToken: refreshToken ?? this.refreshToken,
+      refreshTokenExpiresAt:
+          refreshTokenExpiresAt ?? this.refreshTokenExpiresAt,
       deviceId: deviceId ?? this.deviceId,
-      refreshAt: refreshAt ?? this.refreshAt,
-      expiresAt: expiresAt ?? this.expiresAt,
       hasEnabledBioAuth: hasEnabledBioAuth ?? this.hasEnabledBioAuth,
-      lastEmail: lastEmail ?? this.lastEmail,
-      userUuid: userUuid ?? this.userUuid,
-    );
-  }
-
-  factory SessionData.loggedOut(SessionData? activeSession) {
-    return SessionData(
-      accessToken: "",
-      deviceToken: activeSession?.deviceToken,
-      deviceId: activeSession?.deviceId ?? "",
-      refreshToken: "",
-      expiresAt: 0,
-      refreshAt: 0,
-      lastEmail: activeSession?.lastEmail,
-      hasEnabledBioAuth: activeSession?.hasEnabledBioAuth ?? false,
-      userUuid: activeSession?.userUuid,
-    );
+      userName: userName ?? this.userName,
+      userId: userId ?? this.userId,
+      userRole: userRole ?? this.userRole,
+      biometricToken: biometricToken ?? this.biometricToken,
+      isTwoFactorEnabled: isTwoFactorEnabled ?? this.isTwoFactorEnabled,
+      biometricTokenExpiresAt:
+          biometricTokenExpiresAt ?? this.biometricTokenExpiresAt,
+    )..lastLoginTime = lastLoginTime ?? this.lastLoginTime;
   }
 }
