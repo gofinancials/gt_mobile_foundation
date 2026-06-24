@@ -49,6 +49,9 @@ class AppStorageKey {
   /// Storage key for the user's preferred theme mode (e.g., light, dark, system).
   static const String themeMode = 'themeMode';
 
+  /// Storage key for the user's preferred theme name (e.g., pro, flex, kids)
+  static const String themeName = 'themeName';
+
   /// Storage key for the user's preferred application language/locale.
   static const String language = 'language';
 }
@@ -81,6 +84,12 @@ abstract class AppStorageService {
 
   /// Registers a [callback] that fires whenever the value for the given [key] changes.
   void watchItem(String key, OnChanged<String?> callback);
+
+  /// Removes all callbacks from the watch list for the given [key].
+  Future<void> unWatchItem(String key);
+
+  /// Removes all callbacks from the watch list for the given [keys].
+  Future<void> unWatchItems(List<String> keys);
 
   /// Deletes the item associated with the provided [key] from storage.
   Future<void> removeItem(String key);

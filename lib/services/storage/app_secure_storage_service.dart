@@ -50,6 +50,24 @@ class AppSecureStorageService implements AppStorageService {
   }
 
   @override
+  Future<void> unWatchItem(String key) async {
+    try {
+      _storage.unregisterAllListenersForKey(key: key);
+    } catch (e, t) {
+      AppLogger.severe("$e", error: e, stackTrace: t);
+    }
+  }
+
+  @override
+  Future<void> unWatchItems(List<String> keys) async {
+    try {
+      await Future.wait(keys.map((it) => unWatchItem(it)));
+    } catch (e, t) {
+      AppLogger.severe("$e", error: e, stackTrace: t);
+    }
+  }
+
+  @override
   Future<bool> hasItem(String key) async {
     try {
       return await _storage.containsKey(key: key);

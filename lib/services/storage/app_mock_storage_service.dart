@@ -79,4 +79,10 @@ class AppMockStorageService extends AppStorageService {
   Future<void> closeDb() async {
     clearDb();
   }
+
+  @override
+  Future<void> unWatchItem(String key) async {}
+
+  @override
+  Future<void> unWatchItems(List<String> keys) async {}
 }
