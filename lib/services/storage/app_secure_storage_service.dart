@@ -12,10 +12,10 @@ class AppSecureStorageService implements AppStorageService {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   @override
-  Future<Map<AppStorageKey, String?>> getItems(List<AppStorageKey> keys) async {
+  Future<Map<String, String?>> getItems(List<String> keys) async {
     try {
       final result = await Future.wait(keys.map((it) => _getItemMap(it)));
-      return result.fold<Map<AppStorageKey, String?>>({}, (previous, element) {
+      return result.fold<Map<String, String?>>({}, (previous, element) {
         return previous..addAll(element);
       });
     } catch (e, t) {
@@ -25,15 +25,15 @@ class AppSecureStorageService implements AppStorageService {
   }
 
   /// Internal helper to retrieve a single secure key and format it as a map entry.
-  Future<Map<AppStorageKey, String?>> _getItemMap(AppStorageKey key) async {
+  Future<Map<String, String?>> _getItemMap(String key) async {
     final value = await getItem(key);
     return {key: value};
   }
 
   @override
-  Future<String?> getItem(AppStorageKey key) async {
+  Future<String?> getItem(String key) async {
     try {
-      return await _storage.read(key: key.key);
+      return await _storage.read(key: key);
     } catch (e, t) {
       AppLogger.severe("$e", error: e, stackTrace: t);
       return null;
@@ -41,18 +41,18 @@ class AppSecureStorageService implements AppStorageService {
   }
 
   @override
-  void watchItem(AppStorageKey key, OnChanged<String?> callback) {
+  void watchItem(String key, OnChanged<String?> callback) {
     try {
-      _storage.registerListener(key: key.key, listener: callback);
+      _storage.registerListener(key: key, listener: callback);
     } catch (e, t) {
       AppLogger.severe("$e", error: e, stackTrace: t);
     }
   }
 
   @override
-  Future<bool> hasItem(AppStorageKey key) async {
+  Future<bool> hasItem(String key) async {
     try {
-      return await _storage.containsKey(key: key.key);
+      return await _storage.containsKey(key: key);
     } catch (e, t) {
       AppLogger.severe("$e", error: e, stackTrace: t);
       return false;
@@ -60,7 +60,7 @@ class AppSecureStorageService implements AppStorageService {
   }
 
   @override
-  Future<void> removeItems(List<AppStorageKey> keys) async {
+  Future<void> removeItems(List<String> keys) async {
     try {
       await Future.wait(keys.map((it) => removeItem(it)));
     } catch (e, t) {
@@ -69,25 +69,25 @@ class AppSecureStorageService implements AppStorageService {
   }
 
   @override
-  Future<void> removeItem(AppStorageKey key) async {
+  Future<void> removeItem(String key) async {
     try {
-      await _storage.delete(key: key.key);
+      await _storage.delete(key: key);
     } catch (e, t) {
       AppLogger.severe("$e", error: e, stackTrace: t);
     }
   }
 
   @override
-  Future<void> setItem(AppStorageKey key, String data) async {
+  Future<void> setItem(String key, String data) async {
     try {
-      await _storage.write(key: key.key, value: data);
+      await _storage.write(key: key, value: data);
     } catch (e, t) {
       AppLogger.severe("$e", error: e, stackTrace: t);
     }
   }
 
   @override
-  Future<void> setItems(Map<AppStorageKey, String> items) async {
+  Future<void> setItems(Map<String, String> items) async {
     try {
       await Future.wait(items.entries.map((it) => setItem(it.key, it.value)));
     } catch (e, t) {

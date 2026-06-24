@@ -5,18 +5,18 @@ import 'package:gt_mobile_foundation/foundation.dart';
 /// {@category Services}
 /// A mock implementation of [AppStorageService] used primarily for testing,
 /// development, or preview environments where persistent local storage is not required.
-/// 
+///
 /// This service keeps all data in an ephemeral, in-memory `Map`. All data is lost
 /// when the application is closed or restarted.
 class AppMockStorageService extends AppStorageService {
   /// The underlying in-memory map storing all mocked storage data.
-  final _storage = <AppStorageKey, String?>{};
+  final _storage = <String, String?>{};
 
   @override
-  Future<Map<AppStorageKey, String?>> getItems(List<AppStorageKey> keys) async {
+  Future<Map<String, String?>> getItems(List<String> keys) async {
     try {
       final result = await Future.wait(keys.map((it) => _getItemMap(it)));
-      return result.fold<Map<AppStorageKey, String?>>({}, (previous, element) {
+      return result.fold<Map<String, String?>>({}, (previous, element) {
         return previous..addAll(element);
       });
     } catch (e, t) {
@@ -26,48 +26,45 @@ class AppMockStorageService extends AppStorageService {
   }
 
   /// Internal helper to retrieve a single key and format it as a map entry.
-  Future<Map<AppStorageKey, String?>> _getItemMap(AppStorageKey key) async {
+  Future<Map<String, String?>> _getItemMap(String key) async {
     final value = await getItem(key);
     return {key: value};
   }
 
   @override
-  Future<String?> getItem(AppStorageKey key) async {
+  Future<String?> getItem(String key) async {
     return _storage[key];
   }
 
   @override
-  Future<void> setItem(AppStorageKey key, String data) async {
+  Future<void> setItem(String key, String data) async {
     _storage[key] = data;
   }
 
   @override
-  Future<void> removeItem(AppStorageKey key) async {
+  Future<void> removeItem(String key) async {
     _storage.remove(key);
   }
 
   @override
-  Future<bool> hasItem(AppStorageKey key) async {
+  Future<bool> hasItem(String key) async {
     return _storage.containsKey(key);
   }
 
   /// Registers a callback to watch for changes.
-  /// 
+  ///
   /// **Note**: In this mock implementation, `watchItem` is intentionally a no-op
   /// as the underlying `Map` does not support stream-based listening out of the box.
   @override
-  void watchItem(
-    AppStorageKey key, [
-    void Function(String? value)? onChanged,
-  ]) {}
+  void watchItem(String key, [void Function(String? value)? onChanged]) {}
 
   @override
-  Future<void> setItems(Map<AppStorageKey, String> items) async {
+  Future<void> setItems(Map<String, String> items) async {
     _storage.addAll(items);
   }
 
   @override
-  Future<void> removeItems(List<AppStorageKey> keys) async {
+  Future<void> removeItems(List<String> keys) async {
     _storage.removeWhere((key, value) => keys.contains(key));
   }
 
