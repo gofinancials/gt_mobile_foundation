@@ -21,6 +21,7 @@ class SessionData {
     required this.refreshToken,
     required this.refreshTokenExpiresAt,
     required this.deviceId,
+    required this.lastLoginTime,
     this.hasEnabledBioAuth = false,
     this.userName,
     this.userId,
@@ -28,7 +29,7 @@ class SessionData {
     this.biometricToken,
     this.isTwoFactorEnabled = false,
     this.biometricTokenExpiresAt,
-  }) : lastLoginTime = DateTime.now().millisecondsSinceEpoch;
+  });
 
   SessionData copyWith({
     String? accessToken,
@@ -58,8 +59,9 @@ class SessionData {
       userRole: userRole ?? this.userRole,
       biometricToken: biometricToken ?? this.biometricToken,
       isTwoFactorEnabled: isTwoFactorEnabled ?? this.isTwoFactorEnabled,
+      lastLoginTime: lastLoginTime ?? this.lastLoginTime,
       biometricTokenExpiresAt:
           biometricTokenExpiresAt ?? this.biometricTokenExpiresAt,
-    )..lastLoginTime = lastLoginTime ?? this.lastLoginTime;
+    );
   }
 }
