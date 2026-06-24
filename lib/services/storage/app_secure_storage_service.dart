@@ -96,7 +96,7 @@ class AppSecureStorageService implements AppStorageService {
   }
 
   @override
-  Future<void> setItem(String key, String data) async {
+  Future<void> setItem(String key, String? data) async {
     try {
       await _storage.write(key: key, value: data);
     } catch (e, t) {
@@ -105,7 +105,7 @@ class AppSecureStorageService implements AppStorageService {
   }
 
   @override
-  Future<void> setItems(Map<String, String> items) async {
+  Future<void> setItems(Map<String, String?> items) async {
     try {
       await Future.wait(items.entries.map((it) => setItem(it.key, it.value)));
     } catch (e, t) {

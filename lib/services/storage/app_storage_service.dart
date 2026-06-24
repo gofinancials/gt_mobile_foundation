@@ -77,10 +77,10 @@ abstract class AppStorageService {
   Future<Map<String, String?>> getItems(List<String> keys);
 
   /// Saves or updates the [data] associated with the given [key].
-  Future<void> setItem(String key, String data);
+  Future<void> setItem(String key, String? data);
 
   /// Saves or updates multiple [items] simultaneously.
-  Future<void> setItems(Map<String, String> items);
+  Future<void> setItems(Map<String, String?> items);
 
   /// Registers a [callback] that fires whenever the value for the given [key] changes.
   void watchItem(String key, OnChanged<String?> callback);
