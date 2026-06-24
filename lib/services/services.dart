@@ -12,4 +12,5 @@ export 'screen_shot/screen_shot.dart';
 export 'service_locator/service_locator.dart';
 export 'session/session.dart';
 export 'share/share.dart';
+export 'storage/storage.dart';
 export 'url_handling/url_handling.dart';
