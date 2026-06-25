@@ -33,7 +33,7 @@ class AppCryptoServiceImpl implements AppCryptoService {
     required this.aesVector,
     this.rsaPublicKeyPath,
   }) {
-    _aesCipher = Encrypter(AES(Key.fromUtf8(aesKey), mode: .cbc));
+    _aesCipher = Encrypter(AES(Key.fromUtf8(aesKey), mode: .gcm));
     _iv = IV.fromUtf8(aesVector);
     _initRsaCipher();
   }

@@ -109,14 +109,18 @@ class AppValidators {
     bool isRequired = true,
   }) {
     final isEmpty = _isEmpty(tel);
+    final hasCountryCode = countryCode.hasValue;
 
-    if (!isRequired && isEmpty) return null;
+    if (!isRequired && (isEmpty && !hasCountryCode)) return null;
 
     if (isEmpty) {
       return emptyMessage ?? strings.fieldRequired.tr();
     }
 
-    if (!AppRegex.phoneRegex.hasMatch("$countryCode$tel")) {
+    String normalisedTel = tel?.replaceAll(AppRegex.space, '') ?? "";
+    if (hasCountryCode) normalisedTel = "$countryCode $normalisedTel";
+
+    if (!AppRegex.phoneRegex.hasMatch(normalisedTel)) {
       return errorMessage ?? strings.invalidPhone.tr();
     }
     return null;

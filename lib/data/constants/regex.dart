@@ -17,6 +17,7 @@ class AppRegex {
   static final passwordRegEx = RegExp(
     r"(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[^a-zA-Z0-9]).{8,}",
   );
+  static final space = RegExp(r"\s+");
   static final specialCharRegEx = RegExp(r"[^A-Za-z0-9]+");
   static final eightCharRegEx = RegExp(r".{8,}");
   static final phoneRegex = RegExp(r"^(\+[0-9]{1,4}\s)?[0-9]{5,15}$");

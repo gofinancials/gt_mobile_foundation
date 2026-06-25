@@ -4,7 +4,11 @@ import 'package:gt_mobile_foundation/foundation.dart';
 /// A mock implementation of [BiometricAuthService] for testing environments.
 class BiometricAuthServiceMock implements BiometricAuthService {
   @override
-  Future<bool> authenticate({required String title}) async {
+  Future<bool> authenticate({
+    required String title,
+    bool sticky = true,
+    bool biometricOnly = true,
+  }) async {
     return AppHelpers.randomBool;
   }
 
