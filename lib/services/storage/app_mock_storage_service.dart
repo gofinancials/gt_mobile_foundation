@@ -37,7 +37,7 @@ class AppMockStorageService extends AppStorageService {
   }
 
   @override
-  Future<void> setItem(String key, String data) async {
+  Future<void> setItem(String key, String? data) async {
     _storage[key] = data;
   }
 
@@ -59,7 +59,7 @@ class AppMockStorageService extends AppStorageService {
   void watchItem(String key, [void Function(String? value)? onChanged]) {}
 
   @override
-  Future<void> setItems(Map<String, String> items) async {
+  Future<void> setItems(Map<String, String?> items) async {
     _storage.addAll(items);
   }
 
@@ -79,4 +79,10 @@ class AppMockStorageService extends AppStorageService {
   Future<void> closeDb() async {
     clearDb();
   }
+
+  @override
+  Future<void> unWatchItem(String key) async {}
+
+  @override
+  Future<void> unWatchItems(List<String> keys) async {}
 }

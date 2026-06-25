@@ -15,15 +15,20 @@ class BiometricAuthServiceImpl implements BiometricAuthService {
   BiometricAuthServiceImpl();
 
   @override
-  Future<bool> authenticate({required String title}) async {
+  Future<bool> authenticate({
+    required String title,
+    bool sticky = true,
+    bool biometricOnly = true,
+  }) async {
     try {
       if (!await hasBioCapabilities()) return false;
 
       return await _auth.authenticate(
         localizedReason: title,
-        options: const AuthenticationOptions(
-          stickyAuth: false,
+        options: AuthenticationOptions(
+          stickyAuth: sticky,
           useErrorDialogs: true,
+          biometricOnly: biometricOnly,
         ),
       );
     } catch (e, t) {
