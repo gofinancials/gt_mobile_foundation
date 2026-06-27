@@ -17,7 +17,7 @@ class AppCountryUtility {
         'packages/gt_mobile_foundation/assets/resources/countries.json',
         cache: true,
       );
-      List rawData = await AppHelpers.parseJson(req);
+      List rawData = (await AppHelpers.parseJson(req)) ?? [];
       List<Country> countries = [];
 
       for (var it in rawData) {

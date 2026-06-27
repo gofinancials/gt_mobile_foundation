@@ -11,4 +11,7 @@ abstract class AppCryptoService {
 
   /// Encrypts the provided [data] using RSA algorithm and specified [mode].
   String? encryptRsa(String data, {AppCryptoMode mode = .base16});
+
+  /// The application tag used for encryption.
+  String get appTag;
 }

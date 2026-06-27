@@ -29,6 +29,12 @@ class AppLogger {
     );
   }
 
+  /// Logs a debug [message] in red with optional [stackTrace] and [error] details.
+  static debug(dynamic message) {
+    if (!kDebugMode) return;
+    debugPrint("ERROR -> \x1B[31m$message\x1B[0m");
+  }
+
   /// Updates the default logging prefix tag.
   static setTag(String tag) => _tag = tag;
 

@@ -17,7 +17,7 @@ mixin AppHttpMixin {
     );
     return TaskError(
       message: errorData["message"] ?? "",
-      statusCode: errorData["statusCode"],
+      statusCode: "${errorData["statusCode"]}",
       error: error,
     );
   }
@@ -51,9 +51,6 @@ mixin AppHttpMixin {
     } on DioException catch (e, t) {
       _reportError("DioException: ${e.message}", e, t);
       return TaskFailure(error: _getParsedError(e));
-    } on TaskError catch (e, t) {
-      _reportError("TaskError: ${e.message}", e, t);
-      return TaskFailure(error: e);
     } on TimeoutException catch (e, t) {
       _reportError("NetworkTimeout: ${e.message}", e, t);
       return TaskFailure(error: _getParsedError(e));

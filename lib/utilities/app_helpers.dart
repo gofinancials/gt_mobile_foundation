@@ -18,22 +18,32 @@ class AppHelpers {
     return list.first;
   }
 
-  static _parseAndDecode(String response) {
+  static FutureOr<dynamic> _parseAndDecode(String response) {
     return jsonDecode(response);
   }
 
-  static parseJson(String text) {
-    if (text.codeUnits.length < 50 * 1024) return _parseAndDecode(text);
-    return compute(_parseAndDecode, text);
+  static FutureOr<dynamic> parseJson(String text) {
+    try {
+      if (text.codeUnits.length < 50 * 1024) return _parseAndDecode(text);
+      return compute(_parseAndDecode, text);
+    } catch (e, t) {
+      AppLogger.severe("JSON parsing failed: $e", stackTrace: t, error: e);
+      return null;
+    }
   }
 
-  static String _parseAndEncode(Object data) {
+  static FutureOr<String> _parseAndEncode(Object data) {
     return jsonEncode(data);
   }
 
   static FutureOr<String> encodeJson(Object data) {
-    if ("$data".codeUnits.length < 50 * 1024) return _parseAndEncode(data);
-    return compute(_parseAndEncode, data);
+    try {
+      if ("$data".codeUnits.length < 50 * 1024) return _parseAndEncode(data);
+      return compute(_parseAndEncode, data);
+    } catch (e, t) {
+      AppLogger.severe("JSON encoding failed: $e", stackTrace: t, error: e);
+      return "";
+    }
   }
 
   static double fileSizeInMb(File file) {
@@ -65,59 +75,72 @@ class AppHelpers {
     String defaultMessage = "",
   }) {
     try {
+      if (error is SocketException) {
+        final data = error.message;
+        int? code = error.osError?.errorCode;
+        return {"message": data, "statusCode": code ?? 500};
+      }
+
+      if (error is TimeoutException) {
+        final data = error.message;
+        return {"message": data, "statusCode": 408};
+      }
+
+      if (error is String) {
+        return {"message": error, "statusCode": 500};
+      }
+
       if (error is DioException) {
         final data = error.response?.data;
-        final code = error.response?.statusCode;
+        int? code = error.response?.statusCode;
+        String message = error.message ?? defaultMessage;
 
-        if (data != null) {
-          String message = "";
-
-          if (data is! Map) {
-            return {"message": "$data", "statusCode": code};
-          }
-
-          final messageData = data["message"];
-
-          if (messageData is String) {
-            message = messageData;
-          }
-
-          if (messageData is List) {
-            message = messageData.map((it) => "$it").join(", ");
-          }
-
-          return {"message": message, "statusCode": code ?? 500};
+        if (data is Map) {
+          return _parseErrorMap(
+            data,
+            defaultMessage: defaultMessage,
+            statusCode: code ?? 500,
+          );
         }
+
+        return {"message": message, "statusCode": code ?? 500};
       }
 
       if (error is Map) {
-        if (error["error"] != null &&
-            error["error"] is String &&
-            error["error"].isNotEmpty) {
-          return {"message": error["error"], "statusCode": 400};
-        } else if (error.containsKey("message") &&
-            error["message"] != null &&
-            error["message"] is String) {
-          final String message = error["message"] ?? "";
-          return {"message": message, "statusCode": 400};
-        } else if (error.containsKey("statusMessage") &&
-            error["statusMessage"] != null &&
-            error["statusMessage"] is String) {
-          final String message = error["statusMessage"] ?? "";
-          return {"message": message, "statusCode": 400};
-        } else {
-          if (error.containsKey("data") && error["data"] != null) {
-            return parseError(error["data"]);
-          }
-          return {"message": defaultMessage, "statusCode": 400};
-        }
+        return _parseErrorMap(error, defaultMessage: defaultMessage);
       }
-      if (error is String) {
-        return {"message": error, "statusCode": 400};
-      }
-      return {"message": defaultMessage, "statusCode": 400};
+
+      return {"message": defaultMessage, "statusCode": 500};
     } catch (_) {
-      return {"message": defaultMessage, "statusCode": 400};
+      return {"message": defaultMessage, "statusCode": 500};
+    }
+  }
+
+  static _parseErrorMap(
+    Map error, {
+    String defaultMessage = "",
+    int statusCode = 500,
+  }) {
+    int? code = int.tryParse(error["responseCode"]) ?? statusCode;
+    if (error.containsKey("message") &&
+        error["message"] != null &&
+        error["message"] is String) {
+      final String message = error["message"] ?? "";
+      return {"message": message, "statusCode": code};
+    } else if (error["error"] != null &&
+        error["error"] is String &&
+        error["error"].isNotEmpty) {
+      return {"message": error["error"], "statusCode": code};
+    } else if (error.containsKey("statusMessage") &&
+        error["statusMessage"] != null &&
+        error["statusMessage"] is String) {
+      final String message = error["statusMessage"] ?? "";
+      return {"message": message, "statusCode": code};
+    } else {
+      if (error.containsKey("data") && error["data"] != null) {
+        return parseError(error["data"]);
+      }
+      return {"message": defaultMessage, "statusCode": code};
     }
   }
 

@@ -184,16 +184,14 @@ extension ListExtension<T> on List<T>? {
   /// Inserts [interspersend] between each element of the list.
   ///
   /// Returns a new list with the interspersed elements, or `null` if the original list was null.
-  List<T>? intersperse(T interspersend) {
+  List<dynamic>? intersperse(dynamic interspersend) {
     try {
-      if (this == null) return null;
-      if (this!.isEmpty) return [];
-      if (this!.length == 1) return [this!.first, interspersend];
-      final last = this!.last;
-      this!.removeLast();
-      final map2d = mapList((it) => [it, interspersend]);
-      List<T> flatList = map2d.fold([], (p, n) => [...p, ...n]);
-      return [...flatList, last];
+      if (!hasValue || (this?.length ?? 0) < 2) return this ?? [];
+      final last = this?.last;
+      final slice = this?.sublist(0, this!.length - 1);
+      final map2d = slice?.mapList((it) => [it, interspersend]) ?? [];
+      List flatList = map2d.fold([], (p, n) => [...p, ...n]);
+      return [...flatList, ?last];
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
       return this ?? [];
@@ -202,26 +200,4 @@ extension ListExtension<T> on List<T>? {
 
   /// Returns the list if it's not null, otherwise returns an empty list.
   List<T> get value => this ?? [];
-}
-
-/// {@category Extensions}
-/// Extensions on non-nullable [List] for data manipulation.
-extension NonNullListExtension<T> on List<T> {
-  /// Inserts [interspersend] between each element of the list.
-  ///
-  /// Returns a new list with the interspersed elements.
-  List<T> intersperse(T interspersend) {
-    try {
-      if (isEmpty) return [];
-      if (length == 1) return this;
-      final lastItem = last;
-      removeLast();
-      final map2d = mapList((it) => [it, interspersend]);
-      List<T> flatList = map2d.fold([], (p, n) => [...p, ...n]);
-      return [...flatList, lastItem];
-    } catch (e, t) {
-      AppLogger.severe("$e", stackTrace: t);
-      return this;
-    }
-  }
 }
