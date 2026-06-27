@@ -5,4 +5,5 @@ export 'media_data.dart';
 export 'network_response.dart';
 export 'session_data.dart';
 export 'state_model.dart';
+export 'task_response.dart';
 export 'usecase_model.dart';

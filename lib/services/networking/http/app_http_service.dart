@@ -26,37 +26,41 @@ abstract class AppHttpService {
 
   /// Executes a GET request to the specified [path] with optional [query] parameters,
   /// custom request [options], and a callback [onReceiveProgress].
-  Future<Response> get(
+  Future<ApiResponse> get(
     String path, {
     Codable? query,
     Options? options,
     ProgressCallback? onReceiveProgress,
-  }) async {
-    return await _http.get(
-      path,
-      queryParameters: query?.toJson(),
-      options: options,
-      onReceiveProgress: onReceiveProgress,
+  }) {
+    return transformToApiResponse(
+      _http.get(
+        path,
+        queryParameters: query?.toJson(),
+        options: options,
+        onReceiveProgress: onReceiveProgress,
+      ),
     );
   }
 
   /// Executes a GET request specifically intended for downloading data from the [path].
-  Future<Response> download(
+  Future<ApiResponse> download(
     String path, {
     ProgressCallback? onReceiveProgress,
     Codable? query,
     Options? options,
-  }) async {
-    return await _http.get(
-      path,
-      queryParameters: query?.toJson(),
-      onReceiveProgress: onReceiveProgress,
-      options: options,
+  }) {
+    return transformToApiResponse(
+      _http.get(
+        path,
+        queryParameters: query?.toJson(),
+        onReceiveProgress: onReceiveProgress,
+        options: options,
+      ),
     );
   }
 
   /// Executes a PUT request to the specified [path] with an optional [body].
-  Future<Response> put(
+  Future<ApiResponse> put(
     String path, {
     Codable? query,
     Codable? body,
@@ -64,18 +68,20 @@ abstract class AppHttpService {
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) {
-    return _http.put(
-      path,
-      data: body?.toJson(),
-      queryParameters: query?.toJson(),
-      options: options,
-      onSendProgress: onSendProgress,
-      onReceiveProgress: onReceiveProgress,
+    return transformToApiResponse(
+      _http.put(
+        path,
+        data: body?.toJson(),
+        queryParameters: query?.toJson(),
+        options: options,
+        onSendProgress: onSendProgress,
+        onReceiveProgress: onReceiveProgress,
+      ),
     );
   }
 
   /// Executes a PATCH request to the specified [path] with an optional [body].
-  Future<Response> patch(
+  Future<ApiResponse> patch(
     String path, {
     Codable? query,
     Codable? body,
@@ -83,18 +89,20 @@ abstract class AppHttpService {
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) {
-    return _http.patch(
-      path,
-      data: body?.toJson(),
-      queryParameters: query?.toJson(),
-      options: options,
-      onSendProgress: onSendProgress,
-      onReceiveProgress: onReceiveProgress,
+    return transformToApiResponse(
+      _http.patch(
+        path,
+        data: body?.toJson(),
+        queryParameters: query?.toJson(),
+        options: options,
+        onSendProgress: onSendProgress,
+        onReceiveProgress: onReceiveProgress,
+      ),
     );
   }
 
   /// Executes a POST request to the specified [path] with an optional [body].
-  Future<Response> post(
+  Future<ApiResponse> post(
     String path, {
     Codable? query,
     Codable? body,
@@ -102,50 +110,64 @@ abstract class AppHttpService {
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) {
-    return _http.post(
-      path,
-      data: body?.toJson(),
-      queryParameters: query?.toJson(),
-      options: options,
-      onSendProgress: onSendProgress,
-      onReceiveProgress: onReceiveProgress,
+    return transformToApiResponse(
+      _http.post(
+        path,
+        data: body?.toJson(),
+        queryParameters: query?.toJson(),
+        options: options,
+        onSendProgress: onSendProgress,
+        onReceiveProgress: onReceiveProgress,
+      ),
     );
   }
 
   /// Executes a POST request optimized for file uploads via `multipart/form-data` to the specified [path].
-  Future<Response> postFile(
+  Future<ApiResponse> postFile(
     String path, {
     Codable? query,
     FormData? body,
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) {
-    return _http.post(
-      path,
-      data: body,
-      queryParameters: query?.toJson(),
-      onSendProgress: onSendProgress,
-      onReceiveProgress: onReceiveProgress,
-      options: Options(
-        sendTimeout: 10.minutes,
-        receiveTimeout: 10.minutes,
-        headers: {Headers.contentTypeHeader: "multipart/form-data"},
+    return transformToApiResponse(
+      _http.post(
+        path,
+        data: body,
+        queryParameters: query?.toJson(),
+        onSendProgress: onSendProgress,
+        onReceiveProgress: onReceiveProgress,
+        options: Options(
+          sendTimeout: 10.minutes,
+          receiveTimeout: 10.minutes,
+          headers: {Headers.contentTypeHeader: "multipart/form-data"},
+        ),
       ),
     );
   }
 
   /// Executes a DELETE request to the specified [path].
-  Future<Response> delete(
+  Future<ApiResponse> delete(
     String path, {
     Codable? query,
     Codable? body,
     Options? options,
   }) {
-    return _http.delete(
-      path,
-      data: body?.toJson(),
-      queryParameters: query?.toJson(),
-      options: options,
+    return transformToApiResponse(
+      _http.delete(
+        path,
+        data: body?.toJson(),
+        queryParameters: query?.toJson(),
+        options: options,
+      ),
     );
+  }
+
+  /// Converts a [Future<Response>] to a [Future<ApiResponse>] by calling
+  /// [asApiResponse] on the resolved [Response] object.
+  Future<ApiResponse<Response>> transformToApiResponse(
+    Future<Response> responseFuture,
+  ) async {
+    return (await responseFuture).asApiResponse;
   }
 }

@@ -1,77 +1,60 @@
 import 'package:equatable/equatable.dart';
-import 'package:gt_mobile_foundation/foundation.dart';
 
 /// {@category Data}
-/// Represents the result of a remote task (success or failure).
-sealed class TaskResponse<T> extends Equatable {}
+/// A standard wrapper for API responses parsed from network requests.
+class ApiResponse<T> extends Equatable {
+  /// The status or response code representing the outcome of the request.
+  final String responseCode;
 
-class TaskSuccess<T> extends TaskResponse<T> {
-  final T data;
-  TaskSuccess({required this.data});
+  /// An optional descriptive message returned by the server.
+  final String? message;
 
-  @override
-  List<Object?> get props => [data];
-}
+  /// The payload data returned by the server.
+  final dynamic data;
 
-class TaskFailure<T> extends TaskResponse<T> {
-  final TaskError error;
-  TaskFailure({required this.error});
+  final T? rawResponse;
 
-  @override
-  List<Object?> get props => [error];
-}
+  /// Creates an [ApiResponse] with the specified [responseCode], [message], and [data].
+  const ApiResponse({
+    this.responseCode = "200",
+    this.message,
+    this.data,
+    this.rawResponse,
+  });
 
-class TaskError extends Equatable {
-  final String message;
-  final int statusCode;
-  final dynamic error;
-
-  const TaskError({required this.message, this.statusCode = 500, this.error});
-
-  @override
-  List<Object?> get props => [message, statusCode, error.hashCode];
-}
-
-final class NoResponse extends Equatable {
-  const NoResponse();
-
-  @override
-  List<Object?> get props => [hashCode];
-}
-
-extension TaskResponseExtension<T> on TaskResponse<T> {
-  bool get isSuccess => this is TaskSuccess<T>;
-  bool get isFailure => this is TaskFailure<T>;
-
-  T? get data {
-    if (isFailure) return null;
-    return (this as TaskSuccess<T>).data;
+  /// Creates a copy of this [ApiResponse] but with the given fields replaced with the new values.
+  ApiResponse copyWith({
+    String? responseCode,
+    String? message,
+    dynamic data,
+    T? rawResponse,
+  }) {
+    return ApiResponse(
+      responseCode: responseCode ?? this.responseCode,
+      message: message ?? this.message,
+      data: data ?? this.data,
+      rawResponse: rawResponse ?? this.rawResponse,
+    );
   }
 
-  TaskError? get error {
-    if (!isFailure) return null;
-    return (this as TaskFailure<T>).error;
+  /// Creates an [ApiResponse] by extracting fields from a JSON [Map].
+  ///
+  /// If the JSON does not contain a `"responseCode"` or `"message"`, it falls back to
+  /// the [defaultCode] and [defaultMessage] respectively.
+  factory ApiResponse.fromJson(
+    Map json, {
+    String? defaultCode,
+    String? defaultMessage,
+    T? rawResponse,
+  }) {
+    return ApiResponse(
+      responseCode: json["responseCode"] ?? defaultCode ?? "200",
+      message: json["message"] ?? defaultMessage,
+      data: json["data"] ?? json,
+      rawResponse: rawResponse,
+    );
   }
 
-  bool get hasData {
-    if (isFailure) return false;
-    final isNotNull = data != null;
-    bool isNotEmpty = true;
-
-    if (data is Iterable) {
-      isNotEmpty = (data as Iterable).hasValue;
-    }
-
-    if (data is String) {
-      isNotEmpty = (data as String).trim().hasValue;
-    }
-
-    return isNotEmpty && isNotNull;
-  }
-
-  String? get errorMessage {
-    if (!isFailure) return null;
-    final error = (this as TaskFailure<T>).error;
-    return error.message;
-  }
+  @override
+  List<Object?> get props => [responseCode, message, data];
 }
