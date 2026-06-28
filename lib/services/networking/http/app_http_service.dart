@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+typedef DioResponse = ApiResponse<Response>;
+
 /// {@category Services}
 /// An abstract service wrapper around Dio for executing HTTP requests.
 abstract class AppHttpService {
@@ -26,7 +28,7 @@ abstract class AppHttpService {
 
   /// Executes a GET request to the specified [path] with optional [query] parameters,
   /// custom request [options], and a callback [onReceiveProgress].
-  Future<ApiResponse> get(
+  Future<DioResponse> get(
     String path, {
     Codable? query,
     Options? options,
@@ -43,7 +45,7 @@ abstract class AppHttpService {
   }
 
   /// Executes a GET request specifically intended for downloading data from the [path].
-  Future<ApiResponse> download(
+  Future<DioResponse> download(
     String path, {
     ProgressCallback? onReceiveProgress,
     Codable? query,
@@ -60,7 +62,7 @@ abstract class AppHttpService {
   }
 
   /// Executes a PUT request to the specified [path] with an optional [body].
-  Future<ApiResponse> put(
+  Future<DioResponse> put(
     String path, {
     Codable? query,
     Codable? body,
@@ -81,7 +83,7 @@ abstract class AppHttpService {
   }
 
   /// Executes a PATCH request to the specified [path] with an optional [body].
-  Future<ApiResponse> patch(
+  Future<DioResponse> patch(
     String path, {
     Codable? query,
     Codable? body,
@@ -102,7 +104,7 @@ abstract class AppHttpService {
   }
 
   /// Executes a POST request to the specified [path] with an optional [body].
-  Future<ApiResponse> post(
+  Future<DioResponse> post(
     String path, {
     Codable? query,
     Codable? body,
@@ -123,7 +125,7 @@ abstract class AppHttpService {
   }
 
   /// Executes a POST request optimized for file uploads via `multipart/form-data` to the specified [path].
-  Future<ApiResponse> postFile(
+  Future<DioResponse> postFile(
     String path, {
     Codable? query,
     FormData? body,
@@ -147,7 +149,7 @@ abstract class AppHttpService {
   }
 
   /// Executes a DELETE request to the specified [path].
-  Future<ApiResponse> delete(
+  Future<DioResponse> delete(
     String path, {
     Codable? query,
     Codable? body,
@@ -165,7 +167,7 @@ abstract class AppHttpService {
 
   /// Converts a [Future<Response>] to a [Future<ApiResponse>] by calling
   /// [asApiResponse] on the resolved [Response] object.
-  Future<ApiResponse<Response>> transformToApiResponse(
+  Future<DioResponse> transformToApiResponse(
     Future<Response> responseFuture,
   ) async {
     return (await responseFuture).asApiResponse;
