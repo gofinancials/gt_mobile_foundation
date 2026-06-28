@@ -6,6 +6,7 @@ import 'package:gt_mobile_foundation/foundation.dart';
 /// A [ValueNotifier] that manages the state of an [AsyncData] object.
 class AsyncDataNotifier<T extends Equatable>
     extends ValueNotifier<AsyncData<T>> {
+  /// Creates an [AsyncDataNotifier] with the initial [value].
   AsyncDataNotifier(super.value);
 }
 
@@ -13,34 +14,57 @@ class AsyncDataNotifier<T extends Equatable>
 /// A [ValueNotifier] that manages the state of a [FutureData] object.
 class FutureDataNotifier<T extends Equatable>
     extends ValueNotifier<FutureData<T>> {
+  /// Creates a [FutureDataNotifier] with the initial [value].
   FutureDataNotifier(super.value);
+
+  /// Creates a [FutureDataNotifier] with a pristine [FutureData] object.
   FutureDataNotifier.pristine() : super(FutureData.pristine());
 
+  /// The actual data payload, or null if not available.
   T? get data => value.data;
+
+  /// The error object, if an error occurred.
   TaskError? get error => value.error;
+
+  /// Returns true if an error has occurred.
   bool get hasError => value.hasError;
+
+  /// Indicates whether the asynchronous operation is currently loading.
   bool get isLoading => value.isLoading;
+
+  /// Indicates whether the data is in its initial, unmodified state.
   bool get isPristine => value.isPristine;
+
+  /// Returns true if valid data is available.
   bool get hasData => value.hasData;
+
+  /// The timestamp of the last update to the data.
   DateTime? get updatedAt => value.updatedAt;
+
+  /// A string representation of the update timestamp.
   String get updateTime => value.updateTime;
 
+  /// Sets the state to loading, optionally retaining or updating the [data].
   void setLoading({T? data}) {
     value = value.copyWith(isLoading: true, data: data);
   }
 
+  /// Sets the state with new [data] and marks loading as false.
   void setData(T data) {
     value = value.copyWith(data: data, isLoading: false);
   }
 
+  /// Sets the state with an [error] and marks loading as false.
   void setError(TaskError error) {
     value = value.copyWith(error: error, isLoading: false);
   }
 
+  /// Resets the state back to a pristine condition.
   void reset() {
     value = value.reset();
   }
 
+  /// Partially updates the state with the provided values.
   void updateWith({T? data, bool? isLoading, TaskError? error}) {
     value = value.copyWith(data: data, isLoading: isLoading, error: error);
   }
@@ -50,34 +74,57 @@ class FutureDataNotifier<T extends Equatable>
 /// A [ValueNotifier] that manages the state of a [FutureListData] object.
 class FutureListDataNotifier<T extends Equatable>
     extends ValueNotifier<FutureListData<T>> {
+  /// Creates a [FutureListDataNotifier] with the initial [value].
   FutureListDataNotifier(super.value);
+
+  /// Creates a [FutureListDataNotifier] with a pristine [FutureListData] object.
   FutureListDataNotifier.pristine() : super(FutureListData.pristine());
 
+  /// The list of data items.
   List<T> get data => value.data;
+
+  /// The error object, if an error occurred.
   TaskError? get error => value.error;
+
+  /// Returns true if an error has occurred.
   bool get hasError => value.hasError;
+
+  /// Indicates whether the asynchronous operation is currently loading.
   bool get isLoading => value.isLoading;
+
+  /// Indicates whether the data is in its initial, unmodified state.
   bool get isPristine => value.isPristine;
+
+  /// Returns true if valid data is available.
   bool get hasData => value.hasData;
+
+  /// The timestamp of the last update to the data.
   DateTime? get updatedAt => value.updatedAt;
+
+  /// A string representation of the update timestamp.
   String get updateTime => value.updateTime;
 
+  /// Sets the state to loading, optionally retaining or updating the [data].
   void setLoading({List<T>? data}) {
     value = value.copyWith(isLoading: true, data: data);
   }
 
+  /// Sets the state with new [data] and marks loading as false.
   void setData(List<T> data) {
     value = value.copyWith(data: data, isLoading: false);
   }
 
+  /// Sets the state with an [error] and marks loading as false.
   void setError(TaskError error) {
     value = value.copyWith(error: error, isLoading: false);
   }
 
+  /// Resets the state back to a pristine condition.
   void reset() {
     value = value.reset();
   }
 
+  /// Partially updates the state with the provided values.
   void updateWith({List<T>? data, bool? isLoading, TaskError? error}) {
     value = value.copyWith(data: data, isLoading: isLoading, error: error);
   }
@@ -97,34 +144,57 @@ class FutureListDataNotifier<T extends Equatable>
 /// A [ValueNotifier] that manages the state of a [PaginatedData] object.
 class PaginatedDataNotifier<T extends Identifiable>
     extends ValueNotifier<PaginatedData<T>> {
+  /// Creates a [PaginatedDataNotifier] with the initial [value].
   PaginatedDataNotifier(super.value);
+
+  /// Creates a [PaginatedDataNotifier] with a pristine [PaginatedData] object.
   PaginatedDataNotifier.pristine() : super(PaginatedData.pristine());
 
+  /// The list of paginated data items.
   List<T> get data => value.data;
+
+  /// The error object, if an error occurred.
   TaskError? get error => value.error;
+
+  /// Returns true if an error has occurred.
   bool get hasError => value.hasError;
+
+  /// Indicates whether the asynchronous operation is currently loading.
   bool get isLoading => value.isLoading;
+
+  /// Indicates whether the data is in its initial, unmodified state.
   bool get isPristine => value.isPristine;
+
+  /// Returns true if valid data is available.
   bool get hasData => value.hasData;
+
+  /// The timestamp of the last update to the data.
   DateTime? get updatedAt => value.updatedAt;
+
+  /// A string representation of the update timestamp.
   String get updateTime => value.updateTime;
 
+  /// Sets the state to loading, optionally retaining or updating the [data].
   void setLoading({List<T>? data}) {
     value = value.copyWith(isLoading: true, data: data);
   }
 
+  /// Sets the state with new [data] and marks loading as false.
   void setData(List<T> data) {
     value = value.copyWith(data: data, isLoading: false);
   }
 
+  /// Sets the state with an [error] and marks loading as false.
   void setError(TaskError error) {
     value = value.copyWith(error: error, isLoading: false);
   }
 
+  /// Resets the state back to a pristine condition.
   void reset() {
     value = value.reset();
   }
 
+  /// Partially updates the state with the provided values.
   void updateWith({
     List<T>? data,
     bool? isLoading,
@@ -160,7 +230,7 @@ class PaginatedDataNotifier<T extends Identifiable>
     value = value.addSingleItem(item, unshift: unshift);
   }
 
-  /// Adds a [items] to the paginated data.
+  /// Adds [pageData] to the paginated data.
   void addData(PaginatedData<T> pageData, {bool ensureUnique = false}) {
     value = value.addData(pageData, ensureUnique: ensureUnique);
   }
@@ -168,7 +238,7 @@ class PaginatedDataNotifier<T extends Identifiable>
 
 /// {@category Data}
 /// Base class representing the state of an asynchronous operation.
-abstract class AsyncData<T extends Equatable> {
+abstract class AsyncData<T extends Equatable> extends Equatable {
   /// Indicates whether the asynchronous operation is currently loading.
   bool get isLoading;
 
@@ -196,7 +266,7 @@ abstract class AsyncData<T extends Equatable> {
   AsyncData<T> copyWith();
 
   @override
-  toString() {
+  String toString() {
     return "error => $error, hasData => $hasData, isLoading => $isLoading, updatedAt => $updatedAt, isPristine => $isPristine, hasError => $hasError";
   }
 }
@@ -214,6 +284,7 @@ class FutureData<T extends Equatable> extends AsyncData<T> {
   final TaskError? error;
   final DateTime? _updatedAt;
 
+  /// Creates a new [FutureData] instance.
   const FutureData({
     this.data,
     this.isLoading = false,
@@ -222,6 +293,7 @@ class FutureData<T extends Equatable> extends AsyncData<T> {
   }) : isPristine = false,
        _updatedAt = updatedAt;
 
+  /// Creates a pristine [FutureData] instance, indicating it has not been modified.
   const FutureData.pristine({this.data, this.isLoading = false, this.error})
     : isPristine = true,
       _updatedAt = null;
@@ -236,6 +308,7 @@ class FutureData<T extends Equatable> extends AsyncData<T> {
     return data != null;
   }
 
+  /// A string representation of the update timestamp.
   String get updateTime {
     return updatedAt?.toIso8601String() ?? '';
   }
@@ -258,6 +331,7 @@ class FutureData<T extends Equatable> extends AsyncData<T> {
     return FutureData.pristine();
   }
 
+  @override
   List<Object?> get props => [data, isLoading, error, updatedAt];
 }
 
@@ -274,6 +348,7 @@ class FutureListData<T extends Equatable> extends AsyncData<T> {
   @override
   final bool isPristine;
 
+  /// Creates a new [FutureListData] instance.
   const FutureListData({
     this.data = const [],
     this.isLoading = false,
@@ -282,6 +357,7 @@ class FutureListData<T extends Equatable> extends AsyncData<T> {
   }) : isPristine = false,
        _updatedAt = updatedAt;
 
+  /// Creates a pristine [FutureListData] instance, indicating it has not been modified.
   const FutureListData.pristine({
     this.data = const [],
     this.isLoading = false,
@@ -299,6 +375,7 @@ class FutureListData<T extends Equatable> extends AsyncData<T> {
     return data.isNotEmpty;
   }
 
+  /// A string representation of the update timestamp.
   String get updateTime {
     return updatedAt?.toIso8601String() ?? '';
   }
@@ -340,6 +417,7 @@ class FutureListData<T extends Equatable> extends AsyncData<T> {
     return copyWith(data: items);
   }
 
+  @override
   List<Object?> get props => [data, isLoading, error, updatedAt];
 }
 
@@ -367,6 +445,7 @@ class PaginatedData<T extends Identifiable> extends AsyncData<T> {
   final DateTime? _updatedAt;
   final bool _isPristine;
 
+  /// Creates a new [PaginatedData] instance.
   const PaginatedData({
     this.data = const [],
     this.isLoading = false,
@@ -379,6 +458,7 @@ class PaginatedData<T extends Identifiable> extends AsyncData<T> {
   }) : _isPristine = false,
        _updatedAt = updatedAt;
 
+  /// Creates a pristine [PaginatedData] instance, indicating it has not been modified.
   const PaginatedData.pristine({
     this.data = const [],
     this.isLoading = false,
@@ -413,10 +493,11 @@ class PaginatedData<T extends Identifiable> extends AsyncData<T> {
   }
 
   @override
-  toString() {
+  String toString() {
     return "<<hasNext => $hasNext, isLoading => $isLoading, hasData -> $hasData, data -> ${data.length}>>";
   }
 
+  /// A string representation of the update timestamp.
   String get updateTime {
     return updatedAt?.toIso8601String() ?? '';
   }
@@ -533,6 +614,7 @@ class PaginatedData<T extends Identifiable> extends AsyncData<T> {
     }
   }
 
+  @override
   List<Object?> get props => [
     data,
     isLoading,
