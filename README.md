@@ -52,3 +52,26 @@ graph TD
 - **Config (`lib/config/`)**: Contains app-level configuration structures and global string resources.
 - **Extensions & Utilities (`lib/extensions/`, `lib/utilities/`)**: A rich suite of Dart extension methods (for Strings, Collections, Context, etc.) and global helper classes (like `AppLogger` and `AppHelpers`) that streamline everyday coding tasks.
 - **Mixins & Typedefs (`lib/mixins/`, `lib/typedefs/`)**: Reusable behavioral traits (e.g., analytics tracking, HTTP handling) and standardized function signatures to enforce strict typing across projects.
+
+
+### RSA Public Key Providers
+
+The crypto layer now supports reusable RSA public-key path providers:
+
+- `RemoteRsaPublicKeyPathProvider`: downloads a PEM file with the existing HTTP service and caches it on disk.
+- `LocalRsaPublicKeyPathProvider`: copies a bundled asset PEM into a readable cache directory.
+- `TestRsaPublicKeyPathProvider`: returns an injected path for unit tests.
+
+Each provider returns a device file-system path that can be passed into the crypto service or injected directly into tests.
+
+Example registration with `GetIt`:
+
+```dart
+locator.registerLazySingleton<RsaPublicKeyPathProvider>(
+  () => RemoteRsaPublicKeyPathProvider(
+    httpService: locator<AppHttpService>(),
+    endpoint: 'https://example.com/public_key.pem',
+    directory: locator<Directory>(),
+  ),
+);
+```

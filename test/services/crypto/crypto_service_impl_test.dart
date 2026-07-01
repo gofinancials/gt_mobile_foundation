@@ -1,18 +1,56 @@
+import 'dart:io';
+
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
+
+class _FakeAssetBundle extends AssetBundle {
+  _FakeAssetBundle(this.pem);
+
+  final String pem;
+
+  @override
+  Future<ByteData> load(String key) async {
+    return ByteData.view(Uint8List.fromList(pem.codeUnits).buffer);
+  }
+
+  @override
+  Future<String> loadString(String key, {bool cache = true}) async => pem;
+}
 
 void main() {
   group('AppCryptoServiceImpl Tests', () {
     const tag = "OneBankProDevMobileApiKey00001";
     const testKey = "01234567890123456789012345678901";
+    const rsaPem =
+        '-----BEGIN PUBLIC KEY-----\n'
+        'MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALdUOQ9I5nqz4c7L0zq4fO4Xb4K6xK1S\n'
+        'xjQk1a3k8uQ4Qp8w9q2P8sJ6g4p1t8YxQGm5m2zG3x0CAwEAAQ==\n'
+        '-----END PUBLIC KEY-----\n';
     late AppCryptoServiceImpl cryptoService;
+    late Directory rsaTempDir;
+    late LocalRsaPublicKeyPathProvider rsaPublicKeyPathProvider;
 
-    setUp(() {
+    setUp(() async {
+      rsaTempDir = Directory.systemTemp.createTempSync('crypto_rsa_');
+      rsaPublicKeyPathProvider = LocalRsaPublicKeyPathProvider(
+        assetBundle: _FakeAssetBundle(rsaPem),
+        assetPath: 'assets/rsa_public_key.pem',
+        directory: rsaTempDir,
+      );
       cryptoService = AppCryptoServiceImpl(
         aesKey: testKey,
         appTag: tag,
+        rsaPublicKeyPathProvider: rsaPublicKeyPathProvider,
         tamperProof: true,
       );
+      await cryptoService.init();
+    });
+
+    tearDown(() {
+      if (rsaTempDir.existsSync()) {
+        rsaTempDir.deleteSync(recursive: true);
+      }
     });
 
     test('should successfully encrypt and decrypt data using Base16 mode', () {
@@ -113,89 +151,104 @@ void main() {
         expect(decrypted, equals(plainText));
       });
 
-      test('decryption should fail gracefully when appTag (AAD) is incorrect', () {
-        const plainText = 'sensitive data';
-        final encrypted = cryptoService.encrypt(plainText, mode: .base16);
+      test(
+        'decryption should fail gracefully when appTag (AAD) is incorrect',
+        () {
+          const plainText = 'sensitive data';
+          final encrypted = cryptoService.encrypt(plainText, mode: .base16);
 
-        // Create a new crypto service with a wrong appTag
-        final wrongTagService = AppCryptoServiceImpl(
-          aesKey: testKey,
-          appTag: 'wrong_tag_0000000000000000',
-          tamperProof: true,
-        );
+          // Create a new crypto service with a wrong appTag
+          final wrongTagService = AppCryptoServiceImpl(
+            aesKey: testKey,
+            appTag: 'wrong_tag_0000000000000000',
+            tamperProof: true,
+          );
 
-        final decrypted = wrongTagService.decrypt(encrypted, mode: .base16);
+          final decrypted = wrongTagService.decrypt(encrypted, mode: .base16);
 
-        // It should return the original ciphertext string on failure
-        expect(decrypted, equals(encrypted));
-      });
+          // It should return the original ciphertext string on failure
+          expect(decrypted, equals(encrypted));
+        },
+      );
 
       group('TamperProof Configurations', () {
-        test('decryption succeeds when tamperProof is true on both sides (AAD match)', () {
-          final service = AppCryptoServiceImpl(
-            aesKey: testKey,
-            appTag: tag,
-            tamperProof: true,
-          );
-          const plainText = 'sensitive data';
-          final encrypted = service.encrypt(plainText, mode: .base16);
-          final decrypted = service.decrypt(encrypted, mode: .base16);
+        test(
+          'decryption succeeds when tamperProof is true on both sides (AAD match)',
+          () {
+            final service = AppCryptoServiceImpl(
+              aesKey: testKey,
+              appTag: tag,
+              tamperProof: true,
+            );
+            const plainText = 'sensitive data';
+            final encrypted = service.encrypt(plainText, mode: .base16);
+            final decrypted = service.decrypt(encrypted, mode: .base16);
 
-          expect(decrypted, equals(plainText));
-        });
+            expect(decrypted, equals(plainText));
+          },
+        );
 
-        test('decryption succeeds when tamperProof is false on both sides (no AAD)', () {
-          final service = AppCryptoServiceImpl(
-            aesKey: testKey,
-            appTag: tag,
-            tamperProof: false,
-          );
-          const plainText = 'sensitive data';
-          final encrypted = service.encrypt(plainText, mode: .base16);
-          final decrypted = service.decrypt(encrypted, mode: .base16);
+        test(
+          'decryption succeeds when tamperProof is false on both sides (no AAD)',
+          () {
+            final service = AppCryptoServiceImpl(
+              aesKey: testKey,
+              appTag: tag,
+              tamperProof: false,
+            );
+            const plainText = 'sensitive data';
+            final encrypted = service.encrypt(plainText, mode: .base16);
+            final decrypted = service.decrypt(encrypted, mode: .base16);
 
-          expect(decrypted, equals(plainText));
-        });
+            expect(decrypted, equals(plainText));
+          },
+        );
 
-        test('decryption fails gracefully when encrypted WITH tamperProof, but decrypted WITHOUT tamperProof', () {
-          final secureService = AppCryptoServiceImpl(
-            aesKey: testKey,
-            appTag: tag,
-            tamperProof: true,
-          );
-          final insecureService = AppCryptoServiceImpl(
-            aesKey: testKey,
-            appTag: tag,
-            tamperProof: false,
-          );
-          const plainText = 'sensitive data';
-          final encrypted = secureService.encrypt(plainText, mode: .base16);
+        test(
+          'decryption fails gracefully when encrypted WITH tamperProof, but decrypted WITHOUT tamperProof',
+          () {
+            final secureService = AppCryptoServiceImpl(
+              aesKey: testKey,
+              appTag: tag,
+              tamperProof: true,
+            );
+            final insecureService = AppCryptoServiceImpl(
+              aesKey: testKey,
+              appTag: tag,
+              tamperProof: false,
+            );
+            const plainText = 'sensitive data';
+            final encrypted = secureService.encrypt(plainText, mode: .base16);
 
-          // Insecure service tries to decrypt without AAD
-          final decrypted = insecureService.decrypt(encrypted, mode: .base16);
+            // Insecure service tries to decrypt without AAD
+            final decrypted = insecureService.decrypt(encrypted, mode: .base16);
 
-          expect(decrypted, equals(encrypted)); // Fails gracefully
-        });
+            expect(decrypted, equals(encrypted)); // Fails gracefully
+          },
+        );
 
-        test('decryption fails gracefully when encrypted WITHOUT tamperProof, but decrypted WITH tamperProof', () {
-          final insecureService = AppCryptoServiceImpl(
-            aesKey: testKey,
-            appTag: tag,
-            tamperProof: false,
-          );
-          final secureService = AppCryptoServiceImpl(
-            aesKey: testKey,
-            appTag: tag,
-            tamperProof: true,
-          );
-          const plainText = 'sensitive data';
-          final encrypted = insecureService.encrypt(plainText, mode: .base16);
+        test(
+          'decryption fails gracefully when encrypted WITHOUT tamperProof, but decrypted WITH tamperProof',
+          () {
+            final insecureService = AppCryptoServiceImpl(
+              aesKey: testKey,
+              appTag: tag,
+              tamperProof: false,
+            );
+            final secureService = AppCryptoServiceImpl(
+              aesKey: testKey,
+              appTag: tag,
+              tamperProof: true,
+            );
+            const plainText = 'sensitive data';
+            final encrypted = insecureService.encrypt(plainText, mode: .base16);
 
-          // Secure service tries to decrypt with AAD
-          final decrypted = secureService.decrypt(encrypted, mode: .base16);
+            // Secure service tries to decrypt with AAD
+            final decrypted = secureService.decrypt(encrypted, mode: .base16);
 
-          expect(decrypted, equals(encrypted)); // Fails gracefully
-        });
+            expect(decrypted, equals(encrypted)); // Fails gracefully
+          },
+        );
       });
     });
 
@@ -266,6 +319,13 @@ void main() {
         AppLogger.info('Decrypted Payload: $decrypted');
 
         expect(decrypted, equals(jsonPayload));
+      });
+
+      test('should use a local RSA public key provider path', () async {
+        final pemPath = await rsaPublicKeyPathProvider.getPublicKeyPath();
+
+        expect(File(pemPath).existsSync(), isTrue);
+        expect(pemPath, endsWith('rsa_public_key.pem'));
       });
 
       test(

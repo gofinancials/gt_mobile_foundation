@@ -16,31 +16,41 @@ class AppCryptoServiceImpl implements AppCryptoService {
   final String aesKey;
 
   /// Optional file path to the RSA public key for asymmetric encryption.
+  @Deprecated('Use rsaPublicKeyPathProvider instead.')
   final String? rsaPublicKeyPath;
+
+  /// Optional provider that resolves the RSA public-key PEM file path.
+  final RsaPublicKeyPathProvider? rsaPublicKeyPathProvider;
 
   /// If [true], the [appTag] will be used as Associated Authenticated Data (AAD) in AES-GCM encryption.
   /// This is used to detect tampering with the encrypted data.
   final bool tamperProof;
 
   /// Internal RSA encrypter instance.
-  late final Encrypter? _rsaCipher;
+  Encrypter? _rsaCipher;
 
   /// Internal RSA public key instance.
-  late final RSAPublicKey? _rsaPublicKey;
+  RSAPublicKey? _rsaPublicKey;
 
   /// Internal AES encrypter instance.
   late final Encrypter _aesCipher;
+
+  late final Future<void> _rsaInitFuture;
 
   /// Initializes the service with [aesKey], [appTag], and an optional [rsaPublicKeyPath].
   AppCryptoServiceImpl({
     required this.aesKey,
     required this.appTag,
     this.rsaPublicKeyPath,
+    this.rsaPublicKeyPathProvider,
     required this.tamperProof,
   }) {
     _aesCipher = Encrypter(AES(Key.fromUtf8(aesKey), mode: .gcm));
-    _initRsaCipher();
+    _rsaInitFuture = _initRsaCipher();
   }
+
+  @override
+  Future<void> init() => _rsaInitFuture;
 
   @override
   String encrypt(String data, {AppCryptoMode mode = .base16}) {
@@ -92,10 +102,12 @@ class AppCryptoServiceImpl implements AppCryptoService {
   @override
   String? encryptRsa(String data, {AppCryptoMode mode = .base16}) {
     try {
-      final encrypted = _rsaCipher?.encrypt(data);
+      final cipher = _rsaCipher;
+      if (cipher == null) return null;
+      final encrypted = cipher.encrypt(data);
       return switch (mode) {
-        .base16 => encrypted?.base16.upper,
-        .base64 => encrypted?.base64,
+        .base16 => encrypted.base16.upper,
+        .base64 => encrypted.base64,
       };
     } catch (e, t) {
       AppLogger.severe("RSA encryption failed: $e", stackTrace: t, error: e);
@@ -119,13 +131,12 @@ class AppCryptoServiceImpl implements AppCryptoService {
   }
 
   /// Asynchronously initializes the RSA cipher by parsing the public key from [rsaPublicKeyPath].
-  _initRsaCipher() async {
+  Future<void> _initRsaCipher() async {
     try {
-      if (!rsaPublicKeyPath.hasValue) return;
+      final resolvedPath = await _resolveRsaPublicKeyPath();
+      if (!resolvedPath.hasValue) return;
 
-      if (rsaPublicKeyPath.hasValue) {
-        _rsaPublicKey = await parseKeyFromFile(rsaPublicKeyPath!);
-      }
+      _rsaPublicKey = await parseKeyFromFile(resolvedPath!);
 
       if (_rsaPublicKey == null) return;
 
@@ -136,6 +147,22 @@ class AppCryptoServiceImpl implements AppCryptoService {
         stackTrace: t,
         error: e,
       );
+    }
+  }
+
+  Future<String?> _resolveRsaPublicKeyPath() async {
+    try {
+      if (rsaPublicKeyPathProvider != null) {
+        return await rsaPublicKeyPathProvider!.getPublicKeyPath();
+      }
+      return rsaPublicKeyPath;
+    } catch (e, t) {
+      AppLogger.severe(
+        "Failed to resolve RSA public key path: $e",
+        stackTrace: t,
+        error: e,
+      );
+      return null;
     }
   }
 }
