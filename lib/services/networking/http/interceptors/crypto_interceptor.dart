@@ -42,10 +42,16 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
       if (data is List || data is Map || data is String) {
         final encryptedData = await _getCiphertext(data);
         options = options.copyWith(
-          data: encryptedData,
+          data: {"data": encryptedData},
           headers: {...options.headers, "App-Tag": _encryptedAppTag},
         );
-        AppLogger.info("PlainText: $data -> CipherText: $encryptedData");
+
+        AppLogger.info({
+          "body": "PlainText: $data -> CipherText: $encryptedData",
+          "params": options.queryParameters,
+          "header": options.headers,
+          "method": options.method,
+        });
       }
       return handler.next(options);
     } catch (e, t) {
@@ -61,14 +67,11 @@ class DecryptInterceptor extends QueuedInterceptorsWrapper {
   /// The cryptography service used for decryption.
   final AppCryptoService _service;
 
-  /// Whether to use IV in decryption.
-  final bool useIV;
-
   /// The decryption mode used for decryption.
   final AppCryptoMode mode;
 
   /// Creates a new instance of [DecryptInterceptor].
-  DecryptInterceptor(this._service, {this.useIV = false, this.mode = .base16});
+  DecryptInterceptor(this._service, {this.mode = .base16});
 
   /// Resolves the final [Response] object by substituting the original [payload]
   /// with the [dycryptedData] (or parsed JSON) where applicable.
