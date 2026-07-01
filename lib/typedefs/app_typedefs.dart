@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
@@ -95,3 +96,6 @@ typedef OnNavigate =
 /// {@category Typedefs}
 /// An alias for [Equatable] to abstract the underlying implementation.
 typedef AppEquatable = Equatable;
+
+
+typedef DioResponse = ApiResponse<Response>;
