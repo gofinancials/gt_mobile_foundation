@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
-typedef DioResponse = ApiResponse<Response>;
+
 
 /// {@category Services}
 /// An abstract service wrapper around Dio for executing HTTP requests.
