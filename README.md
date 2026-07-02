@@ -8,6 +8,7 @@ By abstracting common application layers—such as secure networking, session ma
 
 The foundation is strictly modularized into distinct domains, ensuring a clean separation of concerns and highly testable code:
 
+
 ```mermaid
 graph TD
     Core((GT Mobile<br/>Foundation))
