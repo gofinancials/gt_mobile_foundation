@@ -6,7 +6,7 @@ import 'package:gt_mobile_foundation/foundation.dart';
 
 /// An implementation of [AppCrashlyticsService] that integrates with Firebase Crashlytics.
 ///
-/// This service is responsible for initializing global error handlers across the 
+/// This service is responsible for initializing global error handlers across the
 /// Flutter framework, platform dispatcher, and current isolate to automatically
 /// catch and report unhandled exceptions. It also provides methods to manually
 /// log errors and identify users for crash tracking context.
@@ -52,7 +52,7 @@ class AppCrashlyticsServiceImpl implements AppCrashlyticsService {
 
   /// Manually records a non-fatal or fatal error to Firebase Crashlytics.
   ///
-  /// The [message] serves as the primary reason or context for the crash, while 
+  /// The [message] serves as the primary reason or context for the crash, while
   /// the raw [error] object and [trace] are sent for stack analysis. Setting [fatal]
   /// to `true` marks the error as a critical crash event in the dashboard.
   @override

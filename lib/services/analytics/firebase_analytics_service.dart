@@ -5,8 +5,8 @@ import 'package:gt_mobile_foundation/foundation.dart';
 /// An implementation of [AppAnalyticsService] that utilizes Firebase Analytics.
 ///
 /// This service encapsulates all Firebase Analytics interactions, including
-/// user identification, event tracking, and screen navigation logging. 
-/// Any exceptions that occur during these operations are automatically caught 
+/// user identification, event tracking, and screen navigation logging.
+/// Any exceptions that occur during these operations are automatically caught
 /// and forwarded to the provided [AppCrashlyticsService].
 class AppAnalyticsServiceImpl implements AppAnalyticsService {
   final AppCrashlyticsService _crashlyticsService;
@@ -26,9 +26,9 @@ class AppAnalyticsServiceImpl implements AppAnalyticsService {
 
   /// Identifies the current user and sets their profile properties in Firebase.
   ///
-  /// This method sets the primary user [id] and also associates optional 
+  /// This method sets the primary user [id] and also associates optional
   /// properties such as [accountNumber], [name], [email], [telephone], and [bvn]
-  /// with the user's future analytics events. It also establishes these values 
+  /// with the user's future analytics events. It also establishes these values
   /// as default event parameters.
   @override
   identifyUser({
@@ -72,7 +72,7 @@ class AppAnalyticsServiceImpl implements AppAnalyticsService {
   /// Logs a custom application event to Firebase Analytics.
   ///
   /// The [eventData] contains the event name and any associated parameters.
-  /// Note: The event name will have any spaces automatically replaced with 
+  /// Note: The event name will have any spaces automatically replaced with
   /// underscores to comply with Firebase naming conventions.
   @override
   trackEvent(AppAnalyticsData eventData) async {
@@ -88,7 +88,7 @@ class AppAnalyticsServiceImpl implements AppAnalyticsService {
 
   /// Logs a screen view navigation event to Firebase Analytics.
   ///
-  /// Records that the user has navigated to the specified [path] route. 
+  /// Records that the user has navigated to the specified [path] route.
   /// An optional [widgetClass] can be provided to specify the UI component rendered.
   @override
   trackNavigation(String path, {String? widgetClass}) async {
