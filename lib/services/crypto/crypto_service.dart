@@ -3,6 +3,9 @@ import 'package:gt_mobile_foundation/foundation.dart';
 /// {@category Services}
 /// Defines the interface for cryptographic operations (encryption/decryption).
 abstract class AppCryptoService {
+  /// Initializes any asynchronous crypto dependencies.
+  Future<void> init();
+
   /// Encrypts the provided [data] using the specified [mode] (defaults to Base16).
   String encrypt(String data, {AppCryptoMode mode = .base16});
 

@@ -27,7 +27,6 @@ dependencies:
   intl: ^0.20.2
   just_audio: ^0.10.5
   local_auth: ^2.3.0
-  lottie: ^3.3.2
   mime: ^2.0.0
   pointycastle: ^3.6.2
   path: ^1.9.1
