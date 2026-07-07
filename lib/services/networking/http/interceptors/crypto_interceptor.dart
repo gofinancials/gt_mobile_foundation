@@ -47,7 +47,8 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
         );
 
         AppLogger.info({
-          "body": "PlainText: $data -> CipherText: $encryptedData",
+          "plainText": data,
+          "cipherText": encryptedData,
           "params": options.queryParameters,
           "header": options.headers,
           "method": options.method,
@@ -78,25 +79,25 @@ class DecryptInterceptor extends QueuedInterceptorsWrapper {
   ///
   /// If the original payload is a [Map], it replaces the `"data"` field with the decrypted content.
   Response _resolveResponse(
-    dynamic payload,
+    dynamic rawData,
     dynamic dycryptedData,
     Response response,
   ) {
-    dynamic data = payload;
-    if (dycryptedData == null || payload == dycryptedData) return response;
-    if (payload is String) data = dycryptedData;
-    if (payload is Map) data = {...payload, "data": dycryptedData};
+    dynamic data = dycryptedData ?? rawData;
+    if (dycryptedData == null || rawData == dycryptedData) return response;
+    if (dycryptedData is String) data = dycryptedData;
+    if (dycryptedData is Map) data = dycryptedData;
     return response.copyWith(data: data);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
     AppLogger.info("Response Body: ${response.data}");
-    final payload = response.data;
+    final rawData = response.data;
     String data = "";
-    if (payload is String) data = payload;
-    if (payload is Map && payload["data"] is String) {
-      data = payload["data"];
+    if (rawData is String) data = rawData;
+    if (rawData is Map && rawData["data"] is String) {
+      data = rawData["data"];
     }
     if (!data.hasValue) return handler.next(response);
 
@@ -110,10 +111,13 @@ class DecryptInterceptor extends QueuedInterceptorsWrapper {
     // If JSON parsing fails (e.g. decrypted payload is a raw string), fallback to plainText
     final finalData = parsedData ?? plainText;
 
-    final newResponse = _resolveResponse(payload, finalData, response);
-    AppLogger.info(
-      "CipherText: $data -> PlainText: $plainText; ParsedData: ${newResponse.data}",
-    );
+    final newResponse = _resolveResponse(rawData, finalData, response);
+
+    AppLogger.info({
+      "cipherText": data,
+      "parsedText": finalData,
+      "parsedData": newResponse.data,
+    });
 
     return handler.next(newResponse);
   }
