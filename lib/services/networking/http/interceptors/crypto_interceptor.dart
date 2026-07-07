@@ -47,7 +47,8 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
         );
 
         AppLogger.info({
-          "body": "PlainText: $data -> CipherText: $encryptedData",
+          "plainText": data,
+          "cipherText": encryptedData,
           "params": options.queryParameters,
           "header": options.headers,
           "method": options.method,
@@ -111,9 +112,12 @@ class DecryptInterceptor extends QueuedInterceptorsWrapper {
     final finalData = parsedData ?? plainText;
 
     final newResponse = _resolveResponse(payload, finalData, response);
-    AppLogger.info(
-      "CipherText: $data -> PlainText: $plainText; ParsedData: ${newResponse.data}",
-    );
+
+    AppLogger.info({
+      "cipherText": data,
+      "parsedText": finalData,
+      "parsedData": newResponse.data,
+    });
 
     return handler.next(newResponse);
   }

@@ -46,19 +46,20 @@ extension ResponseExtension on Response {
     final code = statusCode.toString();
     final message = statusMessage;
 
-    return switch (data) {
-      Map data => ApiResponse.fromJson(
-        data,
+    if (data case Map map) {
+      return ApiResponse.fromJson(
+        map,
         defaultCode: code,
         defaultMessage: message,
         rawResponse: this,
-      ),
-      dynamic data => ApiResponse(
-        responseCode: code,
-        message: message,
-        data: data,
-        rawResponse: this,
-      ),
-    };
+      );
+    }
+
+    return ApiResponse(
+      responseCode: code,
+      message: message,
+      data: data,
+      rawResponse: this,
+    );
   }
 }
