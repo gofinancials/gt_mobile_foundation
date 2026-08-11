@@ -1,4 +1,4 @@
-name: Deploy Widgetbook to GitHub Pages
+name: Deploy API Doc to GitHub Pages
 
 on:
   push:
