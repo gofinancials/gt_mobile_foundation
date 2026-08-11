@@ -1,29 +1,54 @@
-import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:gt_mobile_foundation/foundation.dart';
 
 /// {@category Services}
 /// A mock implementation of [AppAnalyticsService] for testing purposes.
 class AppAnalyticsMockService implements AppAnalyticsService {
+  final MockAnalyticsAdapter mockAdapter = MockAnalyticsAdapter();
+
   @override
-  identifyUser({
-    required id,
+  Future<void> initialize() async {
+    await mockAdapter.initialize();
+  }
+
+  @override
+  Future<void> identifyUser({
+    required dynamic id,
     String? accountNumber,
     String? name,
     String? email,
     String? telephone,
     String? bvn,
-  }) async {}
+  }) async {
+    await mockAdapter.identifyUser(
+      id: id,
+      accountNumber: accountNumber,
+      name: name,
+      email: email,
+      telephone: telephone,
+      bvn: bvn,
+    );
+  }
 
   @override
-  trackEvent(AppAnalyticsData eventData) async {}
+  Future<void> trackEvent(AppAnalyticsData eventData) async {
+    await mockAdapter.trackEvent(eventData);
+  }
 
   @override
   RouteObserver? get navigatorObserver => RouteObserver();
 
   @override
-  trackNavigation(
+  Future<void> trackNavigation(
     String path, {
     String? widgetClass,
-    Map<String, Object?>? arguments,
-  }) {}
+  }) async {
+    await mockAdapter.trackNavigation(path, widgetClass: widgetClass);
+  }
+
+  @override
+  void addProvider(AnalyticsProvider provider) {}
+
+  @override
+  void removeProvider(AnalyticsProvider provider) {}
 }
