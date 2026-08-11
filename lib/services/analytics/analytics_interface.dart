@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 /// {@category Services}
 /// The interface definition for application analytics tracking.
 abstract class AppAnalyticsService {
+  /// Initializes all registered analytics providers.
+  Future<void> initialize();
+
   /// Associates the current analytics session with a specific user [id], [accountNumber], and optional [name].
-  identifyUser({
+  Future<void> identifyUser({
     required dynamic id,
     String? accountNumber,
     String? name,
@@ -14,12 +17,19 @@ abstract class AppAnalyticsService {
     String? bvn,
   });
 
-  /// Returns the [RouteObserver] to track navigation events.
+  /// Returns the [RouteObserver] to track navigation events across providers.
   RouteObserver? get navigatorObserver;
 
   /// Tracks a navigation event to the specified [path] with an optional [widgetClass].
-  trackNavigation(String path, {String? widgetClass});
+  Future<void> trackNavigation(String path, {String? widgetClass});
 
   /// Tracks a custom analytics event using the provided [eventData].
-  trackEvent(AppAnalyticsData eventData);
+  Future<void> trackEvent(AppAnalyticsData eventData);
+
+  /// Registers an additional [AnalyticsProvider] at runtime.
+  void addProvider(AnalyticsProvider provider);
+
+  /// Unregisters an [AnalyticsProvider] at runtime.
+  void removeProvider(AnalyticsProvider provider);
 }
+
