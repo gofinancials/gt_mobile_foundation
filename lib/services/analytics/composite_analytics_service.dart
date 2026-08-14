@@ -12,7 +12,7 @@ class AppAnalyticsServiceImpl implements AppAnalyticsService {
 
   /// Creates a new [AppAnalyticsServiceImpl] with an optional initial list of [_providers].
   AppAnalyticsServiceImpl([List<AnalyticsProvider>? providers])
-      : _providers = List<AnalyticsProvider>.from(providers ?? []) {
+    : _providers = List<AnalyticsProvider>.from(providers ?? []) {
     _routeObserver = AppAnalyticsRouteObserver(this);
   }
 
@@ -45,16 +45,18 @@ class AppAnalyticsServiceImpl implements AppAnalyticsService {
     String? telephone,
     String? bvn,
   }) async {
-    await Future.wait(_providers.map(
-      (p) => p.identifyUser(
-        id: id,
-        accountNumber: accountNumber,
-        name: name,
-        email: email,
-        telephone: telephone,
-        bvn: bvn,
+    await Future.wait(
+      _providers.map(
+        (p) => p.identifyUser(
+          id: id,
+          accountNumber: accountNumber,
+          name: name,
+          email: email,
+          telephone: telephone,
+          bvn: bvn,
+        ),
       ),
-    ));
+    );
   }
 
   @override
