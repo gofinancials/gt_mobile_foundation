@@ -114,6 +114,10 @@ class AppRegex {
     r"^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$",
     multiLine: true,
   );
+  static final base64IndicatorRegex = RegExp(r'[g-zG-Z+/=_-]');
+  static final base64Regex = RegExp(
+    r'^[A-Za-z0-9+/_-]+={0,2}$',
+  );
 
   static String getMatchGroupValue({
     required RegExp pattern,
@@ -125,3 +129,4 @@ class AppRegex {
     return match?.namedGroup(group) ?? "";
   }
 }
+

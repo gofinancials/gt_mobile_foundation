@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
+
+
 
 class _FakeAssetBundle extends AssetBundle {
   _FakeAssetBundle(this.pem);
@@ -354,5 +358,261 @@ void main() {
         },
       );
     });
+
+    group('Colon-Delimited Strategy Tests', () {
+      test(
+        'should encrypt and decrypt in colon-delimited format with Base64',
+        () {
+          const plainText = '{"data":"gcm-backend-payload"}';
+          final encrypted = cryptoService.encrypt(
+            plainText,
+            mode: .base64,
+            strategy: .colonDelimited,
+          );
+
+          expect(encrypted, contains(':'));
+          final segments = encrypted.split(':');
+          expect(segments.length, equals(2));
+          // IV in Base64 (12 bytes) is 16 chars
+          expect(segments[0].length, equals(16));
+          expect(segments[1], isNotEmpty);
+
+          final decrypted = cryptoService.decrypt(
+            encrypted,
+            mode: .base64,
+            strategy: .colonDelimited,
+          );
+          expect(decrypted, equals(plainText));
+        },
+      );
+
+      test(
+        'should encrypt and decrypt in colon-delimited format with Base16',
+        () {
+          const plainText = 'passcode-1234';
+          final encrypted = cryptoService.encrypt(
+            plainText,
+            mode: .base16,
+            strategy: .colonDelimited,
+          );
+
+          expect(encrypted, contains(':'));
+          final segments = encrypted.split(':');
+          expect(segments.length, equals(2));
+          // IV in Base16 (12 bytes) is 24 hex chars
+          expect(segments[0].length, equals(24));
+          expect(segments[1], isNotEmpty);
+
+          final decrypted = cryptoService.decrypt(
+            encrypted,
+            mode: .base16,
+            strategy: .colonDelimited,
+          );
+          expect(decrypted, equals(plainText));
+        },
+      );
+
+      test('should auto-detect and decrypt colon-delimited Base64 payload', () {
+        const plainText = 'auto-detect me!';
+        final encrypted = cryptoService.encrypt(
+          plainText,
+          mode: .base64,
+          strategy: .colonDelimited,
+        );
+
+        // Decrypt with default arguments (which defaults strategy to .auto and mode to .base16)
+        final decrypted = cryptoService.decrypt(encrypted);
+        expect(decrypted, equals(plainText));
+      });
+
+      test('should auto-detect and decrypt colon-delimited Base16 payload', () {
+        const plainText = 'hex-auto-detect';
+        final encrypted = cryptoService.encrypt(
+          plainText,
+          mode: .base16,
+          strategy: .colonDelimited,
+        );
+
+        final decrypted = cryptoService.decrypt(
+          encrypted,
+          mode: .base16,
+          strategy: .auto,
+        );
+        expect(decrypted, equals(plainText));
+      });
+
+      test(
+        'should normalize URL-safe Base64 characters and missing padding',
+        () {
+          const plainText = 'url-safe-test';
+          final encrypted = cryptoService.encrypt(
+            plainText,
+            mode: .base64,
+            strategy: .colonDelimited,
+          );
+
+          // Convert standard base64 to url-safe base64 and strip '=' padding
+          final urlSafe = encrypted
+              .replaceAll('+', '-')
+              .replaceAll('/', '_')
+              .replaceAll('=', '');
+
+          final decrypted = cryptoService.decrypt(
+            urlSafe,
+            mode: .base64,
+            strategy: .colonDelimited,
+          );
+          expect(decrypted, equals(plainText));
+        },
+      );
+    });
+
+    group('Base64 Key Support & tryDecrypt', () {
+      const backendKeyB64 = '47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=';
+
+      test('should work with AppCryptoServiceImpl.fromBase64Key factory', () {
+        final b64Service = AppCryptoServiceImpl.fromBase64Key(
+          aesKeyB64: backendKeyB64,
+          appTag: tag,
+          tamperProof: false,
+          defaultStrategy: .colonDelimited,
+        );
+
+        const plainText = '{"auth":"token-12345"}';
+        final encrypted = b64Service.encrypt(plainText, mode: .base64);
+
+        expect(encrypted, contains(':'));
+        final decrypted = b64Service.decrypt(encrypted, mode: .base64);
+        expect(decrypted, equals(plainText));
+      });
+
+      test('tryDecrypt returns plaintext on valid encrypted data', () {
+        const plainText = 'hello tryDecrypt';
+        final encrypted = cryptoService.encrypt(plainText, mode: .base16);
+
+        final decrypted = cryptoService.tryDecrypt(encrypted, mode: .base16);
+        expect(decrypted, equals(plainText));
+      });
+
+      test('tryDecrypt returns original value on invalid data or null', () {
+        expect(cryptoService.tryDecrypt(null), isNull);
+        expect(cryptoService.tryDecrypt(''), equals(''));
+        expect(
+          cryptoService.tryDecrypt('invalid:malformed:format'),
+          equals('invalid:malformed:format'),
+        );
+        expect(
+          cryptoService.tryDecrypt('not-encrypted-string'),
+          equals('not-encrypted-string'),
+        );
+      });
+
+      test('supports custom associatedData per call', () {
+        final customAad = Uint8List.fromList('custom-auth-context'.codeUnits);
+        const plainText = 'authenticated-data';
+
+        final encrypted = cryptoService.encrypt(
+          plainText,
+          mode: .base64,
+          strategy: .colonDelimited,
+          associatedData: customAad,
+        );
+
+        // Decrypt with matching AAD succeeds
+        final decrypted = cryptoService.decrypt(
+          encrypted,
+          mode: .base64,
+          strategy: .colonDelimited,
+          associatedData: customAad,
+        );
+        expect(decrypted, equals(plainText));
+
+        // Decrypt with wrong AAD fails gracefully (returns original string)
+        final wrongAad = Uint8List.fromList('wrong-context'.codeUnits);
+        final failedDecrypted = cryptoService.decrypt(
+          encrypted,
+          mode: .base64,
+          strategy: .colonDelimited,
+          associatedData: wrongAad,
+        );
+        expect(failedDecrypted, equals(encrypted));
+      });
+    });
+
+    group('Interceptor Tests with Colon-Delimited Strategy', () {
+      test('EncryptInterceptor encrypts body using colon-delimited Base64', () async {
+        final interceptor = EncryptInterceptor(
+          cryptoService,
+          mode: .base64,
+          strategy: .colonDelimited,
+        );
+
+        final options = RequestOptions(
+          path: '/test',
+          data: {"amount": 5000, "currency": "NGN"},
+        );
+
+        final reqCompleter = Completer<RequestOptions>();
+        final handler = _TestRequestInterceptorHandler(
+          onNext: (opt) => reqCompleter.complete(opt),
+        );
+
+        interceptor.onRequest(options, handler);
+        final nextOptions = await reqCompleter.future;
+
+        expect(nextOptions.data, isA<Map<String, dynamic>>());
+        final encryptedData = nextOptions.data['data'] as String;
+        expect(encryptedData, contains(':'));
+
+        // Decrypt with DecryptInterceptor
+        final decInterceptor = DecryptInterceptor(
+          cryptoService,
+          mode: .base64,
+          strategy: .auto,
+        );
+
+        final resCompleter = Completer<Response>();
+        final resHandler = _TestResponseInterceptorHandler(
+          onNext: (res) => resCompleter.complete(res),
+        );
+
+        final response = Response(
+          requestOptions: nextOptions,
+          data: {"data": encryptedData},
+        );
+
+        decInterceptor.onResponse(response, resHandler);
+        final nextResponse = await resCompleter.future;
+
+        expect(nextResponse.data, isA<Map<String, dynamic>>());
+        expect(nextResponse.data['amount'], equals(5000));
+        expect(nextResponse.data['currency'], equals('NGN'));
+      });
+    });
   });
 }
+
+class _TestRequestInterceptorHandler extends RequestInterceptorHandler {
+  _TestRequestInterceptorHandler({required this.onNext});
+
+  final void Function(RequestOptions) onNext;
+
+  @override
+  void next(RequestOptions requestOptions) {
+    onNext(requestOptions);
+  }
+}
+
+class _TestResponseInterceptorHandler extends ResponseInterceptorHandler {
+  _TestResponseInterceptorHandler({required this.onNext});
+
+  final void Function(Response) onNext;
+
+  @override
+  void next(Response response) {
+    onNext(response);
+  }
+}
+
+
+

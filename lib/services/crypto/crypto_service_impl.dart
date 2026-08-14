@@ -15,6 +15,13 @@ class AppCryptoServiceImpl implements AppCryptoService {
   /// The symmetric key used for AES encryption.
   final String aesKey;
 
+  /// Indicates whether [aesKey] is Base64 encoded.
+  final bool isBase64Key;
+
+  /// The default packaging strategy for payload formatting.
+  @override
+  final AppCryptoPayloadStrategy defaultStrategy;
+
   /// Optional file path to the RSA public key for asymmetric encryption.
   @Deprecated('Use rsaPublicKeyPathProvider instead.')
   final String? rsaPublicKeyPath;
@@ -44,28 +51,55 @@ class AppCryptoServiceImpl implements AppCryptoService {
     this.rsaPublicKeyPath,
     this.rsaPublicKeyPathProvider,
     required this.tamperProof,
+    this.isBase64Key = false,
+    this.defaultStrategy = .contiguous,
   }) {
-    _aesCipher = Encrypter(AES(Key.fromUtf8(aesKey), mode: .gcm));
+    final key = isBase64Key ? Key.fromBase64(aesKey) : Key.fromUtf8(aesKey);
+    _aesCipher = Encrypter(AES(key, mode: .gcm));
     _rsaInitFuture = _initRsaCipher();
+  }
+
+  /// Named constructor for Base64 encoded AES key.
+  factory AppCryptoServiceImpl.fromBase64Key({
+    required String aesKeyB64,
+    required String appTag,
+    String? rsaPublicKeyPath,
+    RsaPublicKeyPathProvider? rsaPublicKeyPathProvider,
+    bool tamperProof = true,
+    AppCryptoPayloadStrategy defaultStrategy = .contiguous,
+  }) {
+    return AppCryptoServiceImpl(
+      aesKey: aesKeyB64,
+      appTag: appTag,
+      rsaPublicKeyPath: rsaPublicKeyPath,
+      rsaPublicKeyPathProvider: rsaPublicKeyPathProvider,
+      tamperProof: tamperProof,
+      isBase64Key: true,
+      defaultStrategy: defaultStrategy,
+    );
   }
 
   @override
   Future<void> init() => _rsaInitFuture;
 
   @override
-  String encrypt(String data, {AppCryptoMode mode = .base16}) {
+  String encrypt(
+    String data, {
+    AppCryptoMode mode = .base16,
+    AppCryptoPayloadStrategy strategy = .auto,
+    Uint8List? associatedData,
+  }) {
     try {
       final iv = IV.fromSecureRandom(12);
-      final cipher = _aesCipher.encrypt(
-        data,
-        iv: iv,
-        associatedData: _associatedData,
-      );
-      final resolvedCipher = _resolveCipherBytes(cipher.bytes, iv);
+      final aad = associatedData ?? _associatedData;
+      final cipher = _aesCipher.encrypt(data, iv: iv, associatedData: aad);
 
-      return switch (mode) {
-        .base16 => resolvedCipher.base16,
-        .base64 => resolvedCipher.base64,
+      final effectiveStrategy = strategy == .auto ? defaultStrategy : strategy;
+
+      return switch (effectiveStrategy) {
+        .colonDelimited =>
+          '${_encode(iv.bytes, mode)}:${_encode(cipher.bytes, mode)}',
+        _ => _encode(Uint8List.fromList(iv.bytes + cipher.bytes), mode),
       };
     } catch (e, t) {
       AppLogger.severe("Encryption failed: $e", stackTrace: t, error: e);
@@ -74,24 +108,20 @@ class AppCryptoServiceImpl implements AppCryptoService {
   }
 
   @override
-  String decrypt(String data, {AppCryptoMode mode = .base16}) {
+  String decrypt(
+    String data, {
+    AppCryptoMode mode = .base16,
+    AppCryptoPayloadStrategy strategy = .auto,
+    Uint8List? associatedData,
+  }) {
     try {
-      Uint8List cipherBytes = switch (mode) {
-        .base16 => Encrypted.fromBase16(data).bytes,
-        .base64 => Encrypted.fromBase64(data).bytes,
-      };
-
-      if (cipherBytes.length < 12) {
-        throw Exception("Invalid ciphertext length for AES-GCM");
-      }
-
-      final iv = IV(cipherBytes.sublist(0, 12));
-      cipherBytes = cipherBytes.sublist(12);
+      final (iv, cipherBytes) = _extractIvAndCipher(data, mode, strategy);
+      final aad = associatedData ?? _associatedData;
 
       return _aesCipher.decrypt(
         Encrypted(cipherBytes),
         iv: iv,
-        associatedData: _associatedData,
+        associatedData: aad,
       );
     } catch (e, t) {
       AppLogger.severe("Decryption failed: $e", stackTrace: t, error: e);
@@ -100,11 +130,30 @@ class AppCryptoServiceImpl implements AppCryptoService {
   }
 
   @override
-  String? encryptRsa(String data, {AppCryptoMode mode = .base16}) {
+  String? tryDecrypt(
+    String? data, {
+    AppCryptoMode mode = .base16,
+    AppCryptoPayloadStrategy strategy = .auto,
+    Uint8List? associatedData,
+  }) {
+    if (!data.hasValue) return data;
     try {
-      final cipher = _rsaCipher;
-      if (cipher == null) return null;
-      final encrypted = cipher.encrypt(data);
+      return decrypt(
+        data!,
+        mode: mode,
+        strategy: strategy,
+        associatedData: associatedData,
+      );
+    } catch (_) {
+      return data;
+    }
+  }
+
+  @override
+  String? encryptRsa(String data, {AppCryptoMode mode = .base16}) {
+    if (_rsaCipher == null) return null;
+    try {
+      final encrypted = _rsaCipher!.encrypt(data);
       return switch (mode) {
         .base16 => encrypted.base16.upper,
         .base64 => encrypted.base64,
@@ -116,18 +165,88 @@ class AppCryptoServiceImpl implements AppCryptoService {
   }
 
   /// Converts the [appTag] into a [Uint8List] to be used as Associated Data (AAD) for AES-GCM.
-  Uint8List? get _associatedData {
-    if (!tamperProof) return null;
-    return Uint8List.fromList(appTag.codeUnits);
+  Uint8List? get _associatedData => tamperProof ? appTag.encoded : null;
+
+  /// Extracts the IV and Cipher bytes from [data] based on [mode] and [strategy].
+  (IV, Uint8List) _extractIvAndCipher(
+    String data,
+    AppCryptoMode mode,
+    AppCryptoPayloadStrategy strategy,
+  ) {
+    final trimmed = data.value;
+    final AppCryptoPayloadStrategy effectiveStrategy = strategy == .auto
+        ? (trimmed.contains(':') ? .colonDelimited : .contiguous)
+        : strategy;
+
+    if (!effectiveStrategy.isColonDelimited) {
+      final rawBytes = _decode(trimmed, mode);
+      if (rawBytes.length < 12) {
+        throw const FormatException(
+          'Invalid ciphertext length for AES-GCM: minimum 12 bytes required.',
+        );
+      }
+      return (IV(rawBytes.sublist(0, 12)), rawBytes.sublist(12));
+    }
+
+    final segments = trimmed.split(':');
+    if (segments.length != 2) {
+      throw const FormatException('Invalid colon-delimited payload format.');
+    }
+
+    final ivBytes = _decodeSegment(segments[0], mode);
+    if (ivBytes.length != 12) {
+      throw FormatException(
+        'Invalid IV length for AES-GCM: expected 12 bytes, got ${ivBytes.length}.',
+      );
+    }
+
+    final cipherBytes = _decodeSegment(segments[1], mode);
+    return (IV(ivBytes), cipherBytes);
   }
 
-  /// Resolves the ciphertext bytes by optionally prepending the initialization vector (IV).
-  ///
-  /// If an [iv] is provided, it is prepended to the ciphertext [bytes] so it can be extracted during decryption.
-  Encrypted _resolveCipherBytes(Uint8List bytes, IV? iv) {
-    if (iv == null) return Encrypted(bytes);
+  /// Encodes [bytes] to string using the specified [mode].
+  static String _encode(Uint8List bytes, AppCryptoMode mode) {
+    return switch (mode) {
+      .base16 => Encrypted(bytes).base16,
+      .base64 => Encrypted(bytes).base64,
+    };
+  }
 
-    return Encrypted(Uint8List.fromList(iv.bytes + bytes));
+  /// Decodes [text] to [Uint8List] using the specified [mode].
+  static Uint8List _decode(String text, AppCryptoMode mode) {
+    return switch (mode) {
+      .base16 => Encrypted.fromBase16(text.value).bytes,
+      .base64 => Encrypted.fromBase64(_normalizeBase64(text)).bytes,
+    };
+  }
+
+  /// Decodes a segment of a colon-delimited payload with auto-format detection and Base64 normalization.
+  static Uint8List _decodeSegment(String segment, AppCryptoMode fallbackMode) {
+    final trimmed = segment.value;
+    final isLikelyBase64 =
+        fallbackMode.isBase64 ||
+        trimmed.length == 16 ||
+        AppRegex.base64IndicatorRegex.hasMatch(trimmed);
+
+    if (isLikelyBase64) {
+      try {
+        return Encrypted.fromBase64(_normalizeBase64(trimmed)).bytes;
+      } catch (_) {}
+    }
+
+    try {
+      return Encrypted.fromBase16(trimmed).bytes;
+    } catch (_) {
+      return Encrypted.fromBase64(_normalizeBase64(trimmed)).bytes;
+    }
+  }
+
+  /// Normalizes a Base64 string by replacing URL-safe characters and padding with `=`.
+  static String _normalizeBase64(String value) {
+    final normalized = value.value.replaceAll('-', '+').replaceAll('_', '/');
+    final remainder = normalized.length % 4;
+    if (remainder == 0) return normalized;
+    return normalized.padRight(normalized.length + (4 - remainder), '=');
   }
 
   /// Asynchronously initializes the RSA cipher by parsing the public key from [rsaPublicKeyPath].
@@ -136,10 +255,7 @@ class AppCryptoServiceImpl implements AppCryptoService {
       final resolvedPath = await _resolveRsaPublicKeyPath();
       if (!resolvedPath.hasValue) return;
 
-      _rsaPublicKey = await parseKeyFromFile(resolvedPath!);
-
-      if (_rsaPublicKey == null) return;
-
+      _rsaPublicKey = await parseKeyFromFile<RSAPublicKey>(resolvedPath!);
       _rsaCipher = Encrypter(RSA(publicKey: _rsaPublicKey));
     } catch (e, t) {
       AppLogger.severe(
@@ -151,11 +267,9 @@ class AppCryptoServiceImpl implements AppCryptoService {
   }
 
   Future<String?> _resolveRsaPublicKeyPath() async {
+    if (rsaPublicKeyPathProvider == null) return rsaPublicKeyPath;
     try {
-      if (rsaPublicKeyPathProvider != null) {
-        return await rsaPublicKeyPathProvider!.getPublicKeyPath();
-      }
-      return rsaPublicKeyPath;
+      return await rsaPublicKeyPathProvider!.getPublicKeyPath();
     } catch (e, t) {
       AppLogger.severe(
         "Failed to resolve RSA public key path: $e",
