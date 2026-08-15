@@ -13,6 +13,8 @@ class YoutubePlayerService implements AppMediaPlayerService {
   @override
   final OnChanged<MediaPlayStreamData>? onUpdate;
   late final StreamController<MediaPlayStreamData> _stateStreamController;
+  bool _isUnloaded = false;
+  bool _isDisposed = false;
 
   YoutubePlayerService(this._controller, {this.onUpdate}) {
     _stateStreamController = StreamController<MediaPlayStreamData>.broadcast();
@@ -165,6 +167,8 @@ class YoutubePlayerService implements AppMediaPlayerService {
 
   @override
   Future<void> unloadSource() async {
+    if (_isUnloaded) return;
+    _isUnloaded = true;
     await reset();
     _controller.removeListener(_ctrlListener);
     await _stateStreamController.close();
@@ -172,8 +176,15 @@ class YoutubePlayerService implements AppMediaPlayerService {
 
   @override
   Future<void> dispose() async {
+    if (_isDisposed) return;
+    _isDisposed = true;
     try {
       await unloadSource();
+    } catch (e, t) {
+      AppLogger.severe("$e", stackTrace: t);
+    }
+    try {
+      _controller.dispose();
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }

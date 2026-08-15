@@ -11,6 +11,7 @@ import 'package:video_player/video_player.dart';
 /// playback commands to it.
 class AppMediaPlayer {
   AppMediaPlayerService? _activePlayer;
+  MediaSource? _activeSource;
 
   /// Retrieves and loads a media source for the provided [AppAvData].
   /// Returns the initialized [MediaSource] if successful, or `null` otherwise.
@@ -20,11 +21,11 @@ class AppMediaPlayer {
   }) async {
     final source = _retrieveSource(data);
     if (source == null || !source.isValidSource) return null;
-    _loadSource(source, autoPlay);
+    await _loadSource(source, autoPlay);
     return source;
   }
 
-  /// Retrieves a source from the internal cache, or creates and caches it if it does not exist.
+  /// Creates a source whose controller is owned by this player after loading.
   MediaSource? _retrieveSource(AppAvData data) {
     final source = MediaSource(data);
     final id = source.id;
@@ -35,23 +36,23 @@ class AppMediaPlayer {
 
   /// Instantiates the appropriate [AppMediaPlayer] for the given [source] and loads it.
   Future<void> _loadSource(MediaSource? source, bool autoPlay) async {
-    if (_activePlayer != null) await _activePlayer?.dispose();
+    await _activePlayer?.dispose();
+    _activePlayer = null;
+    _activeSource = null;
 
     if (source == null || !source.isValidSource) {
-      _activePlayer = null;
       return;
     }
 
     if (source.youtube != null) {
       _activePlayer = YoutubePlayerService(source.youtube!);
-    }
-    if (source.video != null) {
+    } else if (source.video != null) {
       _activePlayer = VideoPlayerService(source.video!);
-    }
-    if (source.audio != null) {
+    } else if (source.audio != null) {
       _activePlayer = AudioPlayerService(source.audio!);
     }
 
+    _activeSource = source;
     await _activePlayer?.load(autoPlay: autoPlay);
   }
 
@@ -145,10 +146,15 @@ class AppMediaPlayer {
     await (_activePlayer as CaptionablePlayer).setCaption(caption);
   }
 
-  /// Unloads the specified [source], disposing of its player and removing it from the cache.
+  /// Disposes the player for [source] if it is the active source.
+  ///
+  /// Passing a source other than the one returned by the latest successful
+  /// [createSource] call is a no-op.
   Future<void> unloadSource(MediaSource source) async {
-    await _activePlayer?.unloadSource();
+    if (!identical(source, _activeSource)) return;
+    await _activePlayer?.dispose();
     _activePlayer = null;
+    _activeSource = null;
   }
 
   /// Resets the active player to the beginning and pauses playback.
@@ -156,9 +162,10 @@ class AppMediaPlayer {
     await _activePlayer?.reset();
   }
 
-  /// Disposes of the active player and clears the source cache.
+  /// Disposes of the active player and its owned platform controller.
   Future<void> dispose() async {
     await _activePlayer?.dispose();
     _activePlayer = null;
+    _activeSource = null;
   }
 }
