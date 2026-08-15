@@ -15,6 +15,8 @@ class AudioPlayerService implements AppMediaPlayerService {
   StreamSubscription? _stateSubscription;
   StreamSubscription? _positionSubscription;
   late final StreamController<MediaPlayStreamData> _stateStreamController;
+  bool _isUnloaded = false;
+  bool _isDisposed = false;
 
   final AudioPlayer _player = AudioPlayer(
     audioLoadConfiguration: AudioLoadConfiguration(
@@ -187,6 +189,8 @@ class AudioPlayerService implements AppMediaPlayerService {
 
   @override
   Future<void> unloadSource() async {
+    if (_isUnloaded) return;
+    _isUnloaded = true;
     try {
       await stop();
       _stateSubscription?.cancel();
@@ -200,8 +204,15 @@ class AudioPlayerService implements AppMediaPlayerService {
 
   @override
   Future<void> dispose() async {
+    if (_isDisposed) return;
+    _isDisposed = true;
     try {
       await unloadSource();
+    } catch (e, t) {
+      AppLogger.severe("$e", stackTrace: t);
+    }
+    try {
+      await _player.dispose();
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }

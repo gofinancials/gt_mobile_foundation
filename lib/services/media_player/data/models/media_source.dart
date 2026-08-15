@@ -13,8 +13,8 @@ class MediaSource extends Equatable {
   const MediaSource._(this.media, {this.video, this.youtube, this.audio});
 
   MediaSource(this.media)
-    : video = media.videoController,
-      youtube = media.youtubeController,
+    : video = media.createVideoController(),
+      youtube = media.createYoutubeController(),
       audio = media.audioSource;
 
   MediaSource copyWith({

@@ -18,7 +18,8 @@ extension MediaExtensions on AppAvData {
     }
   }
 
-  YoutubePlayerController? get youtubeController {
+  /// Creates a YouTube controller owned by the caller.
+  YoutubePlayerController? createYoutubeController() {
     if (!isYoutube) return null;
     final videoId = _getVideoId(fileUrl!);
     if (videoId == null) return null;
@@ -34,7 +35,8 @@ extension MediaExtensions on AppAvData {
     );
   }
 
-  VideoPlayerController? get videoController {
+  /// Creates a video controller owned by the caller.
+  VideoPlayerController? createVideoController() {
     if (!isVideo) return null;
     return switch (mediaOrigin) {
       .asset => VideoPlayerController.asset(document as String),
@@ -48,6 +50,18 @@ extension MediaExtensions on AppAvData {
       _ => null,
     };
   }
+
+  @Deprecated(
+    'This getter allocates a controller. Use createYoutubeController() and '
+    'dispose the returned controller.',
+  )
+  YoutubePlayerController? get youtubeController => createYoutubeController();
+
+  @Deprecated(
+    'This getter allocates a controller. Use createVideoController() and '
+    'dispose the returned controller.',
+  )
+  VideoPlayerController? get videoController => createVideoController();
 
   AudioSource? get audioSource {
     if (!isAudio) return null;
