@@ -1,5 +1,4 @@
 import 'package:gt_mobile_foundation/foundation.dart';
-import 'package:flutter/material.dart';
 
 /// {@category Services}
 /// The interface definition for application analytics tracking.
@@ -17,9 +16,6 @@ abstract class AppAnalyticsService {
     String? bvn,
   });
 
-  /// Returns the [RouteObserver] to track navigation events across providers.
-  RouteObserver? get navigatorObserver;
-
   /// Tracks a navigation event to the specified [path] with an optional [widgetClass].
   Future<void> trackNavigation(String path, {String? widgetClass});
 
@@ -32,4 +28,3 @@ abstract class AppAnalyticsService {
   /// Unregisters an [AnalyticsProvider] at runtime.
   void removeProvider(AnalyticsProvider provider);
 }
-

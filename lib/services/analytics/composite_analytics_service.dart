@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
 /// The Composite Facade implementation of [AppAnalyticsService].
@@ -8,13 +7,10 @@ import 'package:gt_mobile_foundation/foundation.dart';
 /// to all registered providers.
 class AppAnalyticsServiceImpl implements AppAnalyticsService {
   final List<AnalyticsProvider> _providers;
-  late final RouteObserver _routeObserver;
 
   /// Creates a new [AppAnalyticsServiceImpl] with an optional initial list of [_providers].
   AppAnalyticsServiceImpl([List<AnalyticsProvider>? providers])
-    : _providers = List<AnalyticsProvider>.from(providers ?? []) {
-    _routeObserver = AppAnalyticsRouteObserver(this);
-  }
+    : _providers = List<AnalyticsProvider>.from(providers ?? []);
 
   /// List of currently registered analytics providers.
   List<AnalyticsProvider> get providers => List.unmodifiable(_providers);
@@ -70,7 +66,4 @@ class AppAnalyticsServiceImpl implements AppAnalyticsService {
       _providers.map((p) => p.trackNavigation(path, widgetClass: widgetClass)),
     );
   }
-
-  @override
-  RouteObserver get navigatorObserver => _routeObserver;
 }

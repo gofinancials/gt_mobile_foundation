@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
@@ -132,18 +131,5 @@ void main() {
         expect(compositeService.providers.length, equals(2));
       },
     );
-
-    test('navigatorObserver tracks route pushes', () async {
-      final observer = compositeService.navigatorObserver;
-      final route = MaterialPageRoute(
-        builder: (_) => const SizedBox(),
-        settings: const RouteSettings(name: '/home'),
-      );
-
-      observer.didPush(route, null);
-
-      expect(provider1.trackedNavigations, contains('/home'));
-      expect(provider2.trackedNavigations, contains('/home'));
-    });
   });
 }

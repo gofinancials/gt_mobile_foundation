@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
 /// {@category Services}
@@ -36,13 +35,7 @@ class AppAnalyticsMockService implements AppAnalyticsService {
   }
 
   @override
-  RouteObserver? get navigatorObserver => RouteObserver();
-
-  @override
-  Future<void> trackNavigation(
-    String path, {
-    String? widgetClass,
-  }) async {
+  Future<void> trackNavigation(String path, {String? widgetClass}) async {
     await mockAdapter.trackNavigation(path, widgetClass: widgetClass);
   }
 
