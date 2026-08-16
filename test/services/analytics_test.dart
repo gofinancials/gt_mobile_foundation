@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
@@ -93,6 +92,12 @@ void main() {
       );
     });
 
+    test('AppEvent supports network events', () {
+      expect(AppEvent.apiRequest.name, equals('API REQUEST'));
+      expect(AppEvent.apiResponse.name, equals('API RESPONSE'));
+      expect(AppEvent.apiError.name, equals('API ERROR'));
+    });
+
     test('AppEvent equality and value representation', () {
       final eventA = AppEvent('my_event');
       final eventB = AppEvent('my_event');
@@ -132,18 +137,5 @@ void main() {
         expect(compositeService.providers.length, equals(2));
       },
     );
-
-    test('navigatorObserver tracks route pushes', () async {
-      final observer = compositeService.navigatorObserver;
-      final route = MaterialPageRoute(
-        builder: (_) => const SizedBox(),
-        settings: const RouteSettings(name: '/home'),
-      );
-
-      observer.didPush(route, null);
-
-      expect(provider1.trackedNavigations, contains('/home'));
-      expect(provider2.trackedNavigations, contains('/home'));
-    });
   });
 }

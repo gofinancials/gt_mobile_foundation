@@ -15,6 +15,11 @@ class LoggerInterceptor with AppAnalyticsMixin implements InterceptorsWrapper {
       "statusMessage": err.response?.statusMessage,
       "data": err.response?.data ?? {"message": err.error ?? err},
     });
+    trackEvent(
+      .apiError,
+      description: err.response?.statusMessage,
+      value: "${err.requestOptions.uri}",
+    );
     return handler.next(err);
   }
 
@@ -48,6 +53,11 @@ class LoggerInterceptor with AppAnalyticsMixin implements InterceptorsWrapper {
       "statusCode": response.statusCode,
       "statusMessage": response.statusMessage,
     });
+    trackEvent(
+      .apiResponse,
+      description: response.statusMessage,
+      value: "${response.requestOptions.uri}",
+    );
     return handler.next(response);
   }
 }
