@@ -92,6 +92,12 @@ void main() {
       );
     });
 
+    test('AppEvent supports network events', () {
+      expect(AppEvent.apiRequest.name, equals('API REQUEST'));
+      expect(AppEvent.apiResponse.name, equals('API RESPONSE'));
+      expect(AppEvent.apiError.name, equals('API ERROR'));
+    });
+
     test('AppEvent equality and value representation', () {
       final eventA = AppEvent('my_event');
       final eventB = AppEvent('my_event');

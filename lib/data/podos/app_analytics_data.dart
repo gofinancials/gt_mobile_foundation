@@ -188,6 +188,8 @@ class AppEvent extends Equatable {
   // NETWORK EVENTS
   // ==========================================
   static const AppEvent apiRequest = AppEvent("API REQUEST");
+  static const AppEvent apiResponse = AppEvent("API RESPONSE");
+  static const AppEvent apiError = AppEvent("API ERROR");
 
   // ==========================================
   // ONBOARDING EVENTS (PDF SPECIFICATION)
