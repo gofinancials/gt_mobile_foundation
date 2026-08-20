@@ -41,7 +41,7 @@ class BiometricAuthServiceImpl implements BiometricAuthService {
   Future<bool> hasBioCapabilities() async {
     try {
       if (_hasBioCapabilities != null) return _hasBioCapabilities!;
-      return _auth.isDeviceSupported();
+      return await _auth.isDeviceSupported();
     } catch (e, t) {
       AppLogger.severe("$e", error: e, stackTrace: t);
       return false;
