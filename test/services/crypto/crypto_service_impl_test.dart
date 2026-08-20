@@ -1,10 +1,8 @@
 import 'dart:io';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
-
 
 class _FakeAssetBundle extends AssetBundle {
   _FakeAssetBundle(this.pem);
@@ -454,7 +452,10 @@ void main() {
           var cipher = segments[1];
 
           // Make cipher URL-safe and strip trailing '=' padding
-          cipher = cipher.replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+          cipher = cipher
+              .replaceAll('+', '-')
+              .replaceAll('/', '_')
+              .replaceAll('=', '');
           final urlSafePayload = '$iv:$cipher';
 
           final decrypted = cryptoService.decrypt(
@@ -478,16 +479,10 @@ void main() {
         );
 
         const plainText = 'backend-secret-data';
-        final encrypted = base64CryptoService.encrypt(
-          plainText,
-          mode: .base64,
-        );
+        final encrypted = base64CryptoService.encrypt(plainText, mode: .base64);
         expect(encrypted, contains(':'));
 
-        final decrypted = base64CryptoService.decrypt(
-          encrypted,
-          mode: .base64,
-        );
+        final decrypted = base64CryptoService.decrypt(encrypted, mode: .base64);
         expect(decrypted, equals(plainText));
       });
 
@@ -499,17 +494,14 @@ void main() {
         expect(decrypted, equals(plainText));
       });
 
-      test(
-        'tryDecrypt returns original value on invalid data or null',
-        () {
-          expect(cryptoService.tryDecrypt(null), isNull);
-          expect(cryptoService.tryDecrypt(''), equals(''));
-          expect(
-            cryptoService.tryDecrypt('not-encrypted-text'),
-            equals('not-encrypted-text'),
-          );
-        },
-      );
+      test('tryDecrypt returns original value on invalid data or null', () {
+        expect(cryptoService.tryDecrypt(null), isNull);
+        expect(cryptoService.tryDecrypt(''), equals(''));
+        expect(
+          cryptoService.tryDecrypt('not-encrypted-text'),
+          equals('not-encrypted-text'),
+        );
+      });
 
       test('supports custom associatedData per call', () {
         const plainText = 'custom-aad-payload';
@@ -532,27 +524,5 @@ void main() {
         expect(failedDecrypted, equals(encrypted));
       });
     });
-
-    group('Interceptor Tests with Colon-Delimited Strategy', () {
-      test('EncryptInterceptor encrypts body using colon-delimited Base64', () async {
-        final interceptor = EncryptInterceptor(
-          cryptoService,
-          mode: .base64,
-          strategy: .colonDelimited,
-        );
-
-        final options = RequestOptions(
-          path: '/api/v1/transfer',
-          data: {'amount': 5000, 'account': '0123456789'},
-        );
-
-        final handler = RequestInterceptorHandler();
-        interceptor.onRequest(options, handler);
-
-        // Verify that handler received modified options with encrypted data map
-        expect(options.data, isNotNull);
-      });
-    });
   });
 }
-

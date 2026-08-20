@@ -1,6 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+extension on RequestOptions {
+  /// Checks if the request is sensitive
+  bool get isSensitiveRequest {
+    return extra[sensitiveRequestExtraKey] == true;
+  }
+}
+
 /// {@category Services}
 /// An interceptor that intercepts outgoing requests and encrypts the body data using [AppCryptoService].
 class EncryptInterceptor extends QueuedInterceptorsWrapper {
@@ -46,6 +53,9 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    if (!options.isSensitiveRequest) {
+      return handler.next(options);
+    }
     try {
       final data = options.data;
       if (data is! List && data is! Map && data is! String) {
@@ -59,8 +69,8 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
       );
 
       AppLogger.info({
-        "plainText": data,
-        "cipherText": encryptedData,
+        "plainText": "***REDACTED***",
+        "cipherText": encryptedData.asRedactedSecret,
         "params": options.queryParameters,
         "header": options.headers,
         "method": options.method,
@@ -103,11 +113,18 @@ class DecryptInterceptor extends QueuedInterceptorsWrapper {
     Response response,
   ) {
     if (decryptedData == null || rawData == decryptedData) return response;
-    return response.copyWith(data: decryptedData);
+    final resolvedData = switch (rawData) {
+      Map map => {...map, "data": decryptedData},
+      _ => decryptedData,
+    };
+    return response.copyWith(data: resolvedData);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
+    if (!response.requestOptions.isSensitiveRequest) {
+      return handler.next(response);
+    }
     AppLogger.info("Response Body: ${response.data}");
     final rawData = response.data;
     final data = switch (rawData) {
