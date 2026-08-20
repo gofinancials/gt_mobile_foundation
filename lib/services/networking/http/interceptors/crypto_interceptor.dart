@@ -13,11 +13,19 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
   /// The packaging strategy used for formatting the encrypted payload.
   final AppCryptoPayloadStrategy strategy;
 
+  /// Determines if app tag is encrypted before injection as an header
+  final bool encryptTag;
+
+  /// Determines if app tag is encrypted before injection as an header
+  final String tagHeaderKey;
+
   /// Creates a new instance of [EncryptInterceptor].
   EncryptInterceptor(
     this._service, {
     this.mode = .base16,
     this.strategy = .contiguous,
+    this.encryptTag = true,
+    this.tagHeaderKey = "App-Tag",
   });
 
   /// Encodes the provided [data] to JSON if necessary and returns the encrypted ciphertext
@@ -28,7 +36,8 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
   }
 
   /// Returns the encrypted application tag.
-  String get _encryptedAppTag {
+  String get _appTag {
+    if (!encryptTag) return _service.appTag;
     return _service.encrypt(_service.appTag, mode: mode, strategy: strategy);
   }
 
@@ -46,7 +55,7 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
       final encryptedData = await _getCiphertext(data);
       options = options.copyWith(
         data: {"data": encryptedData},
-        headers: {...options.headers, "App-Tag": _encryptedAppTag},
+        headers: {...options.headers, tagHeaderKey: _appTag},
       );
 
       AppLogger.info({
@@ -130,4 +139,3 @@ class DecryptInterceptor extends QueuedInterceptorsWrapper {
     return handler.next(newResponse);
   }
 }
-
