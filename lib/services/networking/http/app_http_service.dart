@@ -52,7 +52,7 @@ abstract class AppHttpService {
       _http.get(
         path,
         queryParameters: query?.toJson(),
-        options: options,
+        options: options.markAsSensitive(isSensitiveRequest),
         onReceiveProgress: onReceiveProgress,
       ),
     );
@@ -71,7 +71,7 @@ abstract class AppHttpService {
         path,
         queryParameters: query?.toJson(),
         onReceiveProgress: onReceiveProgress,
-        options: options,
+        options: options.markAsSensitive(isSensitiveRequest),
       ),
     );
   }
