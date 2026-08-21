@@ -35,6 +35,7 @@ class _FakeHttpService extends AppHttpService {
     Codable? query,
     Options? options,
     ProgressCallback? onReceiveProgress,
+    bool isSensitiveRequest = false,
   }) async {
     callCount++;
     if (error != null) {

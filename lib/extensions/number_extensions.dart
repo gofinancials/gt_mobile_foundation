@@ -159,8 +159,10 @@ extension IntExtension on int {
   List<int> get monthDays {
     int daysInMonth = switch (this) {
       DateTime.february => 29,
-      DateTime.september | DateTime.april | DateTime.june | DateTime.november =>
-        30,
+      DateTime.september ||
+      DateTime.april ||
+      DateTime.june ||
+      DateTime.november => 30,
       _ => 31,
     };
     return List.generate(daysInMonth, (index) => index + 1, growable: false);

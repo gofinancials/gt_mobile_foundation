@@ -3,6 +3,19 @@ import 'package:gt_mobile_foundation/foundation.dart';
 
 typedef DioResponse = ApiResponse<Response>;
 
+/// Key used to store request sensitivity metadata in Dio's `extra` map.
+const sensitiveRequestExtraKey = "IS_SENSITIVE_REQUEST";
+
+extension on Options? {
+  /// Marks the request as sensitive
+  Options markAsSensitive(bool isSensitiveRequest) {
+    final options = this ?? Options();
+    return options.copyWith(
+      extra: {...?options.extra, sensitiveRequestExtraKey: isSensitiveRequest},
+    );
+  }
+}
+
 /// {@category Services}
 /// An abstract service wrapper around Dio for executing HTTP requests.
 abstract class AppHttpService {
@@ -33,12 +46,13 @@ abstract class AppHttpService {
     Codable? query,
     Options? options,
     ProgressCallback? onReceiveProgress,
+    bool isSensitiveRequest = false,
   }) {
     return transformToApiResponse(
       _http.get(
         path,
         queryParameters: query?.toJson(),
-        options: options,
+        options: options.markAsSensitive(isSensitiveRequest),
         onReceiveProgress: onReceiveProgress,
       ),
     );
@@ -50,13 +64,14 @@ abstract class AppHttpService {
     ProgressCallback? onReceiveProgress,
     Codable? query,
     Options? options,
+    bool isSensitiveRequest = false,
   }) {
     return transformToApiResponse(
       _http.get(
         path,
         queryParameters: query?.toJson(),
         onReceiveProgress: onReceiveProgress,
-        options: options,
+        options: options.markAsSensitive(isSensitiveRequest),
       ),
     );
   }
@@ -69,13 +84,14 @@ abstract class AppHttpService {
     Options? options,
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
+    bool isSensitiveRequest = false,
   }) {
     return transformToApiResponse(
       _http.put(
         path,
         data: body?.toJson(),
         queryParameters: query?.toJson(),
-        options: options,
+        options: options.markAsSensitive(isSensitiveRequest),
         onSendProgress: onSendProgress,
         onReceiveProgress: onReceiveProgress,
       ),
@@ -90,13 +106,14 @@ abstract class AppHttpService {
     Options? options,
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
+    bool isSensitiveRequest = false,
   }) {
     return transformToApiResponse(
       _http.patch(
         path,
         data: body?.toJson(),
         queryParameters: query?.toJson(),
-        options: options,
+        options: options.markAsSensitive(isSensitiveRequest),
         onSendProgress: onSendProgress,
         onReceiveProgress: onReceiveProgress,
       ),
@@ -111,13 +128,14 @@ abstract class AppHttpService {
     Options? options,
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
+    bool isSensitiveRequest = false,
   }) {
     return transformToApiResponse(
       _http.post(
         path,
         data: body?.toJson(),
         queryParameters: query?.toJson(),
-        options: options,
+        options: options.markAsSensitive(isSensitiveRequest),
         onSendProgress: onSendProgress,
         onReceiveProgress: onReceiveProgress,
       ),
@@ -154,13 +172,14 @@ abstract class AppHttpService {
     Codable? query,
     Codable? body,
     Options? options,
+    bool isSensitiveRequest = false,
   }) {
     return transformToApiResponse(
       _http.delete(
         path,
         data: body?.toJson(),
         queryParameters: query?.toJson(),
-        options: options,
+        options: options.markAsSensitive(isSensitiveRequest),
       ),
     );
   }

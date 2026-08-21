@@ -33,7 +33,7 @@ class AppPermissionServiceImpl implements AppPermissionService {
 
       if (status.isPermanentlyDenied) {
         await openAppPermissionsSettings();
-        return isPermissionGranted(permissions);
+        return await isPermissionGranted(permissions);
       }
 
       return [

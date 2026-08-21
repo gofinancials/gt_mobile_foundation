@@ -1,6 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+extension on RequestOptions {
+  /// Checks if the request is sensitive
+  bool get isSensitiveRequest {
+    return extra[sensitiveRequestExtraKey] == true;
+  }
+}
+
 /// {@category Services}
 /// An interceptor that intercepts outgoing requests and encrypts the body data using [AppCryptoService].
 class EncryptInterceptor extends QueuedInterceptorsWrapper {
@@ -13,11 +20,19 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
   /// The packaging strategy used for formatting the encrypted payload.
   final AppCryptoPayloadStrategy strategy;
 
+  /// Determines if app tag is encrypted before injection as an header
+  final bool encryptTag;
+
+  /// Determines if app tag is encrypted before injection as an header
+  final String tagHeaderKey;
+
   /// Creates a new instance of [EncryptInterceptor].
   EncryptInterceptor(
     this._service, {
     this.mode = .base16,
     this.strategy = .contiguous,
+    this.encryptTag = true,
+    this.tagHeaderKey = "App-Tag",
   });
 
   /// Encodes the provided [data] to JSON if necessary and returns the encrypted ciphertext
@@ -28,7 +43,8 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
   }
 
   /// Returns the encrypted application tag.
-  String get _encryptedAppTag {
+  String get _appTag {
+    if (!encryptTag) return _service.appTag;
     return _service.encrypt(_service.appTag, mode: mode, strategy: strategy);
   }
 
@@ -37,6 +53,9 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    if (!options.isSensitiveRequest) {
+      return handler.next(options);
+    }
     try {
       final data = options.data;
       if (data is! List && data is! Map && data is! String) {
@@ -46,12 +65,12 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
       final encryptedData = await _getCiphertext(data);
       options = options.copyWith(
         data: {"data": encryptedData},
-        headers: {...options.headers, "App-Tag": _encryptedAppTag},
+        headers: {...options.headers, tagHeaderKey: _appTag},
       );
 
       AppLogger.info({
-        "plainText": data,
-        "cipherText": encryptedData,
+        "plainText": "***REDACTED***",
+        "cipherText": encryptedData.asRedactedSecret,
         "params": options.queryParameters,
         "header": options.headers,
         "method": options.method,
@@ -94,11 +113,18 @@ class DecryptInterceptor extends QueuedInterceptorsWrapper {
     Response response,
   ) {
     if (decryptedData == null || rawData == decryptedData) return response;
-    return response.copyWith(data: decryptedData);
+    final resolvedData = switch (rawData) {
+      Map map => {...map, "data": decryptedData},
+      _ => decryptedData,
+    };
+    return response.copyWith(data: resolvedData);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
+    if (!response.requestOptions.isSensitiveRequest) {
+      return handler.next(response);
+    }
     AppLogger.info("Response Body: ${response.data}");
     final rawData = response.data;
     final data = switch (rawData) {
@@ -130,4 +156,3 @@ class DecryptInterceptor extends QueuedInterceptorsWrapper {
     return handler.next(newResponse);
   }
 }
-

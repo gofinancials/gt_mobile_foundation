@@ -221,14 +221,14 @@ extension NullableStringExtension on String? {
 
   /// Case-insensitive equality check handling nullability gracefully.
   bool equals(String other) {
-    if (this == null) return false;
-    return this!.lower.trim() == other.lower.trim();
+    if (!hasValue) return false;
+    return value.lower.trim() == other.lower.trim();
   }
 
   /// Checks if the text matches a Right-to-Left (RTL) script format.
   bool get isRTL {
     if (!hasValue) return false;
-    final matchesRtl = AppRegex.rtlScriptRegex.hasMatch(this!);
+    final matchesRtl = AppRegex.rtlScriptRegex.hasMatch(value);
 
     return matchesRtl;
   }
@@ -252,4 +252,206 @@ extension NullableStringExtension on String? {
 /// Generates a random numeric string.
 String randomNumString() {
   return "${Random().nextInt(100000000)}";
+}
+
+/// {@category Extensions}
+/// Comprehensive masking and secret codec extension methods on nullable [String?].
+extension NullableStringMaskExtension on String? {
+  /// Masks this nullable string as a phone number for OTP verification screens (e.g. `0810*****14`).
+  String get asMaskedOtpPhone => AppStringMaskUtils.maskOtpPhone(this);
+
+  /// Alias for [asMaskedOtpPhone].
+  String get maskedPhoneOtp => AppStringMaskUtils.maskOtpPhone(this);
+
+  /// Alias for [asMaskedOtpPhone].
+  String get maskedOtpPhone => AppStringMaskUtils.maskOtpPhone(this);
+
+  /// Masks this nullable string as a phone number with default visible lengths (`0810*****14`).
+  String get asMaskedPhone => AppStringMaskUtils.maskPhoneNumber(this);
+
+  /// Alias for [asMaskedPhone].
+  String get maskedPhone => AppStringMaskUtils.maskPhoneNumber(this);
+
+  /// Masks this nullable string as an email address (e.g. `u***r@example.com`).
+  String get asMaskedEmail => AppStringMaskUtils.maskEmail(this);
+
+  /// Alias for [asMaskedEmail].
+  String get maskedEmail => AppStringMaskUtils.maskEmail(this);
+
+  /// Masks this nullable string as a bank account number (e.g. `012****789`).
+  String get asMaskedAccountNumber =>
+      AppStringMaskUtils.maskAccountNumber(this);
+
+  /// Alias for [asMaskedAccountNumber].
+  String get maskedAccountNumber => AppStringMaskUtils.maskAccountNumber(this);
+
+  /// Masks this nullable string as an 11-digit BVN (e.g. `222******55`).
+  String get asMaskedBvn => AppStringMaskUtils.maskBvn(this);
+
+  /// Alias for [asMaskedBvn].
+  String get maskedBvn => AppStringMaskUtils.maskBvn(this);
+
+  /// Masks this nullable string as a National Identification Number (NIN).
+  String get asMaskedNin => AppStringMaskUtils.maskBvn(this);
+
+  /// Alias for [asMaskedNin].
+  String get maskedNin => AppStringMaskUtils.maskBvn(this);
+
+  /// Masks this nullable string as a Card PAN, keeping first 6 and last 4 digits (e.g. `123456******5678`).
+  String get asMaskedCard => AppStringMaskUtils.maskCardPan(this);
+
+  /// Alias for [asMaskedCard].
+  String get asMaskedCardPan => AppStringMaskUtils.maskCardPan(this);
+
+  /// Alias for [asMaskedCard].
+  String get maskedCard => AppStringMaskUtils.maskCardPan(this);
+
+  /// Alias for [asMaskedCardPan].
+  String get maskedCardPan => AppStringMaskUtils.maskCardPan(this);
+
+  /// Returns a log-safe redacted rendering of this secret string, preserving the last 4 characters.
+  String get asRedactedSecret => !hasValue ? '' : AppSecretCodec.redact(value);
+
+  /// Encodes this string using [AppSecretCodec.encode].
+  String get asSecretEncoded => !hasValue ? '' : AppSecretCodec.encode(value);
+
+  /// Decodes this masked secret string using [AppSecretCodec.decode].
+  String get asSecretDecoded => !hasValue ? '' : AppSecretCodec.decode(value);
+
+  /// Generic customizable masking on this nullable string.
+  String mask({
+    int startVisible = 4,
+    int endVisible = 2,
+    String maskChar = '*',
+    int? fixedMaskLength,
+  }) => AppStringMaskUtils.mask(
+    this,
+    startVisible: startVisible,
+    endVisible: endVisible,
+    maskChar: maskChar,
+    fixedMaskLength: fixedMaskLength,
+  );
+
+  /// Shorthand masking method with tighter visible boundaries (2 leading, 2 trailing).
+  String maskWith({
+    int startVisible = 2,
+    int endVisible = 2,
+    String maskChar = '*',
+    int? fixedMaskLength,
+  }) => AppStringMaskUtils.mask(
+    this,
+    startVisible: startVisible,
+    endVisible: endVisible,
+    maskChar: maskChar,
+    fixedMaskLength: fixedMaskLength,
+  );
+
+  /// Alias for [mask].
+  String maskCustom({
+    int startVisible = 4,
+    int endVisible = 2,
+    String maskChar = '*',
+    int? fixedMaskLength,
+  }) => AppStringMaskUtils.mask(
+    this,
+    startVisible: startVisible,
+    endVisible: endVisible,
+    maskChar: maskChar,
+    fixedMaskLength: fixedMaskLength,
+  );
+
+  /// Masks this nullable string as a phone number with configurable options.
+  String maskPhoneNumber({
+    int prefixLength = 4,
+    int suffixLength = 2,
+    String maskChar = '*',
+    bool normalizeNigerian = true,
+  }) => AppStringMaskUtils.maskPhoneNumber(
+    this,
+    prefixLength: prefixLength,
+    suffixLength: suffixLength,
+    maskChar: maskChar,
+    normalizeNigerian: normalizeNigerian,
+  );
+
+  /// Masks this nullable string specifically for OTP verification screens.
+  String maskOtpPhone() => AppStringMaskUtils.maskOtpPhone(this);
+
+  /// Masks this nullable string as an email address with configurable visible character counts.
+  String maskEmail({
+    int visiblePrefix = 1,
+    int visibleSuffix = 1,
+    String maskChar = '*',
+  }) => AppStringMaskUtils.maskEmail(
+    this,
+    visiblePrefix: visiblePrefix,
+    visibleSuffix: visibleSuffix,
+    maskChar: maskChar,
+  );
+
+  /// Masks this nullable string as an account number with configurable visible lengths.
+  String maskAccountNumber({
+    int prefixLength = 3,
+    int suffixLength = 3,
+    String maskChar = '*',
+  }) => AppStringMaskUtils.maskAccountNumber(
+    this,
+    prefixLength: prefixLength,
+    suffixLength: suffixLength,
+    maskChar: maskChar,
+  );
+
+  /// Masks this nullable string as a BVN with configurable visible lengths.
+  String maskBvn({
+    int prefixLength = 3,
+    int suffixLength = 2,
+    String maskChar = '*',
+  }) => AppStringMaskUtils.maskBvn(
+    this,
+    prefixLength: prefixLength,
+    suffixLength: suffixLength,
+    maskChar: maskChar,
+  );
+
+  /// Masks this nullable string as a NIN with configurable visible lengths.
+  String maskNin({
+    int prefixLength = 3,
+    int suffixLength = 2,
+    String maskChar = '*',
+  }) => AppStringMaskUtils.maskBvn(
+    this,
+    prefixLength: prefixLength,
+    suffixLength: suffixLength,
+    maskChar: maskChar,
+  );
+
+  /// Masks this nullable string as a Card PAN with configurable visible lengths.
+  String maskCardPan({
+    int prefixLength = 6,
+    int suffixLength = 4,
+    String maskChar = '*',
+  }) => AppStringMaskUtils.maskCardPan(
+    this,
+    prefixLength: prefixLength,
+    suffixLength: suffixLength,
+    maskChar: maskChar,
+  );
+
+  /// Alias for [maskCardPan].
+  String maskCard({
+    int prefixLength = 6,
+    int suffixLength = 4,
+    String maskChar = '*',
+  }) => AppStringMaskUtils.maskCardPan(
+    this,
+    prefixLength: prefixLength,
+    suffixLength: suffixLength,
+    maskChar: maskChar,
+  );
+
+  /// Redacts this nullable secret string exposing only the last [visible] characters.
+  String redactSecret({int visible = 4}) {
+    if (!hasValue) return '';
+    return AppSecretCodec.redact(value, visible: visible);
+  }
 }
