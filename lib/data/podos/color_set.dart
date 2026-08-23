@@ -11,12 +11,7 @@ class ColorSet extends Color {
 
   const ColorSet(super.value, [this._dark]);
 
-  int get _inverted {
-    return ((value >> 24) & 0xff) |
-        ((value << 8) & 0xff0000) |
-        ((value >> 8) & 0xff00) |
-        ((value << 24) & 0xff000000);
-  }
+  int get _inverted => value ^ 0x00ffffff;
 
   ColorSet get dark => ColorSet(_dark ?? _inverted);
 
