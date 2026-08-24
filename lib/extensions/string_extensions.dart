@@ -260,54 +260,24 @@ extension NullableStringMaskExtension on String? {
   /// Masks this nullable string as a phone number for OTP verification screens (e.g. `0810*****14`).
   String get asMaskedOtpPhone => AppStringMaskUtils.maskOtpPhone(this);
 
-  /// Alias for [asMaskedOtpPhone].
-  String get maskedPhoneOtp => AppStringMaskUtils.maskOtpPhone(this);
-
-  /// Alias for [asMaskedOtpPhone].
-  String get maskedOtpPhone => AppStringMaskUtils.maskOtpPhone(this);
-
   /// Masks this nullable string as a phone number with default visible lengths (`0810*****14`).
   String get asMaskedPhone => AppStringMaskUtils.maskPhoneNumber(this);
 
-  /// Alias for [asMaskedPhone].
-  String get maskedPhone => AppStringMaskUtils.maskPhoneNumber(this);
-
   /// Masks this nullable string as an email address (e.g. `u***r@example.com`).
   String get asMaskedEmail => AppStringMaskUtils.maskEmail(this);
-
-  /// Alias for [asMaskedEmail].
-  String get maskedEmail => AppStringMaskUtils.maskEmail(this);
 
   /// Masks this nullable string as a bank account number (e.g. `012****789`).
   String get asMaskedAccountNumber =>
       AppStringMaskUtils.maskAccountNumber(this);
 
-  /// Alias for [asMaskedAccountNumber].
-  String get maskedAccountNumber => AppStringMaskUtils.maskAccountNumber(this);
-
   /// Masks this nullable string as an 11-digit BVN (e.g. `222******55`).
   String get asMaskedBvn => AppStringMaskUtils.maskBvn(this);
-
-  /// Alias for [asMaskedBvn].
-  String get maskedBvn => AppStringMaskUtils.maskBvn(this);
 
   /// Masks this nullable string as a National Identification Number (NIN).
   String get asMaskedNin => AppStringMaskUtils.maskBvn(this);
 
-  /// Alias for [asMaskedNin].
-  String get maskedNin => AppStringMaskUtils.maskBvn(this);
-
   /// Masks this nullable string as a Card PAN, keeping first 6 and last 4 digits (e.g. `123456******5678`).
   String get asMaskedCard => AppStringMaskUtils.maskCardPan(this);
-
-  /// Alias for [asMaskedCard].
-  String get asMaskedCardPan => AppStringMaskUtils.maskCardPan(this);
-
-  /// Alias for [asMaskedCard].
-  String get maskedCard => AppStringMaskUtils.maskCardPan(this);
-
-  /// Alias for [asMaskedCardPan].
-  String get maskedCardPan => AppStringMaskUtils.maskCardPan(this);
 
   /// Returns a log-safe redacted rendering of this secret string, preserving the last 4 characters.
   String get asRedactedSecret => !hasValue ? '' : AppSecretCodec.redact(value);
