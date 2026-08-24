@@ -130,35 +130,26 @@ void main() {
     test('non-nullable string getters and methods', () {
       const phone = '08100115314';
       expect(phone.asMaskedOtpPhone, equals('0810*****14'));
-      expect(phone.maskedOtpPhone, equals('0810*****14'));
       expect(phone.asMaskedPhone, equals('0810*****14'));
-      expect(phone.maskedPhone, equals('0810*****14'));
       expect(phone.maskPhoneNumber(), equals('0810*****14'));
       expect(phone.maskOtpPhone(), equals('0810*****14'));
 
       const email = 'john.doe@example.com';
       expect(email.asMaskedEmail, equals('j******e@example.com'));
-      expect(email.maskedEmail, equals('j******e@example.com'));
       expect(email.maskEmail(), equals('j******e@example.com'));
 
       const acct = '0123456789';
       expect(acct.asMaskedAccountNumber, equals('012****789'));
-      expect(acct.maskedAccountNumber, equals('012****789'));
       expect(acct.maskAccountNumber(), equals('012****789'));
 
       const bvn = '22233344455';
       expect(bvn.asMaskedBvn, equals('222******55'));
-      expect(bvn.maskedBvn, equals('222******55'));
       expect(bvn.asMaskedNin, equals('222******55'));
-      expect(bvn.maskedNin, equals('222******55'));
       expect(bvn.maskBvn(), equals('222******55'));
       expect(bvn.maskNin(), equals('222******55'));
 
       const card = '1234567812345678';
       expect(card.asMaskedCard, equals('123456******5678'));
-      expect(card.asMaskedCardPan, equals('123456******5678'));
-      expect(card.maskedCard, equals('123456******5678'));
-      expect(card.maskedCardPan, equals('123456******5678'));
       expect(card.maskCard(), equals('123456******5678'));
       expect(card.maskCardPan(), equals('123456******5678'));
 
@@ -172,22 +163,12 @@ void main() {
     test('nullable string getters and methods', () {
       const String? nullString = null;
       expect(nullString.asMaskedOtpPhone, equals(''));
-      expect(nullString.maskedPhoneOtp, equals(''));
-      expect(nullString.maskedOtpPhone, equals(''));
       expect(nullString.asMaskedPhone, equals(''));
-      expect(nullString.maskedPhone, equals(''));
       expect(nullString.asMaskedEmail, equals(''));
-      expect(nullString.maskedEmail, equals(''));
       expect(nullString.asMaskedAccountNumber, equals(''));
-      expect(nullString.maskedAccountNumber, equals(''));
       expect(nullString.asMaskedBvn, equals(''));
-      expect(nullString.maskedBvn, equals(''));
       expect(nullString.asMaskedNin, equals(''));
-      expect(nullString.maskedNin, equals(''));
       expect(nullString.asMaskedCard, equals(''));
-      expect(nullString.asMaskedCardPan, equals(''));
-      expect(nullString.maskedCard, equals(''));
-      expect(nullString.maskedCardPan, equals(''));
       expect(nullString.asRedactedSecret, equals(''));
       expect(nullString.asSecretDecoded, equals(''));
       expect(nullString.mask(), equals(''));
@@ -205,10 +186,7 @@ void main() {
 
       final nonNullString = '08100115314' as String?;
       expect(nonNullString.asMaskedOtpPhone, equals('0810*****14'));
-      expect(nonNullString.maskedPhoneOtp, equals('0810*****14'));
-      expect(nonNullString.maskedOtpPhone, equals('0810*****14'));
       expect(nonNullString.asMaskedPhone, equals('0810*****14'));
-      expect(nonNullString.maskedPhone, equals('0810*****14'));
     });
   });
 }
