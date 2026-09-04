@@ -35,4 +35,3 @@ enum AppCryptoPayloadStrategy {
   /// Returns `true` if this strategy is [auto].
   bool get isAuto => this == .auto;
 }
-

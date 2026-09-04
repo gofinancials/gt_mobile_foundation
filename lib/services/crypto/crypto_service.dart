@@ -41,4 +41,3 @@ abstract class AppCryptoService {
   /// The default packaging strategy for this service instance.
   AppCryptoPayloadStrategy get defaultStrategy;
 }
-
