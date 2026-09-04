@@ -1,4 +1,3 @@
-import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:dio/dio.dart';
 
 /// {@category Data}
@@ -9,9 +8,7 @@ final class AppHttpModel {
   final Map<String, String> headers;
   final String contentType;
   final List<Interceptor> interceptors;
-
-  Duration get timeout => 1.minutes;
-
+  final Duration timeout;
   static const defaultHeaders = {'Accept': "application/json"};
   static const defaultContentType = "application/json";
 
@@ -19,8 +16,9 @@ final class AppHttpModel {
     baseUrl: baseUrl,
     connectTimeout: timeout,
     receiveTimeout: timeout,
-    headers: defaultHeaders,
-    contentType: defaultContentType,
+    sendTimeout: timeout,
+    headers: headers,
+    contentType: contentType,
   );
 
   AppHttpModel(
@@ -28,6 +26,7 @@ final class AppHttpModel {
     this.interceptors = const [],
     this.headers = defaultHeaders,
     this.contentType = defaultContentType,
+    this.timeout = const Duration(minutes: 1),
   }) {
     http = Dio(baseOptions)
       ..transformer = BackgroundTransformer()

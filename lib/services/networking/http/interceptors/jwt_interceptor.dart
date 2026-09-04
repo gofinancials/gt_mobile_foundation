@@ -18,28 +18,27 @@ class JwtInterceptor extends QueuedInterceptorsWrapper {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final hasToken = _sessionService.hasToken;
-    final shouldRefreshToken = _sessionService.shouldBeRefreshed;
-    final isExpired = _sessionService.isExpired;
+    try {
+      final hasToken = _sessionService.hasToken;
+      final shouldRefreshToken = _sessionService.shouldBeRefreshed;
 
-    final deviceId = await _sessionService.deviceId;
-    String? accessToken = _sessionService.accessToken;
+      String? accessToken = _sessionService.accessToken;
 
-    options.headers["x-device-id"] = deviceId;
+      if (hasToken && shouldRefreshToken) {
+        final renewWatch = Stopwatch()..start();
+        accessToken = await onRenew();
+        renewWatch.stop();
+        options.recordPhase("renew", renewWatch.elapsed);
+      }
 
-    if (hasToken && shouldRefreshToken && !isExpired) {
-      accessToken = await onRenew();
+      if (accessToken.hasValue) {
+        options.headers["Authorization"] = "Bearer $accessToken";
+      }
+
+      return handler.next(options);
+    } catch (e, t) {
+      AppLogger.severe("JWT Interceptor failed: $e", stackTrace: t, error: e);
+      return handler.next(options);
     }
-
-    if (accessToken.hasValue) {
-      options.headers["Authorization"] = "Bearer $accessToken";
-    }
-
-    return handler.next(options);
-  }
-
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    handler.next(err);
   }
 }

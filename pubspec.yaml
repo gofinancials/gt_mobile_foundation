@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   async: ^2.13.0
-  dio: ^5.9.0
+  dio: ^5.11.0
   easy_localization: ^3.0.8
   encrypt: ^5.0.3
   equatable: ^2.0.7
