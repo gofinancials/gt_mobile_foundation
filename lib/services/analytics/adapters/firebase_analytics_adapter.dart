@@ -13,8 +13,8 @@ class FirebaseAnalyticsAdapter implements AnalyticsProvider {
   FirebaseAnalyticsAdapter({
     AppCrashlyticsService? crashlyticsService,
     FirebaseAnalytics? analytics,
-  })  : _crashlyticsService = crashlyticsService,
-        _analytics = analytics ?? FirebaseAnalytics.instance;
+  }) : _crashlyticsService = crashlyticsService,
+       _analytics = analytics ?? FirebaseAnalytics.instance;
 
   /// Provides access to the underlying [FirebaseAnalytics] instance.
   FirebaseAnalytics get analytics => _analytics;

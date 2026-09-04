@@ -105,7 +105,8 @@ void main() {
 
   group('transport failures are sanitised', () {
     test('SocketException text never reaches the message', () {
-      const leak = "Failed host lookup: 'api.example.com' (OS Error: errno = 8)";
+      const leak =
+          "Failed host lookup: 'api.example.com' (OS Error: errno = 8)";
       for (final error in <Object>[
         const SocketException(leak),
         _dio(DioExceptionType.unknown, error: const SocketException(leak)),
@@ -136,7 +137,9 @@ void main() {
 
     test('connection, certificate and cancel each map to their string', () {
       expect(
-        AppHelpers.parseError(_dio(DioExceptionType.connectionError))['message'],
+        AppHelpers.parseError(
+          _dio(DioExceptionType.connectionError),
+        )['message'],
         'checkNetwork',
       );
       expect(
@@ -149,7 +152,10 @@ void main() {
       );
       expect(
         AppHelpers.parseError(
-          _dio(DioExceptionType.unknown, error: const HandshakeException('bad cert')),
+          _dio(
+            DioExceptionType.unknown,
+            error: const HandshakeException('bad cert'),
+          ),
         )['message'],
         'secureConnectionFailed',
       );

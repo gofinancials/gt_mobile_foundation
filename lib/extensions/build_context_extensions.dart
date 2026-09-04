@@ -40,7 +40,9 @@ extension BuildContextExtension on BuildContext {
   Future<String?> getClipboardText() async {
     try {
       final data = await Clipboard.getData(Clipboard.kTextPlain);
-      showSnackBar(stringKeys.copiedFromClipboard.tr({"value": data?.text ?? ""}));
+      showSnackBar(
+        stringKeys.copiedFromClipboard.tr({"value": data?.text ?? ""}),
+      );
       return data?.text;
     } catch (e) {
       return null;
