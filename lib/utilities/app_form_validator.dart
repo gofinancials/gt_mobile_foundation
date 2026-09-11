@@ -258,6 +258,7 @@ class AppValidators {
     String? value, {
     String? errorMessage,
     String? emptyMessage,
+    String currency = AppStrings.naira,
     num? minAmount,
     num? maxAmount,
     bool isRequired = true,
@@ -275,11 +276,11 @@ class AppValidators {
       return errorMessage ?? strings.invalidAmount.tr();
     }
     if (minAmount != null && amount < minAmount) {
-      final min = AppTextFormatter.formatCurrency(minAmount);
+      final min = minAmount.asCurrency(currency);
       return errorMessage ?? strings.amountMinimum.tr({"amount": min});
     }
     if (maxAmount != null && amount > maxAmount) {
-      final max = AppTextFormatter.formatCurrency(maxAmount);
+      final max = maxAmount.asCurrency(currency);
       return errorMessage ?? strings.amountMaximum.tr({"amount": max});
     }
     return null;

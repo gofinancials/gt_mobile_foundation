@@ -175,6 +175,7 @@ class AppTextFormatter {
     bool spaceIcon = false,
     bool ignoreSymbol = false,
     String symbol = AppStrings.naira,
+    int decimals = 1,
   }) {
     if (value == null) return "";
 
@@ -185,7 +186,7 @@ class AppTextFormatter {
     final formatter = NumberFormat.compactCurrency(
       locale: _locale,
       name: ignoreSymbol ? '' : currencySymbol,
-      decimalDigits: 1,
+      decimalDigits: decimals,
       symbol: ignoreSymbol ? "" : "$currencySymbol${spaceIcon ? " " : ""}",
     );
 
@@ -201,6 +202,7 @@ class AppTextFormatter {
     bool spaceIcon = false,
     bool ignoreSymbol = false,
     String symbol = AppStrings.naira,
+    int decimals = 2,
   }) {
     if (value == null) return "";
 
@@ -211,6 +213,7 @@ class AppTextFormatter {
     final formatter = NumberFormat.currency(
       locale: _locale,
       name: ignoreSymbol ? '' : currencySymbol,
+      decimalDigits: decimals,
       symbol: ignoreSymbol ? "" : "$currencySymbol${spaceIcon ? " " : ""}",
     );
 

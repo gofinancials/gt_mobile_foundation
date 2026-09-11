@@ -111,7 +111,7 @@ extension StringExtension on String {
   /// Returns the last 4 characters of the string (or the entire string if shorter than 4).
   String get lastChars {
     if (isEmpty) return "";
-    if (length <= 4) return this[length - 1];
+    if (length <= 4) return this;
     return substring(length - 4);
   }
 

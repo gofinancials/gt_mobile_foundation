@@ -11,13 +11,13 @@ extension NumExtension on num {
   }
 
   /// Formats this number as a currency string with a custom [symbol].
-  String asCurrency([String symbol = AppStrings.naira]) {
-    return AppTextFormatter.formatCurrency(this, symbol: symbol);
+  String asCurrency([String symbol = AppStrings.naira, int decimals = 2]) {
+    return AppTextFormatter.formatCurrency(this, symbol: symbol, decimals: decimals);
   }
 
   /// Formats this number as a short currency string, abbreviating large values (e.g., "$1k").
-  String asCurrencyShort([String symbol = AppStrings.naira]) {
-    return AppTextFormatter.formatCurrencyShort(this, symbol: symbol);
+  String asCurrencyShort([String symbol = AppStrings.naira, int decimals = 1]) {
+    return AppTextFormatter.formatCurrencyShort(this, symbol: symbol, decimals: decimals);
   }
 
   /// Formats this number as a masked currency string (e.g., "****").
@@ -25,12 +25,12 @@ extension NumExtension on num {
     return AppTextFormatter.maskedCurrency(this);
   }
 
-  /// Formats this number with comma separators (e.g., "1,000").
+  /// Compact formatting for numbers (e.g., "1.2K").
   String get formattedNumber {
     return AppTextFormatter.formatNumber(toString());
   }
 
-  /// Formats this number into a long number string without abbreviation.
+  /// Formats this number with comma separators (e.g., "1,000").
   String get formattedNumberLong {
     return AppTextFormatter.formatNumberLong(toString());
   }
