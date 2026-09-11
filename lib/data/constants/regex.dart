@@ -4,6 +4,24 @@ class AppRegex {
   static final mailRegEx = RegExp(
     r"\b[\w\d\W\D]+(?:@(?:[\w\d\W\D]+(?:\.(?:[\w\d\W\D]+))))\b",
   );
+
+  /// A single ASCII filename of 1-255 characters, beginning with a letter or
+  /// digit and ending without a dot. The final assertion rejects trailing
+  /// line breaks as well as path separators and other disallowed characters.
+  /// Also check [windowsReservedFileNameRegex] for portable filesystem use.
+  static final portableFileNameRegex = RegExp(
+    r'^[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,253}[A-Za-z0-9_-])?(?![\s\S])',
+  );
+
+  /// Windows device names, including names followed by an extension.
+  static final windowsReservedFileNameRegex = RegExp(
+    r'^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$)',
+    caseSensitive: false,
+  );
+
+  /// Unix or Windows line endings.
+  static final lineBreakRegex = RegExp(r'\r?\n');
+
   static final starRegex = RegExp(r'\*$');
   static final syriacScriptRegex = RegExp(
     r'[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF\u0591-\u05C7\u05D0-\u05EA\u05F0-\u05F4]',

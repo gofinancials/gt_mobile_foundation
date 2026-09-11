@@ -67,6 +67,17 @@ extension on Options? {
 
 /// {@category Services}
 /// An abstract service wrapper around Dio for executing HTTP requests.
+///
+/// TLS validation is delegated to the configured Dio adapter and platform trust
+/// store. This wrapper does not install HTTP overrides or accept invalid
+/// certificates; callers must preserve certificate validation when configuring
+/// the underlying client.
+///
+/// Security review (CWE-295, finding 1644): OneBank maintainers confirm the
+/// former AppHttpOverrides utility was never used by the application. It and
+/// its export were removed in commit e05ee1c. In the report's referenced
+/// foundation revision (8838505), its callback returned false, rejecting
+/// invalid certificates despite the utility's inaccurate bypass documentation.
 abstract class AppHttpService {
   AppHttpService(this._httpModel);
   final AppHttpModel _httpModel;

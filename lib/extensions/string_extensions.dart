@@ -249,9 +249,19 @@ extension NullableStringExtension on String? {
   num? get asAmount => AppHelpers.extractAmount(this);
 }
 
-/// Generates a random numeric string.
+/// Generates an unpadded decimal string from 0 through 99,999,999.
+///
+/// Intended for non-cryptographic application use. OneBank maintainers confirm
+/// this helper is not used for cryptography. The foundation crypto service does
+/// not call this helper to generate keys or initialization vectors.
+///
+/// Security review (CWE-331, finding 1642): [Random.secure] is used as a
+/// defensive measure even though callers do not require cryptographic output.
+/// It does not fall back to a predictable generator if secure randomness is
+/// unavailable. Values can repeat; the limited range is not suitable for
+/// cryptographic keys, IVs, nonces, session tokens, or uniqueness guarantees.
 String randomNumString() {
-  return "${Random().nextInt(100000000)}";
+  return "${Random.secure().nextInt(100000000)}";
 }
 
 /// {@category Extensions}

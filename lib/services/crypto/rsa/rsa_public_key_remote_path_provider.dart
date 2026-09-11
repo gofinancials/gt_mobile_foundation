@@ -5,9 +5,19 @@ import 'package:gt_mobile_foundation/foundation.dart';
 
 /// {@category Services}
 /// Downloads an RSA public-key PEM using the existing HTTP service and caches it locally.
+///
+/// The endpoint and response provide key content only; neither supplies the
+/// cache filename. [RsaPublicKeyPemValidator.cacheFile] validates the configured
+/// destination before cache lookup and again after the request, before writing.
+/// Forced refreshes use the same checks. The cache directory and its ancestors
+/// must remain under application control. Configure a trusted HTTPS endpoint
+/// and retain certificate validation on [httpService]; PEM framing checks
+/// alone do not authenticate a downloaded public key.
 final class RemoteRsaPublicKeyPathProvider implements RsaPublicKeyPathProvider {
   final AppHttpService httpService;
   final String endpoint;
+
+  /// Trusted app-private cache directory; must not be controlled by user input.
   final Directory directory;
   final String fileName;
   final Options? options;
@@ -39,8 +49,13 @@ final class RemoteRsaPublicKeyPathProvider implements RsaPublicKeyPathProvider {
       );
       final pem = _extractPem(response);
       RsaPublicKeyPemValidator.ensureValid(pem, source: "remote:$endpoint");
-      await cachedFile.writeAsString(pem);
-      return cachedFile.absolute.path;
+      // Loading the asset or response may have allowed the cache entry to change.
+      final writeTarget = RsaPublicKeyPemValidator.cacheFile(
+        directory,
+        fileName: fileName,
+      );
+      await writeTarget.writeAsString(pem);
+      return writeTarget.absolute.path;
     } catch (e, t) {
       if (e is RsaPublicKeyPathProviderException) rethrow;
       throw RsaPublicKeyPathProviderException(

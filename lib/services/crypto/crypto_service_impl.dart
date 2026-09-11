@@ -7,6 +7,11 @@ import 'package:pointycastle/pointycastle.dart';
 
 /// {@category Services}
 /// The standard implementation of [AppCryptoService] using AES and RSA algorithms.
+///
+/// AES keys are supplied through configuration; this service does not derive
+/// cryptographic material from [randomNumString] or [randomInt]. Each encryption
+/// generates a 12-byte AES-GCM IV with [IV.fromSecureRandom]. These crypto
+/// operations are separate from the non-cryptographic numeric helpers.
 class AppCryptoServiceImpl implements AppCryptoService {
   /// The application tag used as Associated Authenticated Data (AAD) in AES-GCM encryption.
   @override
