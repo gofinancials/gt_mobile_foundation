@@ -24,6 +24,7 @@ mixin AppHttpMixin {
 
   /// Internal helper to report caught network errors to the [AppCrashlyticsService].
   _reportError(String tag, Object? error, StackTrace trace) {
+    if (!locator.isRegistered<AppCrashlyticsService>()) return;
     final crashReporter = locator<AppCrashlyticsService>();
     crashReporter.trackError(tag, error: error, trace: trace);
   }
@@ -46,7 +47,7 @@ mixin AppHttpMixin {
       }
       return TaskSuccess(data: result);
     } on SocketException catch (e, t) {
-      _reportError("DioException: ${e.message}", e, t);
+      _reportError("SocketException: ${e.message}", e, t);
       return TaskFailure(error: _getParsedError(e));
     } on DioException catch (e, t) {
       _reportError("DioException: ${e.message}", e, t);

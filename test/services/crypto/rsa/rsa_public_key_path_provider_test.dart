@@ -7,9 +7,10 @@ import 'package:path/path.dart' as p;
 import 'package:gt_mobile_foundation/foundation.dart';
 
 class _FakeAssetBundle extends AssetBundle {
-  _FakeAssetBundle(this.pem);
+  _FakeAssetBundle(this.pem, {this.beforeLoad});
 
   final String pem;
+  final Future<void> Function()? beforeLoad;
 
   @override
   Future<ByteData> load(String key) async {
@@ -18,15 +19,19 @@ class _FakeAssetBundle extends AssetBundle {
   }
 
   @override
-  Future<String> loadString(String key, {bool cache = true}) async => pem;
+  Future<String> loadString(String key, {bool cache = true}) async {
+    await beforeLoad?.call();
+    return pem;
+  }
 }
 
 class _FakeHttpService extends AppHttpService {
-  _FakeHttpService(this.responsePem, {this.error})
+  _FakeHttpService(this.responsePem, {this.error, this.beforeGet})
     : super(AppHttpModel('https://example.com'));
 
   final String responsePem;
   final Object? error;
+  final Future<void> Function()? beforeGet;
   int callCount = 0;
 
   @override
@@ -38,6 +43,7 @@ class _FakeHttpService extends AppHttpService {
     bool isSensitiveRequest = false,
   }) async {
     callCount++;
+    await beforeGet?.call();
     if (error != null) {
       throw error!;
     }
@@ -62,6 +68,154 @@ void main() {
   const invalidPem = 'not a pem';
   const privatePem =
       '-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----\n';
+
+  for (final source in ['local', 'remote']) {
+    group('$source cache path security', () {
+      late Directory root;
+      late Directory cache;
+      late _FakeHttpService http;
+      late _FakeAssetBundle assets;
+
+      setUp(() {
+        root = Directory.systemTemp.createTempSync('rsa_path_security_');
+        cache = Directory(p.join(root.path, 'cache'))..createSync();
+        http = _FakeHttpService(validPem);
+        assets = _FakeAssetBundle(validPem);
+      });
+
+      tearDown(() => root.deleteSync(recursive: true));
+
+      RsaPublicKeyPathProvider provider({
+        String fileName = 'rsa_public_key.pem',
+      }) => source == 'local'
+          ? LocalRsaPublicKeyPathProvider(
+              assetBundle: assets,
+              assetPath: 'assets/public_key.pem',
+              directory: cache,
+              fileName: fileName,
+            )
+          : RemoteRsaPublicKeyPathProvider(
+              httpService: http,
+              endpoint: '/public-key',
+              directory: cache,
+              fileName: fileName,
+            );
+
+      for (final refresh in [false, true]) {
+        test(
+          'rejects unsafe filenames before I/O (refresh: $refresh)',
+          () async {
+            final outside = File(p.join(root.path, 'outside.pem'))
+              ..writeAsStringSync(validPem);
+            final invalidNames = [
+              '',
+              '.',
+              '..',
+              '../outside.pem',
+              'nested/../../outside.pem',
+              'nested/key.pem',
+              r'..\outside.pem',
+              r'nested\key.pem',
+              outside.absolute.path,
+              r'C:\outside.pem',
+              r'C:outside.pem',
+              r'\\server\share\key.pem',
+              '%2e%2e%2foutside.pem',
+              'key.pem\u0000',
+              'key.pem\n',
+              'key.pem\r',
+              'key\t.pem',
+              ' key.pem',
+              'key.pem ',
+              'key.',
+              'CON',
+              'nul.pem',
+              'COM1.pem',
+              'a' * 256,
+            ];
+            for (final name in invalidNames) {
+              await expectLater(
+                provider(
+                  fileName: name,
+                ).getPublicKeyPath(forceRefresh: refresh),
+                throwsA(isA<RsaPublicKeyPathProviderException>()),
+                reason: 'Must reject ${name.codeUnits}',
+              );
+            }
+            expect(cache.listSync(), isEmpty);
+            expect(outside.readAsStringSync(), validPem);
+            expect(http.callCount, 0);
+          },
+        );
+
+        for (final exists in [false, true]) {
+          test(
+            'rejects symlink (target exists: $exists, refresh: $refresh)',
+            () async {
+              final outside = File(p.join(root.path, 'outside.pem'));
+              if (exists) outside.writeAsStringSync(validPem);
+              final link = Link(p.join(cache.path, 'rsa_public_key.pem'))
+                ..createSync(outside.path);
+
+              await expectLater(
+                provider().getPublicKeyPath(forceRefresh: refresh),
+                throwsA(isA<RsaPublicKeyPathProviderException>()),
+              );
+
+              expect(link.existsSync(), isTrue);
+              expect(outside.existsSync(), exists);
+              if (exists) expect(outside.readAsStringSync(), validPem);
+              expect(http.callCount, 0);
+            },
+          );
+        }
+      }
+
+      test('rejects a symlink introduced while loading the key', () async {
+        final outside = File(p.join(root.path, 'outside.pem'))
+          ..writeAsStringSync('outside must not change');
+        Future<void> replaceWithLink() async {
+          Link(
+            p.join(cache.path, 'rsa_public_key.pem'),
+          ).createSync(outside.path);
+        }
+
+        assets = _FakeAssetBundle(validPem, beforeLoad: replaceWithLink);
+        http = _FakeHttpService(validPem, beforeGet: replaceWithLink);
+
+        await expectLater(
+          provider().getPublicKeyPath(forceRefresh: true),
+          throwsA(isA<RsaPublicKeyPathProviderException>()),
+        );
+
+        expect(outside.readAsStringSync(), 'outside must not change');
+      });
+
+      test('supports a custom filename, reuse, and forced refresh', () async {
+        const name = 'Bank_RSA-2026.v2.pem';
+        final keyProvider = provider(fileName: name);
+        final path = await keyProvider.getPublicKeyPath();
+        expect(path, p.join(cache.absolute.path, name));
+        expect(File(path).readAsStringSync(), validPem);
+        File(path).writeAsStringSync(
+          validPem.replaceFirst('BQADSwAwSAJB', 'BQADSwAwSAJC'),
+        );
+
+        expect(await keyProvider.getPublicKeyPath(), path);
+        expect(File(path).readAsStringSync(), contains('SAJC'));
+        expect(await keyProvider.getPublicKeyPath(forceRefresh: true), path);
+        expect(File(path).readAsStringSync(), validPem);
+        if (source == 'remote') expect(http.callCount, 2);
+      });
+
+      test('creates a missing trusted cache directory', () async {
+        cache = Directory(p.join(cache.path, 'new', 'keys'));
+        final path = await provider().getPublicKeyPath();
+        expect(File(path).readAsStringSync(), validPem);
+        expect(p.isWithin(cache.absolute.path, path), isTrue);
+      });
+    });
+  }
 
   group('LocalRsaPublicKeyPathProvider', () {
     late Directory tempDir;

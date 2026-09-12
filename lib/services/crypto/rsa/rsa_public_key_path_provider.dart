@@ -1,5 +1,8 @@
 import 'dart:io';
 
+import 'package:gt_mobile_foundation/data/constants/regex.dart';
+import 'package:path/path.dart' as p;
+
 /// {@category Services}
 /// Describes a reusable source of a readable RSA public-key PEM file path.
 abstract interface class RsaPublicKeyPathProvider {
@@ -25,7 +28,12 @@ class RsaPublicKeyPathProviderException implements Exception {
 }
 
 /// {@category Services}
-/// Validates RSA public-key PEM content without doing a full cryptographic parse.
+/// Checks public-key PEM framing and validates paths used by the key caches.
+///
+/// Content checks reject empty input, unsupported framing, and recognized
+/// private-key headers. They do not verify the encoded key, its strength, or
+/// its authenticity. Cryptographic parsing occurs in the crypto service;
+/// callers must obtain public keys from a trusted asset or endpoint.
 final class RsaPublicKeyPemValidator {
   static const _publicKeyHeader = "-----BEGIN PUBLIC KEY-----";
   static const _publicKeyFooter = "-----END PUBLIC KEY-----";
@@ -57,7 +65,7 @@ final class RsaPublicKeyPemValidator {
     if (!hasStandardKey && !hasRsaKey) return false;
 
     final lines = trimmed
-        .split(RegExp(r"\r?\n"))
+        .split(AppRegex.lineBreakRegex)
         .where((line) => line.isNotEmpty);
     final firstLine = lines.isNotEmpty ? lines.first : "";
     final lastLine = lines.isNotEmpty ? lines.last : "";
@@ -77,11 +85,57 @@ final class RsaPublicKeyPemValidator {
     );
   }
 
-  /// Returns a file-safe copy of [path] suitable for writing into a cache directory.
+  /// Returns a cache file beneath the caller's trusted, app-private [directory].
+  ///
+  /// Security review (CWE-73, finding 1643): [fileName] is restricted using
+  /// [AppRegex.portableFileNameRegex] and [AppRegex.windowsReservedFileNameRegex].
+  /// These checks reject traversal, separators, absolute paths, control
+  /// characters, reserved device names, and names longer than 255 characters.
+  /// The normalized candidate must remain beneath the normalized cache root.
+  /// Existing links (including dangling links) and non-file entries are
+  /// rejected using a filesystem type check that does not follow links.
+  ///
+  /// Both production providers call this before cache lookup and again after
+  /// loading the key, immediately before writing, including forced refreshes.
+  /// Invalid paths fail with [RsaPublicKeyPathProviderException]. PEM content
+  /// cannot choose the destination path.
+  ///
+  /// The caller must keep the directory and its ancestors under app control;
+  /// these checks do not make an attacker-writable directory safe from races.
   static File cacheFile(
     Directory directory, {
     String fileName = "rsa_public_key.pem",
   }) {
-    return File("${directory.path}/$fileName");
+    if (!AppRegex.portableFileNameRegex.hasMatch(fileName) ||
+        AppRegex.windowsReservedFileNameRegex.hasMatch(fileName)) {
+      throw const RsaPublicKeyPathProviderException(
+        "Cache filename must be a single portable filename.",
+      );
+    }
+
+    final root = p.normalize(directory.absolute.path);
+    final path = p.normalize(p.join(root, fileName));
+    if (!p.isWithin(root, path)) {
+      throw const RsaPublicKeyPathProviderException(
+        "Cache file must remain inside the cache directory.",
+      );
+    }
+
+    try {
+      final type = FileSystemEntity.typeSync(path, followLinks: false);
+      if (type != FileSystemEntityType.notFound &&
+          type != FileSystemEntityType.file) {
+        throw const RsaPublicKeyPathProviderException(
+          "Cache entry must be a regular file, not a link or directory.",
+        );
+      }
+      return File(path);
+    } on FileSystemException catch (e, t) {
+      throw RsaPublicKeyPathProviderException(
+        "Failed to inspect the public key cache path.",
+        error: e,
+        stackTrace: t,
+      );
+    }
   }
 }

@@ -100,6 +100,21 @@ class AppConfigStrings {
   /// Validation message for an invalid generic number.
   final String invalidNumber;
 
+  /// Message displayed when text is copied from the system clipboard.
+  final String copiedFromClipboard;
+
+  /// Message displayed when text is copied to the system clipboard.
+  final String copiedToClipboard;
+
+  /// Error message shown when a request exceeds its time budget.
+  final String requestTimedOut;
+
+  /// Error message shown when a TLS handshake or certificate check fails.
+  final String secureConnectionFailed;
+
+  /// Error message shown when a request is cancelled before it completes.
+  final String requestCancelled;
+
   /// Creates an [AppConfigStrings] instance containing localized validation and error messages.
   const AppConfigStrings({
     required this.seconds,
@@ -134,5 +149,10 @@ class AppConfigStrings {
     required this.minLength,
     required this.maxLength,
     required this.insufficentFunds,
+    required this.copiedFromClipboard,
+    required this.copiedToClipboard,
+    required this.requestTimedOut,
+    required this.secureConnectionFailed,
+    required this.requestCancelled,
   });
 }

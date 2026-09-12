@@ -6,6 +6,55 @@ typedef DioResponse = ApiResponse<Response>;
 /// Key used to store request sensitivity metadata in Dio's `extra` map.
 const sensitiveRequestExtraKey = "IS_SENSITIVE_REQUEST";
 
+/// Key used to store the request's start timestamp in Dio's `extra` map.
+const requestStartExtraKey = "REQUEST_STARTED_AT_MICROS";
+
+/// Key used to accumulate per-phase durations in Dio's `extra` map.
+const requestPhasesExtraKey = "REQUEST_PHASE_DURATIONS_MS";
+
+/// {@category Services}
+/// Records how long a request spends in the client, and in which phase.
+///
+/// Timings ride along in Dio's `extra` map so a single analytics event can
+/// carry the total alongside its breakdown. `RequestOptions.copyWith` shallow
+/// copies `extra`, so the phase map is shared by reference across copies and
+/// keeps accumulating through the chain.
+extension RequestTimingExtension on RequestOptions {
+  /// Records the moment this request entered the interceptor chain.
+  ///
+  /// Called by [LoggerInterceptor], which should therefore be registered first
+  /// if the total is to include every other interceptor.
+  void markStarted() {
+    extra[requestStartExtraKey] = DateTime.now().microsecondsSinceEpoch;
+    extra[requestPhasesExtraKey] = <String, int>{};
+  }
+
+  /// Wall-clock time since [markStarted], or `null` if it was never called.
+  Duration? get elapsed {
+    final startedAt = extra[requestStartExtraKey];
+    if (startedAt is! int) return null;
+    return Duration(
+      microseconds: DateTime.now().microsecondsSinceEpoch - startedAt,
+    );
+  }
+
+  /// Attributes [duration] to a named [phase] of this request.
+  void recordPhase(String phase, Duration duration) {
+    final existing = extra[requestPhasesExtraKey];
+    final phases = existing is Map<String, int> ? existing : <String, int>{};
+    // Retries and redirects can run a phase more than once; keep the total.
+    phases[phase] = (phases[phase] ?? 0) + duration.inMilliseconds;
+    extra[requestPhasesExtraKey] = phases;
+  }
+
+  /// Per-phase durations in milliseconds recorded so far.
+  Map<String, int>? get recordedPhases {
+    final phases = extra[requestPhasesExtraKey];
+    if (phases is! Map<String, int> || phases.isEmpty) return null;
+    return phases;
+  }
+}
+
 extension on Options? {
   /// Marks the request as sensitive
   Options markAsSensitive(bool isSensitiveRequest) {
@@ -18,6 +67,17 @@ extension on Options? {
 
 /// {@category Services}
 /// An abstract service wrapper around Dio for executing HTTP requests.
+///
+/// TLS validation is delegated to the configured Dio adapter and platform trust
+/// store. This wrapper does not install HTTP overrides or accept invalid
+/// certificates; callers must preserve certificate validation when configuring
+/// the underlying client.
+///
+/// Security review (CWE-295, finding 1644): OneBank maintainers confirm the
+/// former AppHttpOverrides utility was never used by the application. It and
+/// its export were removed in commit e05ee1c. In the report's referenced
+/// foundation revision (8838505), its callback returned false, rejecting
+/// invalid certificates despite the utility's inaccurate bypass documentation.
 abstract class AppHttpService {
   AppHttpService(this._httpModel);
   final AppHttpModel _httpModel;

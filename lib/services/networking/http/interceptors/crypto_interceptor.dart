@@ -10,7 +10,7 @@ extension on RequestOptions {
 
 /// {@category Services}
 /// An interceptor that intercepts outgoing requests and encrypts the body data using [AppCryptoService].
-class EncryptInterceptor extends QueuedInterceptorsWrapper {
+class EncryptInterceptor extends InterceptorsWrapper {
   /// The cryptography service used for encryption.
   final AppCryptoService _service;
 
@@ -25,6 +25,8 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
 
   /// Determines if app tag is encrypted before injection as an header
   final String tagHeaderKey;
+
+  String? _encryptedAppTag;
 
   /// Creates a new instance of [EncryptInterceptor].
   EncryptInterceptor(
@@ -45,7 +47,13 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
   /// Returns the encrypted application tag.
   String get _appTag {
     if (!encryptTag) return _service.appTag;
-    return _service.encrypt(_service.appTag, mode: mode, strategy: strategy);
+    if (_encryptedAppTag case String encryptedTag) return encryptedTag;
+    _encryptedAppTag ??= _service.encrypt(
+      _service.appTag,
+      mode: mode,
+      strategy: strategy,
+    );
+    return _encryptedAppTag!;
   }
 
   @override
@@ -62,7 +70,11 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
         return handler.next(options);
       }
 
+      final encryptWatch = Stopwatch()..start();
       final encryptedData = await _getCiphertext(data);
+      encryptWatch.stop();
+      options.recordPhase("encrypt", encryptWatch.elapsed);
+
       options = options.copyWith(
         data: {"data": encryptedData},
         headers: {...options.headers, tagHeaderKey: _appTag},
@@ -86,7 +98,7 @@ class EncryptInterceptor extends QueuedInterceptorsWrapper {
 
 /// {@category Services}
 /// An interceptor that intercepts incoming responses and decrypts the body data using [AppCryptoService].
-class DecryptInterceptor extends QueuedInterceptorsWrapper {
+class DecryptInterceptor extends InterceptorsWrapper {
   /// The cryptography service used for decryption.
   final AppCryptoService _service;
 
@@ -125,34 +137,42 @@ class DecryptInterceptor extends QueuedInterceptorsWrapper {
     if (!response.requestOptions.isSensitiveRequest) {
       return handler.next(response);
     }
-    AppLogger.info("Response Body: ${response.data}");
-    final rawData = response.data;
-    final data = switch (rawData) {
-      String str => str,
-      Map map when map["data"] is String => map["data"] as String,
-      _ => "",
-    };
+    try {
+      AppLogger.info("Decrypting response for ${response.requestOptions.uri}");
+      final rawData = response.data;
+      final data = switch (rawData) {
+        String str => str,
+        Map map when map["data"] is String => map["data"] as String,
+        _ => "",
+      };
 
-    if (!data.hasValue) return handler.next(response);
+      if (!data.hasValue) return handler.next(response);
 
-    final plainText = _service.decrypt(data, mode: mode, strategy: strategy);
+      final decryptWatch = Stopwatch()..start();
+      final plainText = _service.decrypt(data, mode: mode, strategy: strategy);
+      decryptWatch.stop();
+      response.requestOptions.recordPhase("decrypt", decryptWatch.elapsed);
 
-    // Decryption failed (service returns original string on failure).
-    if (plainText == data) return handler.next(response);
+      // Decryption failed (service returns original string on failure).
+      if (plainText == data) return handler.next(response);
 
-    final parsedData = await AppHelpers.parseJson(plainText);
+      final parsedData = await AppHelpers.parseJson(plainText);
 
-    // If JSON parsing fails (e.g. decrypted payload is a raw string), fallback to plainText
-    final finalData = parsedData ?? plainText;
+      // If JSON parsing fails (e.g. decrypted payload is a raw string), fallback to plainText
+      final finalData = parsedData ?? plainText;
 
-    final newResponse = _resolveResponse(rawData, finalData, response);
+      final newResponse = _resolveResponse(rawData, finalData, response);
 
-    AppLogger.info({
-      "cipherText": data,
-      "parsedText": finalData,
-      "parsedData": newResponse.data,
-    });
+      AppLogger.info({
+        "cipherText": data,
+        "parsedText": finalData,
+        "parsedData": newResponse.data,
+      });
 
-    return handler.next(newResponse);
+      return handler.next(newResponse);
+    } catch (e, t) {
+      AppLogger.severe("Decryption failed: $e", stackTrace: t, error: e);
+      return handler.next(response);
+    }
   }
 }

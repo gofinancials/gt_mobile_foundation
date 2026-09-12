@@ -9,16 +9,23 @@ class LoggerInterceptor with AppAnalyticsMixin implements InterceptorsWrapper {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final elapsed = err.requestOptions.elapsed;
+    final phases = err.requestOptions.recordedPhases;
     AppLogger.info({
+      "status": "error",
       "uri": err.requestOptions.uri,
       "statusCode": err.response?.statusCode ?? 400,
       "statusMessage": err.response?.statusMessage,
       "data": err.response?.data ?? {"message": err.error ?? err},
+      "durationMs": elapsed?.inMilliseconds,
+      "phasesMs": phases,
     });
     trackEvent(
       .apiError,
-      description: err.response?.statusMessage,
+      description: err.response?.statusMessage ?? err.type.name,
       value: "${err.requestOptions.uri}",
+      duration: elapsed,
+      phases: phases,
     );
     return handler.next(err);
   }
@@ -28,7 +35,9 @@ class LoggerInterceptor with AppAnalyticsMixin implements InterceptorsWrapper {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    options.markStarted();
     AppLogger.info({
+      "status": "request",
       "url": options.uri,
       "body": options.data,
       "params": options.queryParameters,
@@ -45,18 +54,25 @@ class LoggerInterceptor with AppAnalyticsMixin implements InterceptorsWrapper {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
+    final elapsed = response.requestOptions.elapsed;
+    final phases = response.requestOptions.recordedPhases;
     AppLogger.info({
+      "status": "response",
       "uri": response.requestOptions.uri,
       "data": response.data,
       "extra": response.extra,
       "headers": response.headers.map,
       "statusCode": response.statusCode,
       "statusMessage": response.statusMessage,
+      "durationMs": elapsed?.inMilliseconds,
+      "phasesMs": phases,
     });
     trackEvent(
       .apiResponse,
       description: response.statusMessage,
       value: "${response.requestOptions.uri}",
+      duration: elapsed,
+      phases: phases,
     );
     return handler.next(response);
   }

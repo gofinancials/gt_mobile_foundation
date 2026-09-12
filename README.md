@@ -65,6 +65,15 @@ The crypto layer now supports reusable RSA public-key path providers:
 
 Each provider returns a device file-system path that can be passed into the crypto service or injected directly into tests.
 
+The local and remote providers require a trusted, app-private cache directory.
+Custom cache filenames must contain 1-255 ASCII letters, digits, dots, underscores,
+or hyphens, begin with a letter or digit, and not end with a dot. Paths and Windows
+reserved device names are rejected with RsaPublicKeyPathProviderException.
+Existing cache entries must be regular files; symbolic links (including dangling
+links) and directories are rejected. The path is checked again after loading a key
+and before writing it. Keep the cache directory and its ancestors under app control;
+path checks cannot eliminate filesystem races in an attacker-writable directory.
+
 Example registration with `GetIt`:
 
 ```dart
@@ -76,3 +85,29 @@ locator.registerLazySingleton<RsaPublicKeyPathProvider>(
   ),
 );
 ```
+
+### Security review context
+
+For the OneBank report dated 10 September 2026:
+
+- **1642 (CWE-331):** OneBank maintainers confirm the numeric random helpers are
+  never used for cryptography. Both now use `Random.secure()` as a defensive
+  measure. The foundation crypto implementation does not call these helpers:
+  AES keys are supplied through configuration and AES-GCM IVs use
+  `IV.fromSecureRandom(12)`. The helpers' small ranges do not provide uniqueness
+  guarantees and must not be used for cryptographic material or session tokens.
+- **1643 (CWE-73):** The RSA cache providers validate filenames with reusable
+  `AppRegex` patterns, check normalized path containment, reject symlink and
+  non-file entries, and repeat validation after loading a key before writing.
+  Asset and response contents do not determine cache paths. A trusted,
+  app-private cache directory remains a caller requirement.
+- **1644 (CWE-295):** OneBank maintainers confirm `AppHttpOverrides` was never
+  used by the application. Commit `e05ee1c` removed the utility and its export.
+  The report's referenced foundation revision, `8838505`, returned `false`
+  from the bad-certificate callback; its old claim to bypass validation was
+  inaccurate. The HTTP service does not install certificate overrides.
+
+The usage statements above are application-maintainer confirmations. Package
+source establishes the implementation measures; application call-site and build
+evidence should accompany any scanner review. These notes do not suppress
+findings or establish that Veracode has accepted a mitigation.

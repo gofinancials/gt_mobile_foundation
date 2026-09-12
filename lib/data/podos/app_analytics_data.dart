@@ -319,14 +319,31 @@ class AppAnalyticsData {
   final DateTime executedAt;
   final dynamic value;
 
-  AppAnalyticsData(this.event, {this.description, this.value})
-    : executedAt = DateTime.now();
+  /// How long the tracked operation took, for events that measure one.
+  ///
+  /// Emitted as the numeric `durationMs` parameter so it can be aggregated
+  /// (p50/p95/p99) rather than only read one event at a time.
+  final Duration? duration;
+
+  /// Named sub-durations in milliseconds, for events built from several
+  /// phases — a request's `renew`, `encrypt` or `decrypt` legs, for example.
+  final Map<String, int>? phases;
+
+  AppAnalyticsData(
+    this.event, {
+    this.description,
+    this.value,
+    this.duration,
+    this.phases,
+  }) : executedAt = DateTime.now();
 
   Map<String, Object> toJson() {
-    final data = {
+    final data = <String, Object>{
       "description": description ?? event.name,
       "value": "$value",
       "executedAt": executedAt.millisecondsSinceEpoch,
+      if (duration case final elapsed?) "durationMs": elapsed.inMilliseconds,
+      ...?phases?.map((phase, ms) => MapEntry("${phase}Ms", ms)),
     };
     return data;
   }
