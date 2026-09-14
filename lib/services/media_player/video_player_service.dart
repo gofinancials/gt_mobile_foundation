@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:gt_mobile_foundation/foundation.dart';
-import 'package:gt_mobile_foundation/services/media_player/utilities/media_temp_files.dart';
 import 'package:video_player/video_player.dart';
 
 /// An implementation of [AppMediaPlayer] and [CaptionablePlayer] that handles
@@ -13,17 +11,13 @@ import 'package:video_player/video_player.dart';
 /// the UI can bind to video playback state seamlessly using the unified pattern.
 class VideoPlayerService implements AppMediaPlayerService, CaptionablePlayer {
   final VideoPlayerController _controller;
-  final File? _tempFile;
   @override
   final OnChanged<MediaPlayStreamData>? onUpdate;
   late final StreamController<MediaPlayStreamData> _stateStreamController;
   bool _isUnloaded = false;
   bool _isDisposed = false;
 
-  /// [tempFile] is a temporary copy of in-memory media from
-  /// [MediaSource.create]; it is deleted after the controller is disposed.
-  VideoPlayerService(this._controller, {this.onUpdate, File? tempFile})
-    : _tempFile = tempFile {
+  VideoPlayerService(this._controller, {this.onUpdate}) {
     _stateStreamController = StreamController<MediaPlayStreamData>.broadcast();
     _controller.addListener(_ctrlListener);
   }
@@ -196,8 +190,6 @@ class VideoPlayerService implements AppMediaPlayerService, CaptionablePlayer {
     } catch (e, t) {
       AppLogger.severe("$e", stackTrace: t);
     }
-    final tempFile = _tempFile;
-    if (tempFile != null) await AppMediaTempFiles.delete(tempFile);
   }
 
   @override

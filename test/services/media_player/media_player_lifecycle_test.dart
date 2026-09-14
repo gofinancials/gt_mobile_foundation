@@ -1,13 +1,9 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
-import 'package:gt_mobile_foundation/services/media_player/utilities/media_temp_files.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
@@ -16,24 +12,16 @@ void main() {
 
   late VideoPlayerPlatform originalPlatform;
   late _FakeVideoPlayerPlatform platform;
-  late PathProviderPlatform originalPathProvider;
-  late Directory tempDir;
 
   setUp(() {
     originalPlatform = VideoPlayerPlatform.instance;
     platform = _FakeVideoPlayerPlatform();
     VideoPlayerPlatform.instance = platform;
-
-    originalPathProvider = PathProviderPlatform.instance;
-    tempDir = Directory.systemTemp.createTempSync('gt_media_test_');
-    PathProviderPlatform.instance = _FakePathProviderPlatform(tempDir.path);
   });
 
   tearDown(() async {
     await platform.close();
     VideoPlayerPlatform.instance = originalPlatform;
-    PathProviderPlatform.instance = originalPathProvider;
-    tempDir.deleteSync(recursive: true);
   });
 
   group('MediaExtensions controller factories', () {
@@ -252,47 +240,26 @@ void main() {
   group('in-memory media', () {
     final bytes = Uint8List.fromList(List.generate(64, (i) => i));
 
-    test('plays bytes from a temp file that is deleted on dispose', () async {
-      final player = AppMediaPlayer();
+    test(
+      'gets no controller, since players read only assets, files and URLs',
+      () async {
+        final memoryMedia = [
+          AppAvData<Uint8List>(document: bytes, mediaType: AppMediaType.audio),
+          AppAvData<Uint8List>.memory(bytes, contentType: 'video/mp4'),
+        ];
 
-      final creation = player.createSource(
-        AppAvData<Uint8List>(document: bytes, contentType: 'audio/mpeg'),
-        autoPlay: false,
-      );
-      await _initializeNextPlayer(platform);
-      final source = (await creation)!;
-      final file = source.tempFile!;
+        for (final media in memoryMedia) {
+          final source = MediaSource(media);
 
-      expect(source.isAudio, isTrue);
-      expect(p.dirname(file.path), p.normalize(tempDir.absolute.path));
-      expect(p.extension(file.path), '.mp3');
-      expect(file.readAsBytesSync(), bytes);
-      expect(source.audio!.dataSource, Uri.file(file.path).toString());
-
-      await player.dispose();
-
-      expect(file.existsSync(), isFalse);
-      expect(platform.disposedPlayerIds, [0]);
-    });
-
-    test('plays video from the memory constructor', () async {
-      final player = AppMediaPlayer();
-
-      final creation = player.createSource(
-        AppAvData<Uint8List>.memory(bytes, contentType: 'video/mp4'),
-        autoPlay: false,
-      );
-      await _initializeNextPlayer(platform);
-      final source = (await creation)!;
-      final file = source.tempFile!;
-
-      expect(source.isVideo, isTrue);
-      expect(p.extension(file.path), '.mp4');
-      expect(file.readAsBytesSync(), bytes);
-
-      await player.dispose();
-      expect(file.existsSync(), isFalse);
-    });
+          expect(media.isValid, isTrue);
+          expect(source.audio, isNull);
+          expect(source.video, isNull);
+          expect(source.isValidSource, isFalse);
+          expect(await AppMediaPlayer().createSource(media), isNull);
+        }
+        expect(platform.streams, isEmpty);
+      },
+    );
 
     test('data URI strings get no controller instead of crashing', () async {
       const media = AppAvData<String>(
@@ -300,65 +267,12 @@ void main() {
         mediaType: AppMediaType.video,
       );
 
-      final source = await MediaSource.create(media);
+      final source = MediaSource(media);
 
       expect(source.video, isNull);
       expect(source.audio, isNull);
-      expect(source.tempFile, isNull);
       expect(source.isValidSource, isFalse);
-    });
-
-    test('temp files keep an extension for common MIME aliases', () async {
-      const expected = {
-        'audio/mp3': '.mp3',
-        'audio/x-m4a': '.m4a',
-        'audio/wav': '.wav',
-        'audio/mpeg': '.mp3',
-      };
-
-      for (final MapEntry(key: mimeType, value: extension)
-          in expected.entries) {
-        final source = await MediaSource.create(
-          AppAvData<Uint8List>(document: bytes, contentType: mimeType),
-        );
-
-        expect(p.extension(source.tempFile!.path), extension, reason: mimeType);
-
-        await source.audio!.dispose();
-        await AppMediaTempFiles.delete(source.tempFile!);
-      }
-    });
-
-    test('the synchronous constructor never treats bytes as a path', () {
-      final source = MediaSource(
-        AppAvData<Uint8List>(document: bytes, mediaType: AppMediaType.audio),
-      );
-
-      expect(source.audio, isNull);
-      expect(source.video, isNull);
-      expect(source.isValidSource, isFalse);
-    });
-
-    test('temp file extensions cannot add path segments', () async {
-      final file = await AppMediaTempFiles.write(
-        bytes,
-        extension: '../../evil',
-      );
-
-      expect(p.dirname(file.path), p.normalize(tempDir.absolute.path));
-      expect(p.extension(file.path), isEmpty);
-
-      await AppMediaTempFiles.delete(file);
-      expect(file.existsSync(), isFalse);
-    });
-
-    test('delete leaves files it did not create', () async {
-      final other = File(p.join(tempDir.path, 'keep.mp3'))
-        ..writeAsBytesSync(bytes);
-
-      await AppMediaTempFiles.delete(other);
-
-      expect(other.existsSync(), isTrue);
+      expect(await AppMediaPlayer().createSource(media), isNull);
     });
   });
 }
@@ -445,15 +359,6 @@ class _FakeVideoPlayerPlatform extends VideoPlayerPlatform {
       await stream.close();
     }
   }
-}
-
-class _FakePathProviderPlatform extends PathProviderPlatform {
-  _FakePathProviderPlatform(this.temporaryPath);
-
-  final String temporaryPath;
-
-  @override
-  Future<String?> getTemporaryPath() async => temporaryPath;
 }
 
 class _TrackingYoutubePlayerController extends YoutubePlayerController {

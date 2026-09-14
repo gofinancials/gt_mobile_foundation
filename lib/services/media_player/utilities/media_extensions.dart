@@ -33,8 +33,8 @@ extension MediaExtensions on AppAvData {
 
   /// Creates a video controller owned by the caller.
   ///
-  /// Returns `null` for in-memory media, which must be copied to a file
-  /// first; use [MediaSource.create] for that.
+  /// Returns `null` for in-memory media; the platform player only reads
+  /// assets, files and URLs.
   VideoPlayerController? createVideoController() {
     if (!isVideo) return null;
     return _createPlayerController();
@@ -43,7 +43,7 @@ extension MediaExtensions on AppAvData {
   /// Creates an audio controller owned by the caller.
   ///
   /// Audio plays through `video_player` and lets the display sleep during
-  /// playback. Returns `null` for in-memory media; use [MediaSource.create].
+  /// playback. Returns `null` for in-memory media.
   VideoPlayerController? createAudioController() {
     if (!isAudio) return null;
     return _createPlayerController(
