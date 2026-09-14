@@ -49,7 +49,7 @@ class AppMediaPlayer {
     } else if (source.video != null) {
       _activePlayer = VideoPlayerService(source.video!);
     } else if (source.audio != null) {
-      _activePlayer = AudioPlayerService(source.audio!);
+      _activePlayer = VideoPlayerService(source.audio!);
     }
 
     _activeSource = source;

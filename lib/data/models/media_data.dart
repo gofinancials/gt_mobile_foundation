@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -65,6 +64,19 @@ class AppAvData<T> extends Equatable implements AppMediaData<T> {
     this.mediaType,
   });
 
+  /// Creates in-memory audio or video from raw [bytes].
+  ///
+  /// Set [contentType], [name] or [mediaType] so the media kind can be
+  /// detected.
+  const AppAvData.memory(
+    Uint8List bytes, {
+    this.contentType,
+    this.name,
+    this.createdAt,
+    this.id,
+    this.mediaType,
+  }) : document = bytes as T;
+
   @override
   bool get hasName => name != null || (name?.isNotEmpty ?? false);
 
@@ -76,7 +88,7 @@ class AppAvData<T> extends Equatable implements AppMediaData<T> {
   @override
   bool get isValid {
     if (!_hasData) return false;
-    return isString || isUrl || isFile;
+    return isString || isUrl || isFile || isBytes;
   }
 
   @override
@@ -95,8 +107,19 @@ class AppAvData<T> extends Equatable implements AppMediaData<T> {
   @override
   bool get isFile {
     if (!_hasData) return false;
-    if ("$document".startsWith("data:")) return true;
     return document is File;
+  }
+
+  /// Returns `true` if the media is held in memory as raw bytes.
+  bool get isBytes {
+    if (!_hasData) return false;
+    return document is Uint8List;
+  }
+
+  /// Returns the in-memory media bytes if [isBytes] is true, otherwise `null`.
+  Uint8List? get bytesData {
+    if (!isBytes) return null;
+    return document as Uint8List;
   }
 
   @override
@@ -112,11 +135,6 @@ class AppAvData<T> extends Equatable implements AppMediaData<T> {
   @override
   File? get file {
     if (!isFile) return null;
-    if ("$document".startsWith("data:")) {
-      final base64 = "$document".replaceAll("data:", "");
-      final data = base64Decode(base64);
-      return File.fromRawPath(data);
-    }
     return document as File;
   }
 
@@ -134,12 +152,20 @@ class AppAvData<T> extends Equatable implements AppMediaData<T> {
 
   bool get isAudio {
     if (mediaType != null) return mediaType == .audio;
+    if (isBytes) return _isBytesOfType("audio", AppRegex.audioFileRegex);
     return AppRegex.audioFileRegex.hasMatch(file?.path ?? fileUrl ?? "");
   }
 
   bool get isVideo {
     if (mediaType != null) return mediaType == .video;
+    if (isBytes) return _isBytesOfType("video", AppRegex.videoFileRegex);
     return AppRegex.videoFileRegex.hasMatch(file?.path ?? fileUrl ?? "");
+  }
+
+  /// Detects in-memory media of [type] from [contentType], then [name].
+  bool _isBytesOfType(String type, RegExp nameRegex) {
+    if (contentType.hasValue) return contentType!.startsWith("$type/");
+    return nameRegex.hasMatch(name ?? "");
   }
 
   bool get isYoutube {
@@ -211,6 +237,16 @@ class AppDocumentData<T> extends Equatable implements AppMediaData<T> {
     this.mediaType,
   });
 
+  /// Creates an in-memory document from raw [bytes].
+  const AppDocumentData.memory(
+    Uint8List bytes, {
+    this.contentType,
+    this.name,
+    this.createdAt,
+    this.id,
+    this.mediaType,
+  }) : document = bytes as T;
+
   @override
   bool get hasName => name != null || (name?.isNotEmpty ?? false);
 
@@ -222,7 +258,7 @@ class AppDocumentData<T> extends Equatable implements AppMediaData<T> {
   @override
   bool get isValid {
     if (!_hasData) return false;
-    return isString || isUrl || isFile;
+    return isString || isUrl || isFile || isBytes;
   }
 
   @override
@@ -241,8 +277,20 @@ class AppDocumentData<T> extends Equatable implements AppMediaData<T> {
   @override
   bool get isFile {
     if (!_hasData) return false;
-    if ("$document".startsWith("data:")) return true;
     return document is File;
+  }
+
+  /// Returns `true` if the document is held in memory as raw bytes.
+  bool get isBytes {
+    if (!_hasData) return false;
+    return document is Uint8List;
+  }
+
+  /// Returns the in-memory document bytes if [isBytes] is true, otherwise
+  /// `null`.
+  Uint8List? get bytesData {
+    if (!isBytes) return null;
+    return document as Uint8List;
   }
 
   @override
@@ -258,11 +306,6 @@ class AppDocumentData<T> extends Equatable implements AppMediaData<T> {
   @override
   File? get file {
     if (!isFile) return null;
-    if ("$document".startsWith("data:")) {
-      final base64 = "$document".replaceAll("data:", "");
-      final data = base64Decode(base64);
-      return File.fromRawPath(data);
-    }
     return document as File;
   }
 

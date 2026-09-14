@@ -116,9 +116,12 @@ extension BuildContextExtension on BuildContext {
   }
 
   /// Shares a file via the native share dialog using [Uint8List] raw data.
+  /// An optional [text] is sent along with the file.
+  /// See [AppSharePlugin.shareFile] for how [fileName] and [mimeType] default.
   shareFile(
     Uint8List data, {
     String? title,
+    String? text,
     String? fileName,
     String? mimeType,
   }) {
@@ -126,6 +129,7 @@ extension BuildContextExtension on BuildContext {
       this,
       data: data,
       title: title,
+      text: text,
       fileName: fileName,
       mimeType: mimeType,
     );
