@@ -19,6 +19,9 @@ class AppRegex {
     caseSensitive: false,
   );
 
+  /// A lowercase alphanumeric file extension, without the leading dot.
+  static final fileExtensionRegex = RegExp(r'^[a-z0-9]{1,8}$');
+
   /// Unix or Windows line endings.
   static final lineBreakRegex = RegExp(r'\r?\n');
 

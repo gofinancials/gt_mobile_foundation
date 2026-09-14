@@ -19,15 +19,18 @@ class AppMediaPlayer {
     AppAvData data, {
     bool autoPlay = true,
   }) async {
-    final source = _retrieveSource(data);
+    final source = await _retrieveSource(data);
     if (source == null || !source.isValidSource) return null;
     await _loadSource(source, autoPlay);
     return source;
   }
 
   /// Creates a source whose controller is owned by this player after loading.
-  MediaSource? _retrieveSource(AppAvData data) {
-    final source = MediaSource(data);
+  ///
+  /// In-memory media is copied to a temporary file, which the player deletes
+  /// when it is disposed.
+  Future<MediaSource?> _retrieveSource(AppAvData data) async {
+    final source = await MediaSource.create(data);
     final id = source.id;
 
     if (!id.hasValue || !source.isValidSource) return null;
@@ -47,9 +50,15 @@ class AppMediaPlayer {
     if (source.youtube != null) {
       _activePlayer = YoutubePlayerService(source.youtube!);
     } else if (source.video != null) {
-      _activePlayer = VideoPlayerService(source.video!);
+      _activePlayer = VideoPlayerService(
+        source.video!,
+        tempFile: source.tempFile,
+      );
     } else if (source.audio != null) {
-      _activePlayer = AudioPlayerService(source.audio!);
+      _activePlayer = VideoPlayerService(
+        source.audio!,
+        tempFile: source.tempFile,
+      );
     }
 
     _activeSource = source;
