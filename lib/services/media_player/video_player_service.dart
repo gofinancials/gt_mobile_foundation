@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:video_player/video_player.dart';
 
-/// An implementation of [AppMediaPlayer] and [CaptionablePlayer] that handles video playback.
+/// An implementation of [AppMediaPlayer] and [CaptionablePlayer] that handles
+/// video and audio playback.
 ///
 /// This service encapsulates a [VideoPlayerController]. It internally converts
 /// the controller's [ValueNotifier] updates into a reactive [stateStream] so that

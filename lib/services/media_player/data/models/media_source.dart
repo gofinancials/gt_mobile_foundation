@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:video_player/video_player.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -8,20 +7,25 @@ class MediaSource extends Equatable {
   final AppAvData media;
   final VideoPlayerController? video;
   final YoutubePlayerController? youtube;
-  final AudioSource? audio;
+  final VideoPlayerController? audio;
 
   const MediaSource._(this.media, {this.video, this.youtube, this.audio});
 
+  /// Creates a source for [media] with controllers owned by the caller.
+  ///
+  /// An audio controller is only created for media that is not also video.
+  /// In-memory media gets no controller, because the platform players only
+  /// read assets, files and URLs.
   MediaSource(this.media)
     : video = media.createVideoController(),
       youtube = media.createYoutubeController(),
-      audio = media.audioSource;
+      audio = media.isVideo ? null : media.createAudioController();
 
   MediaSource copyWith({
     AppAvData? media,
     VideoPlayerController? video,
     YoutubePlayerController? youtube,
-    AudioSource? audio,
+    VideoPlayerController? audio,
   }) {
     return MediaSource._(
       media ?? this.media,
@@ -55,6 +59,6 @@ class MediaSource extends Equatable {
     id,
     video?.dataSource,
     youtube?.initialVideoId,
-    audio.hashCode,
+    audio?.dataSource,
   ];
 }

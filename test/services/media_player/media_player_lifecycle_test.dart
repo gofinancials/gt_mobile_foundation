@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -187,6 +188,93 @@ void main() {
       expect(platform.disposedPlayerIds, [0]);
     });
   });
+
+  group('audio playback', () {
+    const audio = AppAvData<String>(
+      document: 'https://example.com/clip.mp3',
+      mediaType: AppMediaType.audio,
+    );
+
+    test('MediaSource creates only an audio controller for audio media', () {
+      final source = MediaSource(audio);
+
+      expect(source.audio, isNotNull);
+      expect(source.video, isNull);
+      expect(source.youtube, isNull);
+      expect(
+        source
+            .audio!
+            .videoPlayerOptions
+            ?.preventsDisplaySleepDuringVideoPlayback,
+        isFalse,
+      );
+
+      source.audio!.dispose();
+    });
+
+    test('media matching audio and video gets only a video controller', () {
+      final source = MediaSource(
+        const AppAvData<String>(document: 'https://example.com/clip.mp4'),
+      );
+
+      expect(source.video, isNotNull);
+      expect(source.audio, isNull);
+
+      source.video!.dispose();
+    });
+
+    test('AppMediaPlayer disposes the audio controller exactly once', () async {
+      final player = AppMediaPlayer();
+
+      final creation = player.createSource(audio, autoPlay: false);
+      await _initializeNextPlayer(platform);
+      final source = await creation;
+
+      expect(source?.isAudio, isTrue);
+      await player.dispose();
+      await player.dispose();
+      expect(platform.disposedPlayerIds, [0]);
+    });
+  });
+
+  group('in-memory media', () {
+    final bytes = Uint8List.fromList(List.generate(64, (i) => i));
+
+    test(
+      'gets no controller, since players read only assets, files and URLs',
+      () async {
+        final memoryMedia = [
+          AppAvData<Uint8List>(document: bytes, mediaType: AppMediaType.audio),
+          AppAvData<Uint8List>.memory(bytes, contentType: 'video/mp4'),
+        ];
+
+        for (final media in memoryMedia) {
+          final source = MediaSource(media);
+
+          expect(media.isValid, isTrue);
+          expect(source.audio, isNull);
+          expect(source.video, isNull);
+          expect(source.isValidSource, isFalse);
+          expect(await AppMediaPlayer().createSource(media), isNull);
+        }
+        expect(platform.streams, isEmpty);
+      },
+    );
+
+    test('data URI strings get no controller instead of crashing', () async {
+      const media = AppAvData<String>(
+        document: 'data:video/mp4;base64,AAAA',
+        mediaType: AppMediaType.video,
+      );
+
+      final source = MediaSource(media);
+
+      expect(source.video, isNull);
+      expect(source.audio, isNull);
+      expect(source.isValidSource, isFalse);
+      expect(await AppMediaPlayer().createSource(media), isNull);
+    });
+  });
 }
 
 Future<void> _initializeNextPlayer(_FakeVideoPlayerPlatform platform) async {
@@ -216,6 +304,9 @@ class _FakeVideoPlayerPlatform extends VideoPlayerPlatform {
 
   @override
   Future<void> init() async {}
+
+  @override
+  Future<void> setMixWithOthers(bool mixWithOthers) async {}
 
   @override
   Future<int?> createWithOptions(VideoCreationOptions options) async {

@@ -2,27 +2,27 @@ name: Deploy API Doc to GitHub Pages
 
 on:
   push:
-    tags:
-      - "v*"
-  pull_request:
     branches:
       - main
-    types: [closed]
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write # Required for publishing to GitHub Pages
+  id-token: write # Required by actions/deploy-pages
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    if: >-
-      (
-        github.event_name == 'pull_request' &&
-        github.event.pull_request.state == 'closed' &&
-        github.event.pull_request.merged == true
-      ) || (github.event_name == 'push' && github.ref_type == 'tag')
-    permissions:
-      contents: write # Required for publishing to gh-pages
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -33,20 +33,25 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      # The SDK-bundled dartdoc (9.0.6) crashes on `@docImport` comments in
+      # some dependencies (e.g. platform 3.2.0); fixed in dartdoc 9.0.8.
       - name: Build Docs
-        run: dart doc --output=docs
+        run: |
+          dart pub global activate dartdoc 9.0.9
+          dart pub global run dartdoc --output=docs
 
-      - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v6
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v5
         with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
-          git_user_signingkey: true
-          git_commit_gpgsign: true
+          path: docs
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: docs # The folder where flutter builds the web files
-          branch: gh-pages # The branch the action should deploy to
-          clean: true
+        id: deployment
+        uses: actions/deploy-pages@v5

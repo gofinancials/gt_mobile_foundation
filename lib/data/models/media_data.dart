@@ -1,9 +1,9 @@
-import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
 /// {@category Data}
@@ -65,6 +65,19 @@ class AppAvData<T> extends Equatable implements AppMediaData<T> {
     this.mediaType,
   });
 
+  /// Creates in-memory audio or video from raw [bytes].
+  ///
+  /// The media kind is detected from [mediaType], a specific [contentType],
+  /// the bytes' content, then [name].
+  const AppAvData.memory(
+    Uint8List bytes, {
+    this.contentType,
+    this.name,
+    this.createdAt,
+    this.id,
+    this.mediaType,
+  }) : document = bytes as T;
+
   @override
   bool get hasName => name != null || (name?.isNotEmpty ?? false);
 
@@ -76,7 +89,7 @@ class AppAvData<T> extends Equatable implements AppMediaData<T> {
   @override
   bool get isValid {
     if (!_hasData) return false;
-    return isString || isUrl || isFile;
+    return isString || isUrl || isFile || isBytes;
   }
 
   @override
@@ -95,8 +108,19 @@ class AppAvData<T> extends Equatable implements AppMediaData<T> {
   @override
   bool get isFile {
     if (!_hasData) return false;
-    if ("$document".startsWith("data:")) return true;
     return document is File;
+  }
+
+  /// Returns `true` if the media is held in memory as raw bytes.
+  bool get isBytes {
+    if (!_hasData) return false;
+    return document is Uint8List;
+  }
+
+  /// Returns the in-memory media bytes if [isBytes] is true, otherwise `null`.
+  Uint8List? get bytesData {
+    if (!isBytes) return null;
+    return document as Uint8List;
   }
 
   @override
@@ -112,11 +136,6 @@ class AppAvData<T> extends Equatable implements AppMediaData<T> {
   @override
   File? get file {
     if (!isFile) return null;
-    if ("$document".startsWith("data:")) {
-      final base64 = "$document".replaceAll("data:", "");
-      final data = base64Decode(base64);
-      return File.fromRawPath(data);
-    }
     return document as File;
   }
 
@@ -134,12 +153,27 @@ class AppAvData<T> extends Equatable implements AppMediaData<T> {
 
   bool get isAudio {
     if (mediaType != null) return mediaType == .audio;
+    if (isBytes) return _isBytesOfType("audio", AppRegex.audioFileRegex);
     return AppRegex.audioFileRegex.hasMatch(file?.path ?? fileUrl ?? "");
   }
 
   bool get isVideo {
     if (mediaType != null) return mediaType == .video;
+    if (isBytes) return _isBytesOfType("video", AppRegex.videoFileRegex);
     return AppRegex.videoFileRegex.hasMatch(file?.path ?? fileUrl ?? "");
+  }
+
+  /// Detects in-memory media of [type] from a specific [contentType], then
+  /// the bytes' content (narrowed by [name]), then [name] alone.
+  bool _isBytesOfType(String type, RegExp nameRegex) {
+    if (!AppMimeResolver.isGeneric(contentType)) {
+      return contentType!.startsWith("$type/");
+    }
+    if (AppMimeResolver.sniff(bytesData!) == null) {
+      return nameRegex.hasMatch(name ?? "");
+    }
+    final resolved = AppMimeResolver.resolve(bytes: bytesData, name: name);
+    return resolved!.startsWith("$type/");
   }
 
   bool get isYoutube {
@@ -147,17 +181,70 @@ class AppAvData<T> extends Equatable implements AppMediaData<T> {
     return AppRegex.youtubeRegex.hasMatch(file?.path ?? fileUrl ?? "");
   }
 
+  /// Resolves the MIME type without I/O: a specific [contentType], then
+  /// in-memory bytes' content, then the extension of [name], the file path or
+  /// the URL. Unresolved media falls back to `video/*`, `audio/*` or `*/*`.
+  ///
+  /// Use [resolveMimeType] to identify files, assets and URLs by content.
   @override
   String get mimeType {
-    if (contentType.hasValue) return contentType!;
+    return _settleMimeType(
+      AppMimeResolver.resolve(
+        bytes: bytesData,
+        name: name,
+        path: file?.path ?? filePath,
+        declared: contentType,
+      ),
+    );
+  }
 
-    final ext = fileName.split(".").tryLast?.lower;
-    String prefix = "*";
+  /// Resolves the MIME type from the media's content rather than its name.
+  ///
+  /// Reads in-memory bytes, the file's header or the bundled asset from
+  /// [bundle]. URLs are fetched only when [fetchRemote] is `true`, using
+  /// [dio], which is then required. A specific [contentType] still wins, and
+  /// anything unresolved falls back to [mimeType].
+  Future<String> resolveMimeType({
+    bool fetchRemote = false,
+    AssetBundle? bundle,
+    Dio? dio,
+  }) async {
+    if (isYoutube) return mimeType;
+    final resolved = await AppMimeResolver.fromSource(
+      document,
+      name: name,
+      declared: contentType,
+      bundle: bundle,
+      dio: dio,
+      fetchRemote: fetchRemote,
+    );
+    if (AppMimeResolver.isGeneric(resolved)) return mimeType;
+    return _settleMimeType(resolved);
+  }
 
-    if (isAudio) prefix = "audio";
-    if (isVideo) prefix = "video";
+  /// Audio in a container shared with video, such as MP4, is typed as audio
+  /// when [mediaType] says so.
+  static const _audioContainers = {
+    "audio/mp4",
+    "audio/webm",
+    "audio/ogg",
+    "audio/3gpp",
+    "audio/3gpp2",
+    "audio/x-matroska",
+  };
 
-    return "$prefix/${ext ?? "*"}";
+  String _settleMimeType(String? resolved) {
+    if (!AppMimeResolver.isGeneric(contentType)) return contentType!;
+    if (!AppMimeResolver.isGeneric(resolved)) return _asMediaType(resolved!);
+    if (isVideo || isYoutube) return AppMimeTypes.video;
+    if (isAudio) return AppMimeTypes.audio;
+    return resolved ?? AppMimeTypes.any;
+  }
+
+  String _asMediaType(String type) {
+    if (mediaType != .audio || !type.startsWith("video/")) return type;
+    final audio = type.replaceFirst("video/", "audio/");
+    return _audioContainers.contains(audio) ? audio : type;
   }
 
   AppMediaOrigin get mediaOrigin {
@@ -211,6 +298,16 @@ class AppDocumentData<T> extends Equatable implements AppMediaData<T> {
     this.mediaType,
   });
 
+  /// Creates an in-memory document from raw [bytes].
+  const AppDocumentData.memory(
+    Uint8List bytes, {
+    this.contentType,
+    this.name,
+    this.createdAt,
+    this.id,
+    this.mediaType,
+  }) : document = bytes as T;
+
   @override
   bool get hasName => name != null || (name?.isNotEmpty ?? false);
 
@@ -222,7 +319,7 @@ class AppDocumentData<T> extends Equatable implements AppMediaData<T> {
   @override
   bool get isValid {
     if (!_hasData) return false;
-    return isString || isUrl || isFile;
+    return isString || isUrl || isFile || isBytes;
   }
 
   @override
@@ -241,8 +338,20 @@ class AppDocumentData<T> extends Equatable implements AppMediaData<T> {
   @override
   bool get isFile {
     if (!_hasData) return false;
-    if ("$document".startsWith("data:")) return true;
     return document is File;
+  }
+
+  /// Returns `true` if the document is held in memory as raw bytes.
+  bool get isBytes {
+    if (!_hasData) return false;
+    return document is Uint8List;
+  }
+
+  /// Returns the in-memory document bytes if [isBytes] is true, otherwise
+  /// `null`.
+  Uint8List? get bytesData {
+    if (!isBytes) return null;
+    return document as Uint8List;
   }
 
   @override
@@ -258,11 +367,6 @@ class AppDocumentData<T> extends Equatable implements AppMediaData<T> {
   @override
   File? get file {
     if (!isFile) return null;
-    if ("$document".startsWith("data:")) {
-      final base64 = "$document".replaceAll("data:", "");
-      final data = base64Decode(base64);
-      return File.fromRawPath(data);
-    }
     return document as File;
   }
 
@@ -278,14 +382,42 @@ class AppDocumentData<T> extends Equatable implements AppMediaData<T> {
     return document as String;
   }
 
+  /// Resolves the MIME type without I/O: a specific [contentType], then
+  /// in-memory bytes' content, then the extension of [name], the file path or
+  /// the URL, falling back to `*/*`.
+  ///
+  /// Use [resolveMimeType] to identify files, assets and URLs by content.
   @override
   String get mimeType {
-    if (contentType.hasValue) return contentType!;
+    final mime = AppMimeResolver.resolve(
+      bytes: bytesData,
+      name: name,
+      path: file?.path ?? filePath,
+      declared: contentType,
+    );
+    return mime ?? AppMimeTypes.any;
+  }
 
-    final ext = fileName.split(".").tryLast?.lower;
-    String prefix = "*";
-
-    return "$prefix/${ext ?? "*"}";
+  /// Resolves the MIME type from the document's content rather than its name.
+  ///
+  /// Reads in-memory bytes, the file's header or the bundled asset from
+  /// [bundle]. URLs are fetched only when [fetchRemote] is `true`, using
+  /// [dio], which is then required. A specific [contentType] still wins, and
+  /// anything unresolved falls back to [mimeType].
+  Future<String> resolveMimeType({
+    bool fetchRemote = false,
+    AssetBundle? bundle,
+    Dio? dio,
+  }) async {
+    final resolved = await AppMimeResolver.fromSource(
+      document,
+      name: name,
+      declared: contentType,
+      bundle: bundle,
+      dio: dio,
+      fetchRemote: fetchRemote,
+    );
+    return AppMimeResolver.isGeneric(resolved) ? mimeType : resolved!;
   }
 
   AppMediaOrigin get mediaOrigin {
@@ -475,20 +607,10 @@ class AppImageData<T> extends Equatable implements AppMediaData<T> {
     return FileImage(file!);
   }
 
+  /// Returns `true` when [mimeType] resolves to an image type.
   bool get isImage {
-    return AppRegex.imageRegex.hasMatch(file?.path ?? "");
-  }
-
-  bool get _isPng {
-    return file?.path.lower.endsWith('.png') ?? false;
-  }
-
-  bool get _isWebp {
-    return file?.path.lower.endsWith('.webp') ?? false;
-  }
-
-  bool get _isJpeg {
-    return file?.path.lower.endsWith(r'.jp(e)?g') ?? false;
+    if (isIcon) return false;
+    return mimeType.startsWith("image/");
   }
 
   bool get isIcon {
@@ -496,16 +618,44 @@ class AppImageData<T> extends Equatable implements AppMediaData<T> {
     return imageData is IconData;
   }
 
+  /// Resolves the MIME type without I/O: a specific [contentType], then
+  /// in-memory bytes' content, then the extension of [name], the file path,
+  /// the asset key or the URL (or a `data:` URI's declared type), falling
+  /// back to `*/*`.
+  ///
+  /// Use [resolveMimeType] to identify files, assets and URLs by content.
   @override
   String get mimeType {
-    if (contentType.hasValue) return contentType!;
+    final mime = AppMimeResolver.resolve(
+      bytes: bytesData,
+      name: name,
+      path: file?.path ?? filePath,
+      declared: contentType,
+    );
+    return mime ?? AppMimeTypes.any;
+  }
 
-    if (_isPng) return AppMimeTypes.png;
-    if (_isJpeg) return AppMimeTypes.jpeg;
-    if (_isWebp) return AppMimeTypes.webp;
-    if (isImage) return AppMimeTypes.image;
-
-    return "*/*";
+  /// Resolves the MIME type from the image's content rather than its name.
+  ///
+  /// Reads in-memory bytes, the file's header or the bundled asset from
+  /// [bundle]. URLs are fetched only when [fetchRemote] is `true`, using
+  /// [dio], which is then required. A specific [contentType] still wins, and
+  /// anything unresolved, including icons, falls back to [mimeType].
+  Future<String> resolveMimeType({
+    bool fetchRemote = false,
+    AssetBundle? bundle,
+    Dio? dio,
+  }) async {
+    if (isIcon) return mimeType;
+    final resolved = await AppMimeResolver.fromSource(
+      imageData,
+      name: name,
+      declared: contentType,
+      bundle: bundle,
+      dio: dio,
+      fetchRemote: fetchRemote,
+    );
+    return AppMimeResolver.isGeneric(resolved) ? mimeType : resolved!;
   }
 
   @override
