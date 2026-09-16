@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:mime/mime.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -12,19 +11,20 @@ class AppFilePlugin {
   /// Internal instance of [FilePicker].
   static final FilePicker _picker = FilePicker.platform;
 
-  /// Retrieves the MIME type of the given [file].
-  /// Fallbacks to "image/*" if the document type is [FsDocumentType.image] and MIME lookup fails.
+  /// Retrieves the MIME type of the given [file] from its content, falling
+  /// back to the extension of [name] (such as a picked file's original name)
+  /// and then the file's path.
+  /// Falls back to "image/*" if the document type is [FsDocumentType.image] and
+  /// nothing specific is found.
   static Future<String?> getFileMimeType(
     File file, {
     FsDocumentType? type,
+    String? name,
   }) async {
     try {
-      final mimeType = lookupMimeType(file.path);
-      if (!mimeType.hasValue && type != null) {
-        return switch (type) {
-          .image => "image/*",
-          _ => null,
-        };
+      final mimeType = await AppMimeResolver.fromFile(file, name: name);
+      if (AppMimeResolver.isGeneric(mimeType) && type == .image) {
+        return AppMimeTypes.image;
       }
       return mimeType;
     } catch (e, t) {
@@ -71,7 +71,11 @@ class AppFilePlugin {
       }
 
       final File file = File(choiceFile.path!);
-      final mimeType = await getFileMimeType(file, type: documentType);
+      final mimeType = await getFileMimeType(
+        file,
+        type: documentType,
+        name: choiceFile.name,
+      );
       final maxSizeInMb = getMaxSizeInMb(mimeType ?? "");
 
       if (AppHelpers.fileSizeInMb(file) > maxSizeInMb) {

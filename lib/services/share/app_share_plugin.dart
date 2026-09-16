@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:mime/mime.dart';
+import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:share_plus/share_plus.dart';
 
 /// {@category Services}
@@ -36,8 +36,9 @@ class AppSharePlugin {
   /// [text] is sent along with the file (e.g. as a message caption), while
   /// [title] is only used as the share sheet's title where supported.
   ///
-  /// When [mimeType] is omitted it is inferred from [data]'s magic bytes, then
-  /// from [fileName]'s extension, falling back to `application/octet-stream`.
+  /// When [mimeType] is omitted or generic it is inferred from [data]'s
+  /// content, then from [fileName]'s extension, falling back to
+  /// `application/octet-stream`.
   /// When [fileName] is omitted it defaults to `file.<ext>`, with the extension
   /// derived from the resolved MIME type.
   static shareFile(
@@ -49,15 +50,19 @@ class AppSharePlugin {
     required Uint8List data,
   }) {
     final resolvedMimeType =
-        mimeType ??
-        lookupMimeType(fileName ?? "", headerBytes: data) ??
-        "application/octet-stream";
+        AppMimeResolver.resolve(
+          bytes: data,
+          name: fileName,
+          declared: mimeType,
+        ) ??
+        AppMimeTypes.octetStream;
 
     SharePlus.instance.share(
       ShareParams(
         files: [XFile.fromData(data, mimeType: resolvedMimeType)],
         fileNameOverrides: [
-          fileName ?? "file.${extensionFromMime(resolvedMimeType) ?? "bin"}",
+          fileName ??
+              "file.${AppMimeResolver.extensionFor(resolvedMimeType) ?? "bin"}",
         ],
         title: title,
         // share_plus throws on empty text, so treat it as absent.

@@ -4,5 +4,6 @@ export 'app_debouncer.dart';
 export 'app_form_validator.dart';
 export 'app_helpers.dart';
 export 'app_logger.dart';
+export 'app_mime_resolver.dart';
 export 'app_secrets.dart';
 export 'app_text_formatter.dart';

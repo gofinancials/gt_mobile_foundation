@@ -26,6 +26,21 @@ enum ImageCameraOption {
 class AppImagePlugin {
   static final ImagePicker _picker = ImagePicker();
 
+  /// Builds the response for a picked [image], typed from its content.
+  static Future<FsResponse> _response(XFile image) async {
+    final file = File(image.path);
+    return FsResponse(
+      file: file,
+      name: image.name,
+      type: FsDocumentType.image,
+      mimeType: await AppFilePlugin.getFileMimeType(
+        file,
+        type: FsDocumentType.image,
+        name: image.name,
+      ),
+    );
+  }
+
   /// Opens the device's native file picker configured specifically to select a single image file.
   static Future<FsResponse> pickImage({int? imageQuality}) async {
     try {
@@ -33,13 +48,7 @@ class AppImagePlugin {
         source: ImageSource.gallery,
         imageQuality: imageQuality,
       );
-      if (image != null) {
-        return FsResponse(
-          file: File(image.path),
-          name: image.name,
-          type: FsDocumentType.image,
-        );
-      }
+      if (image != null) return await _response(image);
       return const FsResponse(
         type: FsDocumentType.image,
         error: FsError(type: FsErrorType.empty),
@@ -67,13 +76,7 @@ class AppImagePlugin {
         maxHeight: maxHeight,
         preferredCameraDevice: cameraOption.source,
       );
-      if (image != null) {
-        return FsResponse(
-          file: File(image.path),
-          name: image.name,
-          type: FsDocumentType.image,
-        );
-      }
+      if (image != null) return await _response(image);
       return const FsResponse(
         type: FsDocumentType.image,
         error: FsError(type: FsErrorType.empty),
@@ -93,16 +96,7 @@ class AppImagePlugin {
   static Future<List<FsResponse>> pickImages({int limit = 5}) async {
     try {
       final List<XFile> images = await _picker.pickMultiImage(limit: limit);
-      if (images.isNotEmpty) {
-        return images.mapList(
-          (image) => FsResponse(
-            file: File(image.path),
-            name: image.name,
-            type: FsDocumentType.image,
-          ),
-        );
-      }
-      return [];
+      return await Future.wait(images.map(_response));
     } catch (e, t) {
       return [
         FsResponse(
