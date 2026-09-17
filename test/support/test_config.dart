@@ -30,6 +30,7 @@ class _TestConfig implements AppConfig {
     yearsOld: 'yearsOld',
     yesterday: 'yesterday',
     fieldRequired: 'fieldRequired',
+    exactLength: 'exactLength',
     passwordRequired: 'passwordRequired',
     passwordMustHaveNChars: 'passwordMustHaveNChars',
     invalidEmail: 'invalidEmail',

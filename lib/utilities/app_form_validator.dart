@@ -362,12 +362,8 @@ class AppValidators {
       return errorMessage ?? strings.invalidNumber.tr();
     }
 
-    if (value.length < length) {
-      return errorMessage ?? strings.minLength.tr({"num": "$length"});
-    }
-
-    if (value.length > length) {
-      return errorMessage ?? strings.maxLength.tr({"num": "$length"});
+    if (value.length != length) {
+      return errorMessage ?? strings.exactLength.tr({"num": "$length"});
     }
 
     return null;

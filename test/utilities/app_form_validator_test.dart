@@ -12,11 +12,17 @@ void main() {
     });
 
     test('rejects a value one short', () {
-      expect(AppValidators.exactLength('012345678', length: 10), 'minLength');
+      expect(
+        AppValidators.exactLength('012345678', length: 10),
+        'exactLength',
+      );
     });
 
     test('rejects a value one long', () {
-      expect(AppValidators.exactLength('01234567890', length: 10), 'maxLength');
+      expect(
+        AppValidators.exactLength('01234567890', length: 10),
+        'exactLength',
+      );
     });
 
     test('rejects non-digits at the right length', () {
@@ -57,7 +63,7 @@ void main() {
     test('still measures a value supplied to an optional field', () {
       expect(
         AppValidators.exactLength('123', length: 4, isRequired: false),
-        'minLength',
+        'exactLength',
       );
     });
 

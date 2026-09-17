@@ -58,6 +58,12 @@ class AppConfigStrings {
   /// Validation message for maximum length.
   final String maxLength;
 
+  /// Validation message for a fixed-width field, interpolating `num` for the
+  /// required length. Used for both a short and a long value: a field that
+  /// takes exactly six digits is not stated by "at least six" or "at most
+  /// six" alone.
+  final String exactLength;
+
   /// Validation message for a required password field.
   final String passwordRequired;
 
@@ -137,6 +143,7 @@ class AppConfigStrings {
     required this.yearsOld,
     required this.yesterday,
     required this.fieldRequired,
+    required this.exactLength,
     required this.passwordRequired,
     required this.passwordMustHaveNChars,
     required this.invalidEmail,
