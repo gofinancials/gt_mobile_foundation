@@ -74,6 +74,36 @@ class FutureDataNotifier<T extends Equatable>
     if (isDisposed) return;
     value = value.copyWith(data: data, isLoading: isLoading, error: error);
   }
+
+  /// Runs [task] and publishes its result into this notifier.
+  ///
+  /// Holds the loading flag for the duration, turns a throw into an error
+  /// state rather than a spinner that never clears, and drops the write if the
+  /// notifier was disposed while the task was in flight.
+  ///
+  /// Returns the response, or `null` when a task was already running.
+  Future<TaskResponse<T>?> executeTask(
+    TaskCallResponse<T> Function() task, {
+    OnChanged<T>? onSuccess,
+    OnChanged<TaskError>? onError,
+    bool Function()? isCurrent,
+  }) {
+    return runGuardedTask(
+      task,
+      isLoading: () => isLoading,
+      setLoading: setLoading,
+      clearLoading: () => updateWith(isLoading: false),
+      onData: (data) {
+        setData(data);
+        onSuccess?.call(data);
+      },
+      onFailure: (error) {
+        setError(error);
+        onError?.call(error);
+      },
+      isCurrent: isCurrent,
+    );
+  }
 }
 
 /// {@category Data}
@@ -151,6 +181,36 @@ class FutureListDataNotifier<T extends Equatable>
   void removeSingleItem(T item) {
     if (isDisposed) return;
     value = value.removeSingleItem(item);
+  }
+
+  /// Runs [task] and publishes its result into this notifier.
+  ///
+  /// Holds the loading flag for the duration, turns a throw into an error
+  /// state rather than a spinner that never clears, and drops the write if the
+  /// notifier was disposed while the task was in flight.
+  ///
+  /// Returns the response, or `null` when a task was already running.
+  Future<TaskResponse<List<T>>?> executeTask(
+    TaskCallResponse<List<T>> Function() task, {
+    OnChanged<List<T>>? onSuccess,
+    OnChanged<TaskError>? onError,
+    bool Function()? isCurrent,
+  }) {
+    return runGuardedTask(
+      task,
+      isLoading: () => isLoading,
+      setLoading: setLoading,
+      clearLoading: () => updateWith(isLoading: false),
+      onData: (data) {
+        setData(data);
+        onSuccess?.call(data);
+      },
+      onFailure: (error) {
+        setError(error);
+        onError?.call(error);
+      },
+      isCurrent: isCurrent,
+    );
   }
 }
 
@@ -257,6 +317,39 @@ class PaginatedDataNotifier<T extends Identifiable>
   void addData(PaginatedData<T> pageData, {bool ensureUnique = false}) {
     if (isDisposed) return;
     value = value.addData(pageData, ensureUnique: ensureUnique);
+  }
+
+  /// Runs [task] for one page and hands the page to [onData].
+  ///
+  /// A page is not simply the new value — the first page replaces and a later
+  /// one appends — so the caller decides what to do with it. The loading flag,
+  /// the throw and the disposal check are handled here either way, and
+  /// [loadingData] is what stays on screen while the page is in flight.
+  ///
+  /// Returns the response, or `null` when a task was already running.
+  Future<TaskResponse<List<T>>?> executePageTask(
+    TaskCallResponse<List<T>> Function() task, {
+    required OnChanged<List<T>> onData,
+    List<T>? loadingData,
+    OnPressed? onSuccess,
+    OnChanged<TaskError>? onError,
+    bool Function()? isCurrent,
+  }) {
+    return runGuardedTask(
+      task,
+      isLoading: () => isLoading,
+      setLoading: () => setLoading(data: loadingData),
+      clearLoading: () => updateWith(isLoading: false),
+      onData: (data) {
+        onData(data);
+        onSuccess?.call();
+      },
+      onFailure: (error) {
+        setError(error);
+        onError?.call(error);
+      },
+      isCurrent: isCurrent,
+    );
   }
 }
 
@@ -647,5 +740,9 @@ class PaginatedData<T extends Identifiable> extends AsyncData<T> {
     pages,
     limit,
     query,
+    // [ValueNotifier] skips an assignment it considers equal, so leaving the
+    // error out meant a [PaginatedDataNotifier.setError] that changed nothing
+    // else was discarded in silence and the failure never reached the screen.
+    error,
   ];
 }
