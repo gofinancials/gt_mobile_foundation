@@ -103,7 +103,7 @@ class AppJson {
   /// `as List` and `as Map<String, dynamic>` casts at every boundary.
   static List<T> decodeList<T>(
     Object? value,
-    T Function(Map<String, dynamic> json) decode,
+    MapCallback<T, Map<String, dynamic>> decode,
   ) => switch (value) {
     Iterable<Object?> values => [
       for (final value in values)
@@ -115,7 +115,7 @@ class AppJson {
   /// One typed JSON object, decoded, without an unchecked map cast.
   static T? decodeObject<T>(
     Object? value,
-    T Function(Map<String, dynamic> json) decode,
+    MapCallback<T, Map<String, dynamic>> decode,
   ) => switch (value) {
     Map<Object?, Object?> json => decode(asMap(json)),
     _ => null,

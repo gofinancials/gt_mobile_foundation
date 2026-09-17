@@ -83,10 +83,10 @@ class FutureDataNotifier<T extends Equatable>
   ///
   /// Returns the response, or `null` when a task was already running.
   Future<TaskResponse<T>?> executeTask(
-    TaskCallResponse<T> Function() task, {
+    FutureCall<TaskResponse<T>> task, {
     OnChanged<T>? onSuccess,
     OnChanged<TaskError>? onError,
-    bool Function()? isCurrent,
+    FunctionCall<bool>? isCurrent,
   }) {
     return runGuardedTask(
       task,
@@ -191,10 +191,10 @@ class FutureListDataNotifier<T extends Equatable>
   ///
   /// Returns the response, or `null` when a task was already running.
   Future<TaskResponse<List<T>>?> executeTask(
-    TaskCallResponse<List<T>> Function() task, {
+    FutureCall<TaskResponse<List<T>>> task, {
     OnChanged<List<T>>? onSuccess,
     OnChanged<TaskError>? onError,
-    bool Function()? isCurrent,
+    FunctionCall<bool>? isCurrent,
   }) {
     return runGuardedTask(
       task,
@@ -328,12 +328,12 @@ class PaginatedDataNotifier<T extends Identifiable>
   ///
   /// Returns the response, or `null` when a task was already running.
   Future<TaskResponse<List<T>>?> executePageTask(
-    TaskCallResponse<List<T>> Function() task, {
+    FutureCall<TaskResponse<List<T>>> task, {
     required OnChanged<List<T>> onData,
     List<T>? loadingData,
     OnPressed? onSuccess,
     OnChanged<TaskError>? onError,
-    bool Function()? isCurrent,
+    FunctionCall<bool>? isCurrent,
   }) {
     return runGuardedTask(
       task,

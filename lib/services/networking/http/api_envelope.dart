@@ -85,8 +85,8 @@ extension ApiEnvelopeRequest on AppHttpMixin {
   /// missing flag also fails; a read turns it off, because its payload is the
   /// evidence.
   TaskCallResponse<T> sendEnvelope<T>(
-    Future<DioResponse> Function() send,
-    T Function(Map<String, dynamic> envelope) decode, {
+    FutureCall<DioResponse> send,
+    MapCallback<T, Map<String, dynamic>> decode, {
     bool requireSuccessFlag = true,
   }) async {
     final response = await requestHandler(

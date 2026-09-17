@@ -41,13 +41,13 @@ mixin DisposalAware on ChangeNotifier {
   /// one was already running.
   @protected
   Future<TaskResponse<T>?> runGuardedTask<T>(
-    TaskCallResponse<T> Function() task, {
-    required bool Function() isLoading,
-    required void Function() setLoading,
-    required void Function() clearLoading,
-    required FutureOr<void> Function(T data) onData,
-    required void Function(TaskError error) onFailure,
-    bool Function()? isCurrent,
+    FutureCall<TaskResponse<T>> task, {
+    required FunctionCall<bool> isLoading,
+    required OnPressed setLoading,
+    required OnPressed clearLoading,
+    required OnChangedMaybeAsync<T> onData,
+    required OnChanged<TaskError> onFailure,
+    FunctionCall<bool>? isCurrent,
   }) async {
     if (isLoading() || isDisposed || isCurrent?.call() == false) return null;
 
@@ -79,9 +79,7 @@ mixin DisposalAware on ChangeNotifier {
     return response;
   }
 
-  Future<TaskResponse<T>> _guarded<T>(
-    TaskCallResponse<T> Function() task,
-  ) async {
+  Future<TaskResponse<T>> _guarded<T>(FutureCall<TaskResponse<T>> task) async {
     try {
       return await task();
     } catch (error, trace) {
@@ -130,10 +128,10 @@ abstract class StateModel extends ChangeNotifier with DisposalAware {
   ///
   /// Returns the response, or `null` when the model was already loading.
   Future<TaskResponse<T>?> executeAction<T>(
-    TaskCallResponse<T> Function() action, {
-    FutureOr<void> Function(T data)? onSuccess,
+    FutureCall<TaskResponse<T>> action, {
+    OnChangedMaybeAsync<T>? onSuccess,
     OnChanged<TaskError>? onError,
-    bool Function()? isCurrent,
+    FunctionCall<bool>? isCurrent,
   }) {
     return runGuardedTask(
       action,
