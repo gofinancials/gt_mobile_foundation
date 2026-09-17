@@ -132,4 +132,87 @@ void main() {
     expect(out['message'], 'Insufficient funds');
     expect(out['statusCode'], 400);
   });
+
+  group('a rejected field reports its own message', () {
+    Map<String, dynamic> parse(Object? body, {int code = 400}) =>
+        AppHelpers.parseError(
+          _dio(DioExceptionType.badResponse, response: _res(body, code)),
+          defaultMessage: fallback,
+        );
+
+    test('a single rejected field', () {
+      final out = parse({
+        'title': 'One or more validation errors occurred.',
+        'errors': {
+          'phoneNumber': ['The phone number is required.'],
+        },
+      });
+
+      expect(out['message'], 'The phone number is required.');
+      expect(out['statusCode'], 400);
+    });
+
+    test('several rejected fields are listed one per line', () {
+      final out = parse({
+        'errors': {
+          'phoneNumber': ['The phone number is required.'],
+          'bvn': ['The BVN must be 11 digits.', 'The BVN is invalid.'],
+        },
+      });
+
+      expect(out['message'], '''
+The phone number is required.
+The BVN must be 11 digits.
+The BVN is invalid.''');
+    });
+
+    test('a field mapped to a single message rather than a list', () {
+      final out = parse({
+        'errors': {'bvn': 'The BVN is invalid.'},
+      });
+
+      expect(out['message'], 'The BVN is invalid.');
+    });
+
+    test('the same message across two fields is said once', () {
+      final out = parse({
+        'errors': {
+          'firstName': ['This field is required.'],
+          'lastName': ['This field is required.'],
+        },
+      });
+
+      expect(out['message'], 'This field is required.');
+    });
+
+    test('an explicit message still wins over the field errors', () {
+      final out = parse({
+        'message': 'Account locked',
+        'errors': {
+          'bvn': ['The BVN is invalid.'],
+        },
+      });
+
+      expect(out['message'], 'Account locked');
+    });
+
+    test('the title is used only when there are no field messages', () {
+      expect(
+        parse({'title': 'Validation failed', 'errors': const {}})['message'],
+        'Validation failed',
+      );
+      expect(
+        parse({'title': 'Validation failed'})['message'],
+        'Validation failed',
+      );
+    });
+
+    test('an empty title falls through to the default', () {
+      expect(parse({'title': '   '})['message'], fallback);
+    });
+
+    test('an errors value that is not a map is ignored', () {
+      expect(parse({'errors': 'unexpected'})['message'], fallback);
+    });
+  });
 }

@@ -243,6 +243,13 @@ class AppHelpers {
       return {"message": error["statusMessage"] as String, "statusCode": code};
     }
 
+    // A rejected field is reported as a map of field names to their messages,
+    // with no `message` of its own. Without this the customer is told only
+    // that something went wrong, never which field or why.
+    if (_validationMessages(error["errors"]) case final message?) {
+      return {"message": message, "statusCode": code};
+    }
+
     final nested = error["data"];
     if (nested is Map) {
       return _parseErrorMap(
@@ -255,7 +262,38 @@ class AppHelpers {
       return parseError(nested, defaultMessage: defaultMessage);
     }
 
+    // The heading that accompanies a validation body, used only once its own
+    // field messages and any nested body have come to nothing.
+    if (error["title"] case final String title when title.hasValue) {
+      return {"message": title, "statusCode": code};
+    }
+
     return {"message": defaultMessage, "statusCode": code};
+  }
+
+  /// Every message in a validation [errors] map, one per line, or `null` when
+  /// it holds none.
+  ///
+  /// A field maps either to a list of messages or to a single one, and the
+  /// same message can repeat across fields, so they are de-duplicated.
+  static String? _validationMessages(Object? errors) {
+    if (errors is! Map) return null;
+
+    final messages = <String>{};
+    for (final value in errors.values) {
+      switch (value) {
+        case Iterable values:
+          messages.addAll(
+            values.map((item) => "$item".value).where((item) => item.hasValue),
+          );
+        case final value?:
+          final message = "$value".value;
+          if (message.hasValue) messages.add(message);
+      }
+    }
+
+    if (messages.isEmpty) return null;
+    return messages.join("\n");
   }
 
   static updateValue(
