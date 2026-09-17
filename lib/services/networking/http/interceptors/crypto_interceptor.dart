@@ -1,13 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
-extension on RequestOptions {
-  /// Checks if the request is sensitive
-  bool get isSensitiveRequest {
-    return extra[sensitiveRequestExtraKey] == true;
-  }
-}
-
 /// {@category Services}
 /// An interceptor that intercepts outgoing requests and encrypts the body data using [AppCryptoService].
 class EncryptInterceptor extends InterceptorsWrapper {

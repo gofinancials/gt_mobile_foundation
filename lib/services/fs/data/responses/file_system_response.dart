@@ -12,7 +12,17 @@ class FsError {
   const FsError({required this.type, this.error, this.stackTrace});
 
   bool get isTooLarge => type == .oversized;
-  bool get isEmpty => type == .empty;
+
+  /// Whether no file came back, whether the picker returned nothing or the
+  /// user dismissed it. Use [isCancelled] to tell a dismissal apart.
+  bool get isEmpty => type == .empty || type == .cancelled;
+
+  /// Whether the user dismissed the picker or the save dialog.
+  ///
+  /// A dismissal is a choice rather than a failure, so callers should fall
+  /// silent instead of reporting an error.
+  bool get isCancelled => type == .cancelled;
+
   bool get isUnknown => type == .unknown;
 }
 

@@ -13,6 +13,15 @@ const requestStartExtraKey = "REQUEST_STARTED_AT_MICROS";
 const requestPhasesExtraKey = "REQUEST_PHASE_DURATIONS_MS";
 
 /// {@category Services}
+/// Reads the sensitivity flag that [AppHttpService] writes into Dio's `extra`
+/// map, so interceptors and analytics can both ask the same question of a
+/// request rather than each reaching for [sensitiveRequestExtraKey].
+extension SensitiveRequestExtension on RequestOptions {
+  /// Whether this request was marked sensitive when it was issued.
+  bool get isSensitiveRequest => extra[sensitiveRequestExtraKey] == true;
+}
+
+/// {@category Services}
 /// Records how long a request spends in the client, and in which phase.
 ///
 /// Timings ride along in Dio's `extra` map so a single analytics event can
