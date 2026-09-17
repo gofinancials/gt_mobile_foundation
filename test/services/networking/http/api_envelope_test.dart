@@ -152,6 +152,25 @@ void main() {
       expect(ApiEnvelope.accepts({'id': 1}, requireSuccessFlag: true), isFalse);
       expect(ApiEnvelope.accepts({'id': 1}, requireSuccessFlag: false), isTrue);
     });
+
+    test('a success the gateway spelled as a string is accepted', () {
+      // A gateway that reports success as '1' had every accepted call read as
+      // a refusal here, and every one of them became a TaskFailure.
+      for (final require in [true, false]) {
+        expect(
+          ApiEnvelope.accepts({
+            'isSuccessful': '1',
+          }, requireSuccessFlag: require),
+          isTrue,
+        );
+        expect(
+          ApiEnvelope.accepts({
+            'isSuccessful': '0',
+          }, requireSuccessFlag: require),
+          isFalse,
+        );
+      }
+    });
   });
 
   group('ApiEnvelope.refusalMessage', () {
@@ -187,6 +206,16 @@ void main() {
     test('an accepted 200 decodes its payload', () async {
       final result = await service.sendEnvelope(
         () async => _reply(data: {'isSuccessful': true, 'id': 1}),
+        (envelope) => envelope['id'],
+      );
+
+      expect(result.isSuccess, isTrue);
+      expect(result.data, 1);
+    });
+
+    test('a success flagged as a string still decodes its payload', () async {
+      final result = await service.sendEnvelope(
+        () async => _reply(data: {'isSuccessful': '1', 'id': 1}),
         (envelope) => envelope['id'],
       );
 

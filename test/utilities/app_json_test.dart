@@ -159,6 +159,38 @@ void main() {
         isNull,
       );
     });
+
+    test('a string flag reads as it does everywhere else', () {
+      // Every string asFlag knows, read the same way by both readers and in
+      // both modes: a gateway spelling success '1' had every accepted call
+      // read as a refusal.
+      for (final strict in [true, false]) {
+        for (final value in ['1', 'true', 'TRUE', ' true ']) {
+          expect(
+            AppJson.successFlag({'isSuccessful': value}, strict: strict),
+            isTrue,
+            reason: '$value, strict: $strict',
+          );
+        }
+        for (final value in ['0', 'false', 'FALSE', ' false ']) {
+          expect(
+            AppJson.successFlag({'isSuccessful': value}, strict: strict),
+            isFalse,
+            reason: '$value, strict: $strict',
+          );
+        }
+      }
+    });
+
+    test('the two readers agree on every value', () {
+      for (final value in [true, false, 1, 0, '1', '0', 'true', 'false']) {
+        expect(
+          AppJson.successFlag({'isSuccessful': value}),
+          AppJson.asFlag(value),
+          reason: '$value',
+        );
+      }
+    });
   });
 
   group('AppJson.message', () {

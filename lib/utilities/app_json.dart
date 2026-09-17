@@ -182,17 +182,19 @@ class AppJson {
   /// most common way a broken call renders as an empty catalogue or a zero
   /// fee, so the flag has to be read rather than assumed from the status code.
   ///
-  /// An unrecognised string reads as a refusal unless [strict] is set, where
-  /// it reads as no answer at all.
+  /// Every value is read by [asFlag], so a flag spelled `'1'` means here what
+  /// it means everywhere else. Reading strings twice, once here and once
+  /// there, is what made `'1'` a success to one reader and a refusal to the
+  /// one that decides whether the request succeeded.
+  ///
+  /// Only a string [asFlag] cannot read falls to [strict]: left off it is a
+  /// refusal, because a gateway that spelled the flag reached for it and said
+  /// something; set, it is no answer at all.
   static bool? successFlag(Map<String, dynamic> json, {bool strict = false}) {
     final flag = valueAt(json, successKeys);
-    return switch (flag) {
-      bool value => value,
-      String value when value.matches('true') => true,
-      String value when value.matches('false') => false,
-      String() when !strict => false,
-      _ => asFlag(flag),
-    };
+    if (asFlag(flag) case final value?) return value;
+    if (flag is String && !strict) return false;
+    return null;
   }
 
   /// The message the gateway attached to [json], empty when it attached none.
