@@ -157,6 +157,25 @@ void main() {
       expect(published, isFalse);
     });
 
+    test('a reply arriving after a reset leaves the model reset', () async {
+      final model = _TestStateModel();
+      final gate = Completer<TaskResponse<_Item>>();
+
+      final running = model.executeAction(() => gate.future);
+      model.reset();
+
+      var notifications = 0;
+      model.addListener(() => notifications++);
+
+      gate.complete(TaskSuccess(data: const _Item(1)));
+      await running;
+
+      expect(model.isLoading, isFalse);
+      // The flag was already down, so releasing the hold must not write it
+      // again and tell every listener the model changed.
+      expect(notifications, 0);
+    });
+
     test('a reply that isCurrent no longer recognises is dropped', () async {
       final model = _TestStateModel();
       var current = true;
@@ -312,6 +331,30 @@ void main() {
 
       expect(notifier.value.data, isNull);
     });
+
+    test(
+      'a reply arriving after a reset leaves the notifier pristine',
+      () async {
+        final notifier = FutureDataNotifier<_Item>.pristine();
+        final gate = Completer<TaskResponse<_Item>>();
+        var current = true;
+
+        final running = notifier.executeTask(
+          () => gate.future,
+          isCurrent: () => current,
+        );
+        notifier.reset();
+        current = false;
+        gate.complete(TaskSuccess(data: const _Item(1)));
+        await running;
+
+        // A reset restores the pristine state. Lowering a flag that is already
+        // down would replace it with a loaded state holding the same nothing,
+        // and the screen would show an empty result rather than its first frame.
+        expect(notifier.isPristine, isTrue);
+        expect(notifier.isLoading, isFalse);
+      },
+    );
 
     test('calls onSuccess after the data is published', () async {
       final notifier = FutureDataNotifier<_Item>.pristine();

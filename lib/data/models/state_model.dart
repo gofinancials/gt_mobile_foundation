@@ -66,8 +66,12 @@ mixin DisposalAware on ChangeNotifier {
     final response = await _guarded(task);
 
     // Release this call's hold before anything reads the flag, but only if a
-    // newer call has not taken it in the meantime.
-    if (identical(_taskHolder, holder)) clearLoading();
+    // newer call has not taken it in the meantime — and only if the flag is
+    // still raised. A `reset` lowers it and restores the pristine state, and
+    // clearing a flag that is already clear is not free: it writes a value,
+    // so the reset state would be overwritten by a loaded one carrying the
+    // same emptiness, and every listener would be told about it.
+    if (identical(_taskHolder, holder) && isLoading()) clearLoading();
 
     if (isDisposed || isCurrent?.call() == false) return response;
 
