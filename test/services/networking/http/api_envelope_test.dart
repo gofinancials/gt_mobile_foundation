@@ -162,10 +162,10 @@ void main() {
       );
     });
 
-    test('falls back to the generic message', () {
+    test('falls back to the refusal message, not the unexpected-failure one', () {
       expect(
         ApiEnvelope.refusalMessage({'isSuccessful': false}),
-        'requestFailedUnexpectedly',
+        'requestRefused',
       );
     });
   });

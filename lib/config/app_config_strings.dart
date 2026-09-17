@@ -115,6 +115,10 @@ class AppConfigStrings {
   /// Error message shown when a request is cancelled before it completes.
   final String requestCancelled;
 
+  /// Message shown when the gateway understood and declined a request,
+  /// carrying no message of its own to show instead.
+  final String requestRefused;
+
   /// Creates an [AppConfigStrings] instance containing localized validation and error messages.
   const AppConfigStrings({
     required this.seconds,
@@ -154,5 +158,6 @@ class AppConfigStrings {
     required this.requestTimedOut,
     required this.secureConnectionFailed,
     required this.requestCancelled,
+    required this.requestRefused,
   });
 }

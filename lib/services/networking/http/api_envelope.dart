@@ -63,7 +63,7 @@ class ApiEnvelope {
   static String refusalMessage(Map<String, dynamic> envelope) {
     final message = AppJson.message(envelope);
     if (message.hasValue) return message;
-    return locator<AppConfig>().strings.requestFailedUnexpectedly.tr();
+    return locator<AppConfig>().strings.requestRefused.tr();
   }
 
   /// The wrapper's status keys, never its `data`.

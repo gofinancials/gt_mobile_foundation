@@ -51,6 +51,7 @@ class _TestConfig implements AppConfig {
     requestTimedOut: 'requestTimedOut',
     secureConnectionFailed: 'secureConnectionFailed',
     requestCancelled: 'requestCancelled',
+    requestRefused: 'requestRefused',
   );
 
   @override
