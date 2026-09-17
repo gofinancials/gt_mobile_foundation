@@ -1,11 +1,17 @@
 import 'package:gt_mobile_foundation/foundation.dart';
 
-/// Minimal [AppConfig] exposing only [strings]; every other member returns null.
+/// Minimal [AppConfig] exposing only what foundation utilities read; every
+/// other member returns null.
 ///
 /// Registered by [registerTestConfig] so validators and helpers that read
 /// `locator<AppConfig>().strings` resolve. Each string is its own locale key,
 /// which is what an uninitialised `tr()` returns, so tests assert on the key.
 class _TestConfig implements AppConfig {
+  /// Non-null because [noSuchMethod] returning null for a non-nullable getter
+  /// throws; the phone canonicaliser reads it.
+  @override
+  String get countryCode => '+234';
+
   @override
   AppConfigStrings get strings => const AppConfigStrings(
     seconds: 'seconds',

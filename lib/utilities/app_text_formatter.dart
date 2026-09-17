@@ -80,6 +80,91 @@ class AppTextFormatter {
     }
   }
 
+  /// The dial code to canonicalise against, as digits only.
+  ///
+  /// Taken from [AppConfig.countryCode], which apps already configure, so the
+  /// library carries no country of its own.
+  static String get _dialCode {
+    return locator<AppConfig>().countryCode.replaceAll(AppRegex.nonDigits, '');
+  }
+
+  /// The national digits of [tel] — the number with its dial code and any
+  /// trunk `0` stripped — or `null` when [tel] is not a well-formed number.
+  ///
+  /// The same number reaches the app as `0803 123 4567`, `+234 803 123 4567`,
+  /// `2348031234567` and `8031234567`, and every one of those must reduce to
+  /// the same [nationalLength] digits before it is compared or sent.
+  ///
+  /// The dial code is only stripped when what remains is itself a plausible
+  /// national number, so a national number that happens to begin with the
+  /// dial code's digits survives intact.
+  static String? nationalPhoneDigits(
+    String? tel, {
+    String? dialCode,
+    int nationalLength = 10,
+  }) {
+    if (tel == null) return null;
+
+    var digits = tel.replaceAll(AppRegex.nonDigits, '');
+    final code = (dialCode ?? _dialCode).replaceAll(AppRegex.nonDigits, '');
+
+    if (code.hasValue &&
+        digits.length > nationalLength &&
+        digits.startsWith(code)) {
+      final withoutCode = digits.substring(code.length);
+      final isNational = withoutCode.length == nationalLength;
+      final isTrunked =
+          withoutCode.length == nationalLength + 1 &&
+          withoutCode.startsWith('0');
+      if (isNational || isTrunked) digits = withoutCode;
+    }
+
+    if (digits.length == nationalLength + 1 && digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+
+    if (digits.length != nationalLength || digits.startsWith('0')) return null;
+
+    return digits;
+  }
+
+  /// [tel] in the form a gateway expects: the dial code followed by the
+  /// national digits, with no spaces or punctuation.
+  ///
+  /// Returns `null` when [tel] cannot be reduced to [nationalLength] national
+  /// digits, so a caller decides for itself whether to send the raw value or
+  /// refuse it. Set [withPlus] for the `+234…` form some services require.
+  static String? canonicalPhone(
+    String? tel, {
+    String? dialCode,
+    int nationalLength = 10,
+    bool withPlus = false,
+  }) {
+    final national = nationalPhoneDigits(
+      tel,
+      dialCode: dialCode,
+      nationalLength: nationalLength,
+    );
+    if (national == null) return null;
+
+    final code = (dialCode ?? _dialCode).replaceAll(AppRegex.nonDigits, '');
+    return "${withPlus ? '+' : ''}$code$national";
+  }
+
+  /// Whether [tel] reduces to a well-formed national number.
+  static bool isCanonicalisablePhone(
+    String? tel, {
+    String? dialCode,
+    int nationalLength = 10,
+  }) {
+    return nationalPhoneDigits(
+          tel,
+          dialCode: dialCode,
+          nationalLength: nationalLength,
+        ) !=
+        null;
+  }
+
   /// Returns a localized, human-readable age string representing the time elapsed since [datetime].
   static String age(DateTime? datetime) {
     if (datetime == null) {
