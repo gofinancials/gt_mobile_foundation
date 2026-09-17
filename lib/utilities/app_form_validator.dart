@@ -330,6 +330,49 @@ class AppValidators {
     return null;
   }
 
+  /// Validates that [text] is exactly [length] characters long.
+  ///
+  /// Account numbers, BVNs, OTPs and PINs are all fixed-width, and pairing
+  /// [minLength] with [maxLength] to say so takes two calls and two messages
+  /// for one rule. This states the rule once.
+  ///
+  /// With [digitsOnly] left on, anything but `0-9` is rejected outright, so a
+  /// ten-character string that is not ten digits fails on its content rather
+  /// than passing on its length. Whitespace is trimmed before either check.
+  static String? exactLength(
+    String? text, {
+    required int length,
+    String? errorMessage,
+    String? emptyMessage,
+    bool isRequired = true,
+    bool digitsOnly = true,
+  }) {
+    final trimmed = text?.trim();
+    final isEmpty = _isEmpty(trimmed);
+
+    if (!isRequired && isEmpty) return null;
+
+    if (isEmpty) {
+      return emptyMessage ?? strings.fieldRequired.tr();
+    }
+
+    final value = trimmed ?? "";
+
+    if (digitsOnly && !RegExp(r'^\d+$').hasMatch(value)) {
+      return errorMessage ?? strings.invalidNumber.tr();
+    }
+
+    if (value.length < length) {
+      return errorMessage ?? strings.minLength.tr({"num": "$length"});
+    }
+
+    if (value.length > length) {
+      return errorMessage ?? strings.maxLength.tr({"num": "$length"});
+    }
+
+    return null;
+  }
+
   /// Validates that [text] meets the minimum [length] requirement.
   static String? minLength(
     String? text, {

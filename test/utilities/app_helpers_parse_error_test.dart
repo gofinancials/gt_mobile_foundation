@@ -5,53 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
-/// Minimal [AppConfig] exposing only [strings]; every other member is unused by
-/// [AppHelpers.parseError].
-class _TestConfig implements AppConfig {
-  @override
-  AppConfigStrings get strings => const AppConfigStrings(
-    seconds: 'seconds',
-    minutes: 'minutes',
-    requestFailedUnexpectedly: 'requestFailedUnexpectedly',
-    checkNetwork: 'checkNetwork',
-    noInternet: 'noInternet',
-    momentsAgo: 'momentsAgo',
-    minutesAgo: 'minutesAgo',
-    anHourAgo: 'anHourAgo',
-    hoursAgo: 'hoursAgo',
-    daysAgo: 'daysAgo',
-    daysOld: 'daysOld',
-    weeksOld: 'weeksOld',
-    monthsOld: 'monthsOld',
-    yearsOld: 'yearsOld',
-    yesterday: 'yesterday',
-    fieldRequired: 'fieldRequired',
-    passwordRequired: 'passwordRequired',
-    passwordMustHaveNChars: 'passwordMustHaveNChars',
-    invalidEmail: 'invalidEmail',
-    provideValidEmail: 'provideValidEmail',
-    invalidPhone: 'invalidPhone',
-    invalidDate: 'invalidDate',
-    mustBeNYears: 'mustBeNYears',
-    invalidUrl: 'invalidUrl',
-    invalidAmount: 'invalidAmount',
-    amountMinimum: 'amountMinimum',
-    amountMaximum: 'amountMaximum',
-    fieldsDontMatch: 'fieldsDontMatch',
-    invalidNumber: 'invalidNumber',
-    minLength: 'minLength',
-    maxLength: 'maxLength',
-    insufficentFunds: 'insufficentFunds',
-    copiedFromClipboard: 'copiedFromClipboard',
-    copiedToClipboard: 'copiedToClipboard',
-    requestTimedOut: 'requestTimedOut',
-    secureConnectionFailed: 'secureConnectionFailed',
-    requestCancelled: 'requestCancelled',
-  );
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => null;
-}
+import '../support/test_config.dart';
 
 RequestOptions get _opts => RequestOptions(path: '/accounts');
 
@@ -67,11 +21,7 @@ Response _res(dynamic data, int code) =>
     Response(requestOptions: _opts, data: data, statusCode: code);
 
 void main() {
-  setUpAll(() {
-    if (!locator.isRegistered<AppConfig>()) {
-      locator.registerSingleton<AppConfig>(_TestConfig());
-    }
-  });
+  setUpAll(registerTestConfig);
 
   const fallback = 'GENERIC';
 
