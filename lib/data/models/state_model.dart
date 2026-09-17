@@ -33,6 +33,14 @@ mixin DisposalAware on ChangeNotifier {
   /// arriving after disposal, or after [isCurrent] stops agreeing, is dropped
   /// rather than applied — the reply outlived what asked for it.
   ///
+  /// [isCurrent] speaks for the caller; [shouldPublish] speaks for the
+  /// failure. Some failures are nobody's fault and not worth a screen — the
+  /// calls a session renewal supersedes all fail together — and whether that
+  /// is so is read off the [TaskError] itself. A failure it declines never
+  /// reaches [onFailure], so no error state is written and no callback runs;
+  /// the response is still returned. It is asked before [onFailure], not
+  /// inside it, because once [onFailure] runs the failure is already shown.
+  ///
   /// The flag is cleared *before* the callbacks run, because a success
   /// callback may begin the next action and would otherwise meet an object
   /// that is still loading.
@@ -48,6 +56,7 @@ mixin DisposalAware on ChangeNotifier {
     required OnChangedMaybeAsync<T> onData,
     required OnChanged<TaskError> onFailure,
     FunctionCall<bool>? isCurrent,
+    OnBoolValidation<TaskError>? shouldPublish,
   }) async {
     if (isLoading() || isDisposed || isCurrent?.call() == false) return null;
 
@@ -62,18 +71,23 @@ mixin DisposalAware on ChangeNotifier {
 
     if (isDisposed || isCurrent?.call() == false) return response;
 
+    void publishFailure(TaskError error) {
+      if (shouldPublish?.call(error) == false) return;
+      onFailure(error);
+    }
+
     try {
       switch (response) {
         case TaskSuccess(:final data):
           await onData(data);
         case TaskFailure(:final error):
-          onFailure(error);
+          publishFailure(error);
       }
     } catch (error, trace) {
       // A callback of the caller's own can throw too, and a screen left
       // showing nothing is worse than one showing the generic failure.
       if (isDisposed || isCurrent?.call() == false) return response;
-      onFailure(_unexpectedFailure(error, trace));
+      publishFailure(_unexpectedFailure(error, trace));
     }
 
     return response;
@@ -124,7 +138,9 @@ abstract class StateModel extends ChangeNotifier with DisposalAware {
   /// A throw becomes the generic failure message rather than a stuck spinner,
   /// and a model that has been disposed, or that [isCurrent] no longer
   /// recognises, ignores the reply entirely. Pass [isCurrent] to fence a reply
-  /// against state the caller owns — a superseded session, say.
+  /// against state the caller owns, and [shouldPublish] to keep a failure
+  /// that is not worth showing — one a superseded session caused, say — from
+  /// reaching [onError] at all.
   ///
   /// Returns the response, or `null` when the model was already loading.
   Future<TaskResponse<T>?> executeAction<T>(
@@ -132,6 +148,7 @@ abstract class StateModel extends ChangeNotifier with DisposalAware {
     OnChangedMaybeAsync<T>? onSuccess,
     OnChanged<TaskError>? onError,
     FunctionCall<bool>? isCurrent,
+    OnBoolValidation<TaskError>? shouldPublish,
   }) {
     return runGuardedTask(
       action,
@@ -141,6 +158,7 @@ abstract class StateModel extends ChangeNotifier with DisposalAware {
       onData: (data) async => onSuccess?.call(data),
       onFailure: (error) => onError?.call(error),
       isCurrent: isCurrent,
+      shouldPublish: shouldPublish,
     );
   }
 }

@@ -198,6 +198,54 @@ void main() {
       expect(await model.executeAction(_succeeds), isA<TaskSuccess<_Item>>());
       expect(await model.executeAction(_fails), isA<TaskFailure<_Item>>());
     });
+
+    test('a failure shouldPublish declines never reaches onError', () async {
+      final model = _TestStateModel();
+      TaskError? asked;
+      var published = false;
+
+      final response = await model.executeAction(
+        _fails,
+        onError: (_) => published = true,
+        shouldPublish: (error) {
+          asked = error;
+          return false;
+        },
+      );
+
+      expect(asked, _failure, reason: 'the predicate reads the failure itself');
+      expect(published, isFalse);
+      expect(response, isA<TaskFailure<_Item>>());
+      expect(model.isLoading, isFalse);
+    });
+
+    test('a failure shouldPublish accepts is published as before', () async {
+      final model = _TestStateModel();
+      TaskError? received;
+
+      await model.executeAction(
+        _fails,
+        onError: (error) => received = error,
+        shouldPublish: (_) => true,
+      );
+
+      expect(received, _failure);
+    });
+
+    test('shouldPublish also gates a throw out of onSuccess', () async {
+      final model = _TestStateModel();
+      var published = false;
+
+      await model.executeAction(
+        _succeeds,
+        onSuccess: (_) => throw StateError('callback blew up'),
+        onError: (_) => published = true,
+        shouldPublish: (_) => false,
+      );
+
+      expect(published, isFalse);
+      expect(model.isLoading, isFalse);
+    });
   });
 
   group('FutureDataNotifier.executeTask', () {
@@ -276,6 +324,22 @@ void main() {
 
       expect(seenInCallback, const _Item(1));
     });
+
+    test('a failure shouldPublish declines writes no error state', () async {
+      final notifier = FutureDataNotifier<_Item>.pristine();
+      var published = false;
+
+      final response = await notifier.executeTask(
+        _fails,
+        onError: (_) => published = true,
+        shouldPublish: (_) => false,
+      );
+
+      expect(notifier.hasError, isFalse);
+      expect(published, isFalse);
+      expect(notifier.isLoading, isFalse);
+      expect(response, isA<TaskFailure<_Item>>());
+    });
   });
 
   group('FutureListDataNotifier.executeTask', () {
@@ -310,6 +374,18 @@ void main() {
       await running;
 
       expect(notifier.value.data, isEmpty);
+    });
+
+    test('a failure shouldPublish declines writes no error state', () async {
+      final notifier = FutureListDataNotifier<_Item>.pristine();
+
+      await notifier.executeTask(
+        () async => TaskFailure(error: _failure),
+        shouldPublish: (_) => false,
+      );
+
+      expect(notifier.hasError, isFalse);
+      expect(notifier.isLoading, isFalse);
     });
   });
 
@@ -386,6 +462,22 @@ void main() {
       await running;
 
       expect(published, isFalse);
+    });
+
+    test('a failure shouldPublish declines writes no error state', () async {
+      final notifier = PaginatedDataNotifier<_Page>.pristine();
+      var published = false;
+
+      await notifier.executePageTask(
+        () async => TaskFailure(error: _failure),
+        onData: (_) {},
+        onError: (_) => published = true,
+        shouldPublish: (_) => false,
+      );
+
+      expect(notifier.hasError, isFalse);
+      expect(published, isFalse);
+      expect(notifier.isLoading, isFalse);
     });
   });
 }

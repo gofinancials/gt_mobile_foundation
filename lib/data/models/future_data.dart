@@ -79,7 +79,9 @@ class FutureDataNotifier<T extends Equatable>
   ///
   /// Holds the loading flag for the duration, turns a throw into an error
   /// state rather than a spinner that never clears, and drops the write if the
-  /// notifier was disposed while the task was in flight.
+  /// notifier was disposed while the task was in flight. A failure
+  /// [shouldPublish] declines is neither written as an error state nor handed
+  /// to [onError].
   ///
   /// Returns the response, or `null` when a task was already running.
   Future<TaskResponse<T>?> executeTask(
@@ -87,6 +89,7 @@ class FutureDataNotifier<T extends Equatable>
     OnChanged<T>? onSuccess,
     OnChanged<TaskError>? onError,
     FunctionCall<bool>? isCurrent,
+    OnBoolValidation<TaskError>? shouldPublish,
   }) {
     return runGuardedTask(
       task,
@@ -102,6 +105,7 @@ class FutureDataNotifier<T extends Equatable>
         onError?.call(error);
       },
       isCurrent: isCurrent,
+      shouldPublish: shouldPublish,
     );
   }
 }
@@ -187,7 +191,9 @@ class FutureListDataNotifier<T extends Equatable>
   ///
   /// Holds the loading flag for the duration, turns a throw into an error
   /// state rather than a spinner that never clears, and drops the write if the
-  /// notifier was disposed while the task was in flight.
+  /// notifier was disposed while the task was in flight. A failure
+  /// [shouldPublish] declines is neither written as an error state nor handed
+  /// to [onError].
   ///
   /// Returns the response, or `null` when a task was already running.
   Future<TaskResponse<List<T>>?> executeTask(
@@ -195,6 +201,7 @@ class FutureListDataNotifier<T extends Equatable>
     OnChanged<List<T>>? onSuccess,
     OnChanged<TaskError>? onError,
     FunctionCall<bool>? isCurrent,
+    OnBoolValidation<TaskError>? shouldPublish,
   }) {
     return runGuardedTask(
       task,
@@ -210,6 +217,7 @@ class FutureListDataNotifier<T extends Equatable>
         onError?.call(error);
       },
       isCurrent: isCurrent,
+      shouldPublish: shouldPublish,
     );
   }
 }
@@ -324,7 +332,9 @@ class PaginatedDataNotifier<T extends Identifiable>
   /// A page is not simply the new value — the first page replaces and a later
   /// one appends — so the caller decides what to do with it. The loading flag,
   /// the throw and the disposal check are handled here either way, and
-  /// [loadingData] is what stays on screen while the page is in flight.
+  /// [loadingData] is what stays on screen while the page is in flight. A
+  /// failure [shouldPublish] declines is neither written as an error state nor
+  /// handed to [onError].
   ///
   /// Returns the response, or `null` when a task was already running.
   Future<TaskResponse<List<T>>?> executePageTask(
@@ -334,6 +344,7 @@ class PaginatedDataNotifier<T extends Identifiable>
     OnPressed? onSuccess,
     OnChanged<TaskError>? onError,
     FunctionCall<bool>? isCurrent,
+    OnBoolValidation<TaskError>? shouldPublish,
   }) {
     return runGuardedTask(
       task,
@@ -349,6 +360,7 @@ class PaginatedDataNotifier<T extends Identifiable>
         onError?.call(error);
       },
       isCurrent: isCurrent,
+      shouldPublish: shouldPublish,
     );
   }
 }
