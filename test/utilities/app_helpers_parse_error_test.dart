@@ -35,6 +35,9 @@ void main() {
       'nested data': {
         'data': {'message': 'Daily limit exceeded'},
       },
+      'nested Data': {
+        'Data': {'message': 'Daily limit exceeded'},
+      },
     };
     cases.forEach((label, body) {
       test(label, () {
@@ -49,6 +52,17 @@ void main() {
         'data': {'message': 'Daily limit exceeded'},
       }, defaultMessage: fallback);
       expect(out['message'], 'Daily limit exceeded');
+      expect(out['statusCode'], 422);
+    });
+
+    test('a body spelled entirely in the capitalised case is still read', () {
+      // What DecryptInterceptor hands the parser when ciphertext arrived
+      // nested under `Data`: every other key in that body keeps that case too.
+      final out = AppHelpers.parseError({
+        'Status': '422',
+        'Data': {'Message': 'Insufficient funds'},
+      }, defaultMessage: fallback);
+      expect(out['message'], 'Insufficient funds');
       expect(out['statusCode'], 422);
     });
   });

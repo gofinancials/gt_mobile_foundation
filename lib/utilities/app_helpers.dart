@@ -222,35 +222,64 @@ class AppHelpers {
     };
   }
 
+  /// The keys an error body spells its response code with. `DecryptInterceptor`
+  /// writes decrypted ciphertext back under whichever case it found `data` in,
+  /// so a body that arrived spelled `Data` keeps every other key in that same
+  /// case, `Status` included.
+  static const _codeKeys = ['responseCode', 'Status'];
+
+  /// The keys an error body spells its top-level message with.
+  static const _messageKeys = ['message', 'Message'];
+
+  /// The keys an error body spells its short error string with.
+  static const _errorKeys = ['error', 'Error'];
+
+  /// The keys an error body spells its status message with.
+  static const _statusMessageKeys = ['statusMessage', 'StatusMessage'];
+
+  /// The keys a validation body spells its field-message map with.
+  static const _validationKeys = ['errors', 'Errors'];
+
+  /// The keys an error body nests a narrower error under.
+  static const _nestedErrorKeys = ['data', 'Data'];
+
+  /// The keys a validation body spells its heading with.
+  static const _titleKeys = ['title', 'Title'];
+
   static Map<String, dynamic> _parseErrorMap(
     Map error, {
     String defaultMessage = "",
     int statusCode = 500,
   }) {
+    final json = AppJson.asMap(error);
+
     // Interpolate before parsing: `int.tryParse` only accepts a String, so a
     // missing key (null) or a numeric code used to throw and lose the message.
-    final code = int.tryParse("${error["responseCode"]}") ?? statusCode;
+    final code =
+        int.tryParse("${AppJson.valueAt(json, _codeKeys)}") ?? statusCode;
 
-    if (error["message"] is String) {
-      return {"message": error["message"] as String, "statusCode": code};
-    }
-
-    if (error["error"] case final String value when value.isNotEmpty) {
+    if (AppJson.valueAt(json, _messageKeys) case final String value) {
       return {"message": value, "statusCode": code};
     }
 
-    if (error["statusMessage"] is String) {
-      return {"message": error["statusMessage"] as String, "statusCode": code};
+    if (AppJson.valueAt(json, _errorKeys) case final String value
+        when value.isNotEmpty) {
+      return {"message": value, "statusCode": code};
+    }
+
+    if (AppJson.valueAt(json, _statusMessageKeys) case final String value) {
+      return {"message": value, "statusCode": code};
     }
 
     // A rejected field is reported as a map of field names to their messages,
     // with no `message` of its own. Without this the customer is told only
     // that something went wrong, never which field or why.
-    if (_validationMessages(error["errors"]) case final message?) {
+    if (_validationMessages(AppJson.valueAt(json, _validationKeys))
+        case final message?) {
       return {"message": message, "statusCode": code};
     }
 
-    final nested = error["data"];
+    final nested = AppJson.valueAt(json, _nestedErrorKeys);
     if (nested is Map) {
       return _parseErrorMap(
         nested,
@@ -264,7 +293,8 @@ class AppHelpers {
 
     // The heading that accompanies a validation body, used only once its own
     // field messages and any nested body have come to nothing.
-    if (error["title"] case final String title when title.hasValue) {
+    if (AppJson.valueAt(json, _titleKeys) case final String title
+        when title.hasValue) {
       return {"message": title, "statusCode": code};
     }
 
