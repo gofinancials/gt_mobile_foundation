@@ -15,7 +15,7 @@ class FsError {
 
   /// Whether no file came back, whether the picker returned nothing or the
   /// user dismissed it. Use [isCancelled] to tell a dismissal apart.
-  bool get isEmpty => type == .empty || type == .cancelled;
+  bool get hasNoFile => type == .empty || type == .cancelled;
 
   /// Whether the user dismissed the picker or the save dialog.
   ///
@@ -24,6 +24,12 @@ class FsError {
   bool get isCancelled => type == .cancelled;
 
   bool get isUnknown => type == .unknown;
+
+  @Deprecated(
+    'Reads as "nothing came back" but is also true for a dismissal. '
+    'Use hasNoFile for that meaning, or isCancelled for a dismissal alone.',
+  )
+  bool get isEmpty => hasNoFile;
 }
 
 /// {@category Services}
@@ -46,6 +52,19 @@ class FsResponse extends Equatable {
   bool get hasError => error != null;
   bool get hasFile => file != null;
   bool get isImage => type == .image;
+
+  /// Whether the user dismissed the picker. A dismissal is a choice, not a
+  /// failure: callers fall silent rather than reporting it.
+  ///
+  /// This is narrower than [hasNoSelection], which also covers a pick that
+  /// came back with nothing.
+  bool get wasCancelled => error?.isCancelled ?? false;
+
+  /// Whether no file came back, dismissal included.
+  ///
+  /// False for a pick that failed on its own terms — an oversized file was
+  /// still selected. Use [wasCancelled] for a dismissal alone.
+  bool get hasNoSelection => error?.hasNoFile ?? false;
 
   Uri? get uri => file?.uri;
 
