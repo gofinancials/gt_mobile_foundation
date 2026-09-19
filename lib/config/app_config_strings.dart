@@ -137,6 +137,15 @@ class AppConfigStrings {
   /// one to show.
   final String serverUnavailable;
 
+  /// Error message shown when a reply arrived but could not be read.
+  ///
+  /// A gateway answers `200` carrying a shape the contract did not promise — a
+  /// renamed field, a list where a record was expected, a null where a number
+  /// was — and the decoder throws on it. That is not the generic
+  /// [requestFailedUnexpectedly]: the request itself succeeded, its answer is
+  /// what is wrong, and repeating it changes nothing.
+  final String malformedResponse;
+
   /// Creates an [AppConfigStrings] instance containing localized validation and error messages.
   const AppConfigStrings({
     required this.seconds,
@@ -179,5 +188,6 @@ class AppConfigStrings {
     required this.requestCancelled,
     required this.requestRefused,
     required this.serverUnavailable,
+    required this.malformedResponse,
   });
 }

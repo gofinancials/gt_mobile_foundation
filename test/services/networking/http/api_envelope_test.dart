@@ -254,6 +254,70 @@ void main() {
 
       expect(result.isFailure, isTrue);
     });
+
+    test('a refusal carries the status the reply arrived with', () async {
+      final result = await service.sendEnvelope(
+        () async =>
+            _reply(data: {'isSuccessful': false, 'responseMessage': 'Refused'}),
+        (envelope) => envelope['id'],
+      );
+
+      // The gateway answered; it refused in the body. Stamping that 500 sends
+      // whoever reads the failure looking for a server fault that never was.
+      expect(result.error?.statusCode, '200');
+    });
+
+    test('a decoder that throws is a failure, not a rejected future', () async {
+      final result = await service.sendEnvelope<Map<String, dynamic>>(
+        () async => _reply(data: {'isSuccessful': true, 'data': 'not-a-map'}),
+        (envelope) => envelope['data'] as Map<String, dynamic>,
+      );
+
+      expect(result.isFailure, isTrue);
+      expect(result.errorMessage, 'malformedResponse');
+      expect(result.error?.statusCode, '200');
+    });
+
+    test('a decoder that throws keeps the exception it threw', () async {
+      final failure = FormatException('unreadable');
+      final result = await service.sendEnvelope<int>(
+        () async => _reply(data: {'isSuccessful': true, 'id': 1}),
+        (envelope) => throw failure,
+      );
+
+      expect(result.error?.error, same(failure));
+    });
+
+    test('a read that reported neither way still guards its decoder', () async {
+      // The case most exposed to a decoder throw: with no flag to read, the
+      // payload is the only evidence, so a payload it cannot read is all the
+      // failure there is.
+      final result = await service.sendEnvelope<int>(
+        () async => _reply(data: {'id': 'not-a-number'}),
+        (envelope) => envelope['id'] as int,
+        requireSuccessFlag: false,
+      );
+
+      expect(result.isFailure, isTrue);
+      expect(result.errorMessage, 'malformedResponse');
+    });
+
+    test('a refused envelope is never decoded', () async {
+      // The decoder throws on everything, so a refusal that reached it would
+      // report the decoder's failure instead of the gateway's own message.
+      var decoded = false;
+      final result = await service.sendEnvelope<int>(
+        () async =>
+            _reply(data: {'isSuccessful': false, 'responseMessage': 'Refused'}),
+        (envelope) {
+          decoded = true;
+          throw StateError('decoded a refusal');
+        },
+      );
+
+      expect(decoded, isFalse);
+      expect(result.errorMessage, 'Refused');
+    });
   });
 
   group('ApiResponse.fromJson', () {

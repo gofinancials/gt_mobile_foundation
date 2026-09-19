@@ -84,25 +84,50 @@ extension ApiEnvelopeRequest on AppHttpMixin {
   /// gateway's own message. A mutation keeps [requireSuccessFlag] on, so a
   /// missing flag also fails; a read turns it off, because its payload is the
   /// evidence.
+  ///
+  /// Every way this can fail arrives as a [TaskFailure], which is what its
+  /// return type promises: the request is guarded by [requestHandler], and
+  /// [decode] — the caller's own, running after the reply is accepted — by
+  /// [decodeHandler]. [decode] stays after the acceptance check, so an
+  /// envelope the gateway refused is never decoded and a refusal keeps the
+  /// gateway's message instead of a decoder's failure.
   TaskCallResponse<T> sendEnvelope<T>(
     FutureCall<DioResponse> send,
     MapCallback<T, Map<String, dynamic>> decode, {
     bool requireSuccessFlag = true,
   }) async {
-    final response = await requestHandler(
-      () async => ApiEnvelope.of(await send()),
-    );
+    // The reply travels alongside its envelope because the status belongs to
+    // the reply and the envelope no longer carries it.
+    final response = await requestHandler(() async {
+      final reply = await send();
+      return (reply, ApiEnvelope.of(reply));
+    });
+
     return switch (response) {
       TaskFailure(:final error) => TaskFailure(error: error),
-      TaskSuccess(:final data)
+      TaskSuccess(data: (final reply, final envelope))
           when !ApiEnvelope.accepts(
-            data,
+            envelope,
             requireSuccessFlag: requireSuccessFlag,
           ) =>
         TaskFailure(
-          error: TaskError(message: ApiEnvelope.refusalMessage(data)),
+          error: TaskError(
+            message: ApiEnvelope.refusalMessage(envelope),
+            statusCode: _statusOf(reply),
+          ),
         ),
-      TaskSuccess(:final data) => TaskSuccess(data: decode(data)),
+      TaskSuccess(data: (final reply, final envelope)) => await decodeHandler(
+        () async => decode(envelope),
+        statusCode: _statusOf(reply),
+      ),
     };
   }
+
+  /// The HTTP status [reply] arrived with, not the business code the gateway
+  /// nested in its body — `200` is a transport answer and `00` is not.
+  ///
+  /// A reply that reached here arrived, so `200` is the reading when the
+  /// transport did not state one.
+  String _statusOf(DioResponse reply) =>
+      "${reply.rawResponse?.statusCode ?? 200}";
 }

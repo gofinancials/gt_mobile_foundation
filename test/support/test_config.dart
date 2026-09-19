@@ -54,6 +54,7 @@ class _TestConfig implements AppConfig {
     requestCancelled: 'requestCancelled',
     requestRefused: 'requestRefused',
     serverUnavailable: 'serverUnavailable',
+    malformedResponse: 'malformedResponse',
   );
 
   @override

@@ -8,6 +8,11 @@ import 'package:gt_mobile_foundation/foundation.dart';
 /// {@category Mixins}
 /// A mixin that provides safe network request handling and error parsing
 /// for repositories or services interacting with HTTP APIs.
+///
+/// A call fails in two places, so it is guarded in two: [requestHandler] guards
+/// sending the request, [decodeHandler] guards reading what it answered.
+/// Together they are the promise a [TaskCallResponse] makes — that a failure
+/// arrives as a [TaskFailure] and never as a rejected future.
 mixin AppHttpMixin {
   /// Internal helper to parse an arbitrary [error] into a standard [TaskError].
   TaskError _getParsedError(dynamic error) {
@@ -58,6 +63,42 @@ mixin AppHttpMixin {
     } catch (e, t) {
       _reportError("UnknownError: $e", e, t);
       return TaskFailure(error: _getParsedError(e));
+    }
+  }
+
+  /// Reads a reply the gateway already answered with, returning a
+  /// [TaskFailure] when [decode] cannot read it.
+  ///
+  /// [requestHandler] guards the request; this guards its answer, which is the
+  /// one failure the request guard cannot see — [decode] belongs to the caller
+  /// and runs after the request returned. A decoder throws whenever a `200`
+  /// carries a shape the contract did not promise, and an unguarded throw
+  /// leaves the [TaskCallResponse] rejecting rather than failing: inside a
+  /// state task that is reported as a bug in the state layer, and outside one
+  /// nothing catches it at all.
+  ///
+  /// The failure is its own kind rather than the generic one. It carries
+  /// [AppConfigStrings.malformedResponse], because the request did not fail —
+  /// its answer did, and repeating it changes nothing. It is tagged
+  /// `MalformedResponse:` in Crashlytics, so a gateway contract drift is not
+  /// filed among transport errors. And it keeps [statusCode], the status the
+  /// reply actually arrived with, rather than the `500` an unparsed error
+  /// falls back to: nothing here went wrong at the server.
+  Future<TaskResponse<T>> decodeHandler<T>(
+    FutureCall<T> decode, {
+    String statusCode = "200",
+  }) async {
+    try {
+      return TaskSuccess(data: await decode());
+    } catch (e, t) {
+      _reportError("MalformedResponse: $e", e, t);
+      return TaskFailure(
+        error: TaskError(
+          message: stringKeys.malformedResponse.tr(),
+          statusCode: statusCode,
+          error: e,
+        ),
+      );
     }
   }
 }
