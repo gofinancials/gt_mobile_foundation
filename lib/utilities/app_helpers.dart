@@ -140,6 +140,16 @@ class AppHelpers {
   /// at all — a gateway or reverse proxy in front of it answers on the
   /// origin's behalf, unencrypted, so that body is not trusted; a localized
   /// string is shown instead.
+  ///
+  /// A proxy also answers below `500` — Cloudflare returns `429` when it
+  /// rate-limits and `403` when its firewall refuses — and status alone cannot
+  /// tell those from the API's own `4xx`. Cloudflare flags the pages it
+  /// authors, so a body carrying that flag is replaced the same way, whether
+  /// it arrives inside a [DioException] or as a bare [Map].
+  ///
+  /// The localized strings resolve through the registered [AppConfig]. With
+  /// none registered those branches throw and [defaultMessage] is returned, so
+  /// a test has to register a config before it can exercise them.
   static Map<String, dynamic> parseError(
     dynamic error, {
     String defaultMessage = "",
@@ -185,7 +195,8 @@ class AppHelpers {
     // A gateway or reverse proxy in front of the API answers a `5xx` on its
     // behalf and never authored or encrypted that body, so it is not the
     // API's message to show. A `4xx` is the API's own refusal and falls
-    // through to read normally below.
+    // through to read normally below, where a body the proxy flagged as its
+    // own is still caught.
     if (responseCode != null && responseCode >= 500) {
       return {
         "message": _strings.serverUnavailable.tr(),
@@ -261,6 +272,11 @@ class AppHelpers {
   /// The keys a validation body spells its heading with.
   static const _titleKeys = ['title', 'Title'];
 
+  /// The key Cloudflare flags a page it authored with, on every status it
+  /// answers with. A body that carries it is never one the API wrote, nor one
+  /// `DecryptInterceptor` re-cased, so it has the one spelling.
+  static const _proxyFlagKeys = ['cloudflare_error'];
+
   static Map<String, dynamic> _parseErrorMap(
     Map error, {
     String defaultMessage = "",
@@ -272,6 +288,13 @@ class AppHelpers {
     // missing key (null) or a numeric code used to throw and lose the message.
     final code =
         int.tryParse("${AppJson.valueAt(json, _codeKeys)}") ?? statusCode;
+
+    // A reverse proxy answers below `500` too, in the same shape as its `5xx`
+    // page, and its `title` would otherwise be read out as the API's message.
+    // Read by [AppJson.asFlag] because an interceptor may have stringified it.
+    if (AppJson.asFlag(AppJson.valueAt(json, _proxyFlagKeys)) == true) {
+      return {"message": _strings.requestRefused.tr(), "statusCode": code};
+    }
 
     if (AppJson.valueAt(json, _messageKeys) case final String value) {
       return {"message": value, "statusCode": code};

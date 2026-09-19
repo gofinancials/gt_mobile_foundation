@@ -186,6 +186,62 @@ void main() {
     });
   });
 
+  group('a proxy page below 500 is never trusted to be the API', () {
+    Map<String, dynamic> body(int code, {Object? flag = true}) => {
+      'title': 'Error $code: Too many requests',
+      'status': code,
+      'error_name': 'rate_limited',
+      'cloudflare_error': flag,
+    };
+
+    Map<String, dynamic> parse(Object? body, int code) => AppHelpers.parseError(
+      _dio(DioExceptionType.badResponse, response: _res(body, code)),
+      defaultMessage: fallback,
+    );
+
+    test('a Cloudflare 429 and 403 are not shown verbatim', () {
+      for (final code in [429, 403]) {
+        final out = parse(body(code), code);
+        expect(out['message'], 'requestRefused', reason: '$code');
+        expect(out['statusCode'], code);
+      }
+    });
+
+    test('a flag an interceptor stringified still counts', () {
+      final out = parse(body(429, flag: 'true'), 429);
+      expect(out['message'], 'requestRefused');
+      expect(out['statusCode'], 429);
+    });
+
+    test('a bare map handed over by an interceptor is gated too', () {
+      final out = AppHelpers.parseError({
+        ...body(429),
+        'responseCode': '429',
+      }, defaultMessage: fallback);
+      expect(out['message'], 'requestRefused');
+      expect(out['statusCode'], 429);
+    });
+
+    test('a flagged page nested under data is gated too', () {
+      final out = parse({'data': body(403)}, 403);
+      expect(out['message'], 'requestRefused');
+      expect(out['statusCode'], 403);
+    });
+
+    test('a body that is not flagged still reads its title', () {
+      for (final flag in [false, 'false', null]) {
+        final out = parse(body(429, flag: flag), 429);
+        expect(out['message'], 'Error 429: Too many requests', reason: '$flag');
+      }
+    });
+
+    test('a flagged 5xx keeps the server-unavailable string', () {
+      final out = parse(body(502), 502);
+      expect(out['message'], 'serverUnavailable');
+      expect(out['statusCode'], 502);
+    });
+  });
+
   group('a rejected field reports its own message', () {
     Map<String, dynamic> parse(Object? body, {int code = 400}) =>
         AppHelpers.parseError(

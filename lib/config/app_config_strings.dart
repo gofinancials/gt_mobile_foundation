@@ -123,6 +123,10 @@ class AppConfigStrings {
 
   /// Message shown when the gateway understood and declined a request,
   /// carrying no message of its own to show instead.
+  ///
+  /// Also shown for a sub-`500` page a reverse proxy authored, such as
+  /// Cloudflare's `429` rate limit or `403` firewall refusal, in place of its
+  /// body.
   final String requestRefused;
 
   /// Error message shown for a `5xx` response, in place of its body.
