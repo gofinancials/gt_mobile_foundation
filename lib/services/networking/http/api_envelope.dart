@@ -85,12 +85,16 @@ extension ApiEnvelopeRequest on AppHttpMixin {
   /// missing flag also fails; a read turns it off, because its payload is the
   /// evidence.
   ///
-  /// Every way this can fail arrives as a [TaskFailure], which is what its
-  /// return type promises: the request is guarded by [requestHandler], and
-  /// [decode] — the caller's own, running after the reply is accepted — by
-  /// [decodeHandler]. [decode] stays after the acceptance check, so an
+  /// Both of the caller's own steps are guarded, so a failure in either
+  /// arrives as a [TaskFailure] rather than a rejected future: [send] by
+  /// [requestHandler], and [decode] — which runs after the reply is accepted —
+  /// by [decodeHandler]. [decode] stays after the acceptance check, so an
   /// envelope the gateway refused is never decoded and a refusal keeps the
   /// gateway's message instead of a decoder's failure.
+  ///
+  /// What sits between them is this library's own and is not guarded: the
+  /// acceptance check cannot throw, and the refusal message throws only with
+  /// no [AppConfig] registered, which the guards themselves need too.
   TaskCallResponse<T> sendEnvelope<T>(
     FutureCall<DioResponse> send,
     MapCallback<T, Map<String, dynamic>> decode, {
@@ -123,8 +127,14 @@ extension ApiEnvelopeRequest on AppHttpMixin {
     };
   }
 
-  /// The HTTP status [reply] arrived with, not the business code the gateway
-  /// nested in its body — `200` is a transport answer and `00` is not.
+  /// The HTTP status [reply] arrived with, never the business code the gateway
+  /// nested in its body.
+  ///
+  /// This is not what [AppHelpers.parseError] does for a thrown error: there a
+  /// body's `responseCode` is preferred and the HTTP status is the fallback.
+  /// So one refusal is stamped with the gateway's code when it arrives as a
+  /// `4xx` and with `200` when it arrives here, and a caller telling refusals
+  /// apart by [TaskError.statusCode] has to know which path it came down.
   ///
   /// A reply that reached here arrived, so `200` is the reading when the
   /// transport did not state one.

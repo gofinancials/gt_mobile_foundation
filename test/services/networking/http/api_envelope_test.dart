@@ -6,12 +6,23 @@ import '../../../support/test_config.dart';
 
 /// A reply as it reaches a service: [data] is what the crypto interceptor
 /// unwrapped, [raw] is the outer wrapper that unwrap came from.
-DioResponse _reply({required Object? data, Object? raw}) {
+///
+/// [statusCode] is what the transport answered and [responseCode] is what the
+/// gateway nested in the body; they are separate so a test can tell which one
+/// was read.
+DioResponse _reply({
+  required Object? data,
+  Object? raw,
+  int? statusCode,
+  String responseCode = '200',
+}) {
   return DioResponse(
+    responseCode: responseCode,
     data: data,
     rawResponse: Response(
       requestOptions: RequestOptions(path: '/accounts'),
       data: raw,
+      statusCode: statusCode,
     ),
   );
 }
@@ -23,6 +34,31 @@ Map<String, dynamic> _wrapper(Map<String, dynamic> envelope) => {
 };
 
 class _Service with AppHttpMixin {}
+
+class _RecordingCrashlytics implements AppCrashlyticsService {
+  /// The message and error of every report, in order.
+  final reports = <(String, Object?)>[];
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  trackError(
+    String message, {
+    Object? error,
+    StackTrace? trace,
+    bool fatal = false,
+  }) {
+    reports.add((message, error));
+  }
+
+  @override
+  identifyUser({
+    required dynamic id,
+    required String accountNumber,
+    String? name,
+  }) {}
+}
 
 void main() {
   setUpAll(registerTestConfig);
@@ -181,12 +217,15 @@ void main() {
       );
     });
 
-    test('falls back to the refusal message, not the unexpected-failure one', () {
-      expect(
-        ApiEnvelope.refusalMessage({'isSuccessful': false}),
-        'requestRefused',
-      );
-    });
+    test(
+      'falls back to the refusal message, not the unexpected-failure one',
+      () {
+        expect(
+          ApiEnvelope.refusalMessage({'isSuccessful': false}),
+          'requestRefused',
+        );
+      },
+    );
   });
 
   group('sendEnvelope', () {
@@ -300,6 +339,53 @@ void main() {
 
       expect(result.isFailure, isTrue);
       expect(result.errorMessage, 'malformedResponse');
+    });
+
+    test('a failure reads the transport status, not the business code', () async {
+      // Without a stated status every reply reads as the 200 fallback, which a
+      // constant would satisfy too. 201 and '00' differ from it and each other.
+      DioResponse created(Map<String, dynamic> data) =>
+          _reply(data: data, statusCode: 201, responseCode: '00');
+
+      final refused = await service.sendEnvelope(
+        () async => created({'isSuccessful': false}),
+        (envelope) => envelope['id'],
+      );
+      final unreadable = await service.sendEnvelope<int>(
+        () async => created({'isSuccessful': true, 'id': 'not-a-number'}),
+        (envelope) => envelope['id'] as int,
+      );
+
+      expect(refused.error?.statusCode, '201');
+      expect(unreadable.error?.statusCode, '201');
+    });
+
+    group('reporting a decoder that throws', () {
+      late _RecordingCrashlytics crashlytics;
+
+      setUp(() {
+        crashlytics = _RecordingCrashlytics();
+        locator.registerSingleton<AppCrashlyticsService>(crashlytics);
+      });
+
+      tearDown(() => locator.unregister<AppCrashlyticsService>());
+
+      test('names the failure without repeating what it said', () async {
+        // A FormatException carries its source, and the source is the payload.
+        const source = '{"accountNumber": "0123456789"}';
+        final result = await service.sendEnvelope<int>(
+          () async => _reply(data: {'isSuccessful': true}),
+          (envelope) => throw const FormatException('bad amount', source),
+        );
+
+        final (message, error) = crashlytics.reports.single;
+        expect(message, 'MalformedResponse: FormatException');
+        expect('$error', 'MalformedResponse: FormatException');
+        expect('$message $error', isNot(contains('0123456789')));
+
+        // The caller, on the device, still gets the exception itself.
+        expect(result.error?.error, isA<FormatException>());
+      });
     });
 
     test('a refused envelope is never decoded', () async {

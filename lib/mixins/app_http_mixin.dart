@@ -11,8 +11,12 @@ import 'package:gt_mobile_foundation/foundation.dart';
 ///
 /// A call fails in two places, so it is guarded in two: [requestHandler] guards
 /// sending the request, [decodeHandler] guards reading what it answered.
-/// Together they are the promise a [TaskCallResponse] makes — that a failure
-/// arrives as a [TaskFailure] and never as a rejected future.
+/// Together they are what lets a [TaskCallResponse] report a failure as a
+/// [TaskFailure] rather than a rejected future.
+///
+/// Both build their failure from the registered [AppConfig]'s strings, so that
+/// holds only once one is registered: without it the guard's own message
+/// lookup throws, and that does reject.
 mixin AppHttpMixin {
   /// Internal helper to parse an arbitrary [error] into a standard [TaskError].
   TaskError _getParsedError(dynamic error) {
@@ -84,6 +88,12 @@ mixin AppHttpMixin {
   /// filed among transport errors. And it keeps [statusCode], the status the
   /// reply actually arrived with, rather than the `500` an unparsed error
   /// falls back to: nothing here went wrong at the server.
+  ///
+  /// Crashlytics is told the type of the failure and never what it said. A
+  /// decoder's exception quotes what it could not read — a [FormatException]
+  /// carries its source text, a hand-written one the value it rejected — and
+  /// that is the customer's payload. The caller still receives the exception
+  /// itself on [TaskError.error], which never leaves the device.
   Future<TaskResponse<T>> decodeHandler<T>(
     FutureCall<T> decode, {
     String statusCode = "200",
@@ -91,7 +101,11 @@ mixin AppHttpMixin {
     try {
       return TaskSuccess(data: await decode());
     } catch (e, t) {
-      _reportError("MalformedResponse: $e", e, t);
+      // Crashlytics records the reported object's own `toString`, so the tag
+      // alone is not enough: the exception has to be replaced too. The trace
+      // still says where it was thrown.
+      final reported = _UnreadableReply(e.runtimeType);
+      _reportError("$reported", reported, t);
       return TaskFailure(
         error: TaskError(
           message: stringKeys.malformedResponse.tr(),
@@ -101,4 +115,16 @@ mixin AppHttpMixin {
       );
     }
   }
+}
+
+/// What Crashlytics is told when a reply could not be decoded: the type of the
+/// failure, and nothing the failure said.
+class _UnreadableReply implements Exception {
+  const _UnreadableReply(this.cause);
+
+  /// The type of the exception the decoder threw.
+  final Type cause;
+
+  @override
+  String toString() => "MalformedResponse: $cause";
 }
