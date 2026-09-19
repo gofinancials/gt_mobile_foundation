@@ -31,6 +31,7 @@ mixin AppAnalyticsMixin {
     dynamic value,
     Duration? duration,
     Map<String, int>? phases,
+    Map<String, Object>? attributes,
   }) async {
     await analytics?.trackEvent(
       AppAnalyticsData(
@@ -39,6 +40,7 @@ mixin AppAnalyticsMixin {
         value: value,
         duration: duration,
         phases: phases,
+        attributes: attributes,
       ),
     );
   }

@@ -81,4 +81,28 @@ void main() {
       expect(options.extra[sensitiveRequestExtraKey], isTrue);
     });
   });
+
+  group('SensitiveRequestExtension', () {
+    test('reads the flag a sensitive request was issued with', () async {
+      final options = await _captureRequest(
+        (service) => service.post('/post', isSensitiveRequest: true),
+      );
+
+      expect(options.isSensitiveRequest, isTrue);
+    });
+
+    test('reads false from a request marked non-sensitive', () async {
+      final options = await _captureRequest((service) => service.post('/post'));
+
+      expect(options.isSensitiveRequest, isFalse);
+    });
+
+    test('is false when the request carries no sensitivity metadata', () async {
+      final options = await _captureRequest(
+        (service) => service.postFile('/post-file'),
+      );
+
+      expect(options.isSensitiveRequest, isFalse);
+    });
+  });
 }

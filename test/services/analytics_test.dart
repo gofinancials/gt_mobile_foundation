@@ -27,12 +27,26 @@ void main() {
           id: 'user_123',
           accountNumber: '0123456789',
           name: 'John Doe',
+          firstName: 'John',
+          lastName: 'Doe',
         );
 
         expect(provider1.identifiedUserId, equals('user_123'));
+        expect(provider1.identifiedFirstName, equals('John'));
+        expect(provider1.identifiedLastName, equals('Doe'));
         expect(provider2.identifiedUserId, equals('user_123'));
       },
     );
+
+    test('resetUser clears the identified user on all providers', () async {
+      await compositeService.identifyUser(id: 'user_123', name: 'John Doe');
+      await compositeService.resetUser();
+
+      expect(provider1.resetUserCalled, isTrue);
+      expect(provider1.identifiedUserId, isNull);
+      expect(provider2.resetUserCalled, isTrue);
+      expect(provider2.identifiedUserId, isNull);
+    });
 
     test(
       'trackEvent broadcasts predefined event data to all registered providers',
@@ -73,6 +87,27 @@ void main() {
           'user_Transfer_Start',
           'user_FXSwap_Successful',
         ]),
+      );
+    });
+
+    test('trackEvent carries named attributes to providers as given', () async {
+      final eventData = AppAnalyticsData(
+        .userTransferAmountEntered,
+        attributes: {'amount': 5000, 'currency': 'NGN'},
+      );
+
+      await compositeService.trackEvent(eventData);
+
+      expect(
+        provider1.trackedEvents.last.attributes,
+        equals({'amount': 5000, 'currency': 'NGN'}),
+      );
+    });
+
+    test('AppEvent supports internet bill failures', () {
+      expect(
+        AppEvent.userBillsInternetFailed.name,
+        equals('user_Bills_Internet_Failed'),
       );
     });
 

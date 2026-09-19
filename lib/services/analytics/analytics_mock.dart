@@ -15,6 +15,8 @@ class AppAnalyticsMockService implements AppAnalyticsService {
     required dynamic id,
     String? accountNumber,
     String? name,
+    String? firstName,
+    String? lastName,
     String? email,
     String? telephone,
     String? bvn,
@@ -23,10 +25,17 @@ class AppAnalyticsMockService implements AppAnalyticsService {
       id: id,
       accountNumber: accountNumber,
       name: name,
+      firstName: firstName,
+      lastName: lastName,
       email: email,
       telephone: telephone,
       bvn: bvn,
     );
+  }
+
+  @override
+  Future<void> resetUser() async {
+    await mockAdapter.resetUser();
   }
 
   @override

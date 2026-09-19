@@ -250,6 +250,9 @@ class AppEvent extends Equatable {
   static const AppEvent userBillsInternetSuccessful = AppEvent(
     "user_Bills_Internet_Successful",
   );
+  static const AppEvent userBillsInternetFailed = AppEvent(
+    "user_Bills_Internet_Failed",
+  );
 
   // ==========================================
   // AIRTIME EVENTS (PDF SPECIFICATION)
@@ -329,12 +332,19 @@ class AppAnalyticsData {
   /// phases — a request's `renew`, `encrypt` or `decrypt` legs, for example.
   final Map<String, int>? phases;
 
+  /// Named properties carried alongside the event, such as `amount` on a
+  /// transfer event or `error_message` on a failure event.
+  ///
+  /// Passed to providers as given; not included in [toJson].
+  final Map<String, Object>? attributes;
+
   AppAnalyticsData(
     this.event, {
     this.description,
     this.value,
     this.duration,
     this.phases,
+    this.attributes,
   }) : executedAt = DateTime.now();
 
   Map<String, Object> toJson() {

@@ -37,6 +37,8 @@ class AppAnalyticsServiceImpl implements AppAnalyticsService {
     required dynamic id,
     String? accountNumber,
     String? name,
+    String? firstName,
+    String? lastName,
     String? email,
     String? telephone,
     String? bvn,
@@ -47,12 +49,19 @@ class AppAnalyticsServiceImpl implements AppAnalyticsService {
           id: id,
           accountNumber: accountNumber,
           name: name,
+          firstName: firstName,
+          lastName: lastName,
           email: email,
           telephone: telephone,
           bvn: bvn,
         ),
       ),
     );
+  }
+
+  @override
+  Future<void> resetUser() async {
+    await Future.wait(_providers.map((p) => p.resetUser()));
   }
 
   @override

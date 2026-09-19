@@ -28,11 +28,26 @@ class FirebaseAnalyticsAdapter implements AnalyticsProvider {
     // Firebase analytics auto-initializes on startup
   }
 
+  /// The names of every user property this adapter may set in [identifyUser],
+  /// kept here so [resetUser] can clear all of them regardless of which ones
+  /// were populated for the current user.
+  static const _userPropertyNames = [
+    "account_number",
+    "user_name",
+    "user_first_name",
+    "user_last_name",
+    "user_email",
+    "user_telephone",
+    "user_bvn",
+  ];
+
   @override
   Future<void> identifyUser({
     required dynamic id,
     String? accountNumber,
     String? name,
+    String? firstName,
+    String? lastName,
     String? email,
     String? telephone,
     String? bvn,
@@ -47,6 +62,10 @@ class FirebaseAnalyticsAdapter implements AnalyticsProvider {
           ),
         if (name.hasValue)
           _analytics.setUserProperty(name: "user_name", value: name),
+        if (firstName.hasValue)
+          _analytics.setUserProperty(name: "user_first_name", value: firstName),
+        if (lastName.hasValue)
+          _analytics.setUserProperty(name: "user_last_name", value: lastName),
         if (email.hasValue)
           _analytics.setUserProperty(name: "user_email", value: email),
         if (telephone.hasValue)
@@ -58,9 +77,25 @@ class FirebaseAnalyticsAdapter implements AnalyticsProvider {
           "email": ?email,
           "accountNumber": ?accountNumber,
           "name": ?name,
+          "firstName": ?firstName,
+          "lastName": ?lastName,
           "telephone": ?telephone,
           "bvn": ?bvn,
         }),
+      ]);
+    } catch (e, t) {
+      _reportError(e, t);
+    }
+  }
+
+  @override
+  Future<void> resetUser() async {
+    try {
+      await Future.wait([
+        _analytics.setUserId(id: null),
+        for (final property in _userPropertyNames)
+          _analytics.setUserProperty(name: property, value: null),
+        _analytics.setDefaultEventParameters(null),
       ]);
     } catch (e, t) {
       _reportError(e, t);
@@ -72,11 +107,29 @@ class FirebaseAnalyticsAdapter implements AnalyticsProvider {
     try {
       await _analytics.logEvent(
         name: eventData.event.name.replaceAll(" ", "_"),
-        parameters: eventData.toJson(),
+        parameters: {
+          ...eventData.toJson(),
+          ..._sanitizedAttributes(eventData.attributes),
+        },
       );
     } catch (e, t) {
       _reportError(e, t);
     }
+  }
+
+  /// Coerces [attributes] to Firebase Analytics' event parameter constraints:
+  /// only `String`/`num` values are accepted, names are capped at 40
+  /// characters, and string values are capped at 100 characters.
+  Map<String, Object> _sanitizedAttributes(Map<String, Object>? attributes) {
+    if (attributes == null) return const {};
+    return attributes.map((key, value) {
+      final trimmedKey = key.length > 40 ? key.substring(0, 40) : key;
+      final asParam = value is String || value is num ? value : "$value";
+      final trimmedValue = asParam is String && asParam.length > 100
+          ? asParam.substring(0, 100)
+          : asParam;
+      return MapEntry(trimmedKey, trimmedValue);
+    });
   }
 
   @override

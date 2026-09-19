@@ -51,7 +51,7 @@ class AppImagePlugin {
       if (image != null) return await _response(image);
       return const FsResponse(
         type: FsDocumentType.image,
-        error: FsError(type: FsErrorType.empty),
+        error: FsError(type: FsErrorType.cancelled),
       );
     } catch (e, t) {
       return FsResponse(
@@ -79,7 +79,7 @@ class AppImagePlugin {
       if (image != null) return await _response(image);
       return const FsResponse(
         type: FsDocumentType.image,
-        error: FsError(type: FsErrorType.empty),
+        error: FsError(type: FsErrorType.cancelled),
       );
     } catch (e, t) {
       return FsResponse(

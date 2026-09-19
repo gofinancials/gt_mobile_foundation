@@ -57,7 +57,7 @@ class AppFilePlugin {
       if (pickedFile == null) {
         return FsResponse(
           type: documentType,
-          error: const FsError(type: .empty),
+          error: const FsError(type: .cancelled),
         );
       }
 
@@ -122,7 +122,7 @@ class AppFilePlugin {
       if (filePath == null) {
         return const FsResponse(
           type: .document,
-          error: FsError(type: .empty),
+          error: FsError(type: .cancelled),
         );
       }
 

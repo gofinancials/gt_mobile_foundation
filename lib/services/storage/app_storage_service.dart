@@ -54,6 +54,56 @@ class AppStorageKey {
 
   /// Storage key for the user's preferred application language/locale.
   static const String language = 'language';
+
+  /// The keys holding the tokens a request authenticates with.
+  ///
+  /// Narrower than [clearanceKeys]: clearing these ends the session's
+  /// authority without forgetting the device or the user's biometric choice,
+  /// which is what a token refresh failure calls for.
+  static const List<String> credentialKeys = [
+    accessToken,
+    refreshToken,
+    accessTokenExpiresAt,
+    refreshTokenExpiresAt,
+  ];
+
+  /// Every key [SessionData.toCache] writes, in the order it writes them.
+  ///
+  /// Pass these to [AppStorageService.getItems] to read a session back.
+  static const List<String> cacheKeys = [
+    accessToken,
+    refreshToken,
+    biometricToken,
+    lastLoginTime,
+    accessTokenExpiresAt,
+    refreshTokenExpiresAt,
+    biometricTokenExpiresAt,
+    hasEnabledBioAuth,
+    deviceId,
+    userRole,
+    userName,
+    userId,
+    isTwoFactorEnabled,
+  ];
+
+  /// The keys a sign-out clears.
+  ///
+  /// [cacheKeys] less [deviceId] and [lastLoginTime], which outlive the
+  /// session: the device is still the same device, and the last login is what
+  /// a returning user is greeted by.
+  static const List<String> clearanceKeys = [
+    accessToken,
+    refreshToken,
+    biometricToken,
+    accessTokenExpiresAt,
+    refreshTokenExpiresAt,
+    biometricTokenExpiresAt,
+    hasEnabledBioAuth,
+    userRole,
+    userName,
+    userId,
+    isTwoFactorEnabled,
+  ];
 }
 
 /// Abstract contract defining the core operations for local application storage.
