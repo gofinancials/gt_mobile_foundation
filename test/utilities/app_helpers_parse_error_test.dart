@@ -242,6 +242,80 @@ void main() {
     });
   });
 
+  group('a string is shown only when it reads as a message', () {
+    const page = '<!DOCTYPE html><html><body>403 Forbidden</body></html>';
+    const flagged =
+        '{"title":"Error 429: Too many requests","cloudflare_error":true}';
+
+    test('a message a repository threw on purpose passes through', () {
+      final out = AppHelpers.parseError(
+        'Insufficient funds',
+        defaultMessage: fallback,
+      );
+      expect(out['message'], 'Insufficient funds');
+      expect(out['statusCode'], 500);
+    });
+
+    test('an HTML page falls back rather than leaking', () {
+      for (final html in [page, '  <center>nginx</center>', 'x <HTML> y']) {
+        final out = AppHelpers.parseError(html, defaultMessage: fallback);
+        expect(out['message'], fallback, reason: html);
+      }
+    });
+
+    test('a stringified proxy page meets the proxy check', () {
+      final out = AppHelpers.parseError(flagged, defaultMessage: fallback);
+      expect(out['message'], 'requestRefused');
+    });
+
+    test('a stringified API body still gives its message', () {
+      final out = AppHelpers.parseError(
+        '{"message":"Account locked","responseCode":"423"}',
+        defaultMessage: fallback,
+      );
+      expect(out['message'], 'Account locked');
+      expect(out['statusCode'], 423);
+    });
+
+    test('text that only opens with a brace is still a message', () {
+      final out = AppHelpers.parseError('{oops', defaultMessage: fallback);
+      expect(out['message'], '{oops');
+    });
+
+    test('a page nested under data falls back and keeps the status', () {
+      final out = AppHelpers.parseError({
+        'responseCode': '403',
+        'data': page,
+      }, defaultMessage: fallback);
+      expect(out['message'], fallback);
+      expect(out['statusCode'], 403);
+    });
+
+    test('a message nested under data as a string is still shown', () {
+      final out = AppHelpers.parseError({
+        'responseCode': '422',
+        'data': 'Daily limit exceeded',
+      }, defaultMessage: fallback);
+      expect(out['message'], 'Daily limit exceeded');
+      expect(out['statusCode'], 422);
+    });
+
+    test('a Dio body read as plain text is decoded before it is read', () {
+      Map<String, dynamic> parse(String body, int code) =>
+          AppHelpers.parseError(
+            _dio(DioExceptionType.badResponse, response: _res(body, code)),
+            defaultMessage: fallback,
+          );
+
+      expect(
+        parse('{"message":"Account locked"}', 423)['message'],
+        'Account locked',
+      );
+      expect(parse(flagged, 429)['message'], 'requestRefused');
+      expect(parse(page, 403)['message'], fallback);
+    });
+  });
+
   group('a rejected field reports its own message', () {
     Map<String, dynamic> parse(Object? body, {int code = 400}) =>
         AppHelpers.parseError(

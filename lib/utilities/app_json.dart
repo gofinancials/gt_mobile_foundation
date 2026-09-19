@@ -121,6 +121,16 @@ class AppJson {
     _ => null,
   };
 
+  /// The map [raw] spells as JSON, or `null` when it spells anything else.
+  ///
+  /// A body read as plain text, or a record a gateway stringified, is still a
+  /// map to whoever reads it; text that merely opens with a brace is not.
+  static Map<String, dynamic>? decodedMap(String raw) {
+    if (!raw.value.startsWith('{')) return null;
+    if (_decodeOrNull(raw) case Map<Object?, Object?> map) return asMap(map);
+    return null;
+  }
+
   /// The record [json] nests under one of [payloadKeys], or [json] itself when
   /// it nests none.
   ///
@@ -129,7 +139,7 @@ class AppJson {
   static Map<String, dynamic> payload(Map<String, dynamic> json) {
     for (final key in payloadKeys) {
       final value = switch (json[key]) {
-        String raw when raw.value.startsWith('{') => _decodeOrNull(raw),
+        String raw => decodedMap(raw),
         final other => other,
       };
       if (value case Map<Object?, Object?> map) return asMap(map);

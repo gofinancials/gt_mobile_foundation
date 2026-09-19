@@ -147,6 +147,11 @@ class AppHelpers {
   /// authors, so a body carrying that flag is replaced the same way, whether
   /// it arrives inside a [DioException] or as a bare [Map].
   ///
+  /// A [String] is shown as-is only when it reads as a message. One that
+  /// spells a JSON map is read as that map, so a stringified proxy page meets
+  /// the same checks, and one that is markup — a router's or proxy's HTML
+  /// page — gives way to [defaultMessage].
+  ///
   /// The localized strings resolve through the registered [AppConfig]. With
   /// none registered those branches throw and [defaultMessage] is returned, so
   /// a test has to register a config before it can exercise them.
@@ -164,7 +169,7 @@ class AppHelpers {
       }
 
       if (error is String) {
-        return {"message": error, "statusCode": 500};
+        return _parseErrorString(error, defaultMessage: defaultMessage);
       }
 
       if (error is Map) {
@@ -206,7 +211,11 @@ class AppHelpers {
 
     // Reaching here means the server answered, so its own message is the one
     // worth showing.
-    final data = error.response?.data;
+    // A body read as plain text is still the API's map, only undecoded.
+    final data = switch (error.response?.data) {
+      String raw => AppJson.decodedMap(raw),
+      final other => other,
+    };
     if (data is Map) {
       return _parseErrorMap(
         data,
@@ -215,6 +224,31 @@ class AppHelpers {
       );
     }
     return {"message": defaultMessage, "statusCode": responseCode ?? 500};
+  }
+
+  /// What marks a string as a page rather than a message.
+  static final _markup = RegExp(r'^\s*<|<html|<!doctype', caseSensitive: false);
+
+  /// Reads a bare string [error]: a message a repository threw on purpose, or
+  /// whatever a body nested where a narrower error was expected.
+  static Map<String, dynamic> _parseErrorString(
+    String error, {
+    String defaultMessage = "",
+    int statusCode = 500,
+  }) {
+    if (AppJson.decodedMap(error) case final map?) {
+      return _parseErrorMap(
+        map,
+        defaultMessage: defaultMessage,
+        statusCode: statusCode,
+      );
+    }
+
+    if (_markup.hasMatch(error)) {
+      return {"message": defaultMessage, "statusCode": statusCode};
+    }
+
+    return {"message": error, "statusCode": statusCode};
   }
 
   /// Returns the localized message and status for a transport-level [error],
@@ -320,6 +354,13 @@ class AppHelpers {
     final nested = AppJson.valueAt(json, _nestedErrorKeys);
     if (nested is Map) {
       return _parseErrorMap(
+        nested,
+        defaultMessage: defaultMessage,
+        statusCode: code,
+      );
+    }
+    if (nested is String) {
+      return _parseErrorString(
         nested,
         defaultMessage: defaultMessage,
         statusCode: code,
