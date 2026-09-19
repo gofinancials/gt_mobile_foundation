@@ -25,6 +25,20 @@ abstract class RootRouteRegistry with AppAnalyticsMixin {
   /// The collection of modular [RouteRegistry] instances registered in the application.
   List<RouteRegistry> get routeRegistries;
 
+  /// The static route mapping aggregated across every registry in
+  /// [routeRegistries].
+  ///
+  /// Declared here so callers holding a [RootRouteRegistry] can read the
+  /// application's routes without knowing which implementation supplies them;
+  /// [RootRouteRegistryMixin] provides the aggregation.
+  Map<String, Widget Function(BuildContext)> get staticRoutes;
+
+  /// The route names across the application that do not require authentication.
+  ///
+  /// Declared here for the same reason as [staticRoutes], and aggregated by
+  /// [RootRouteRegistryMixin].
+  List<String> get unguardedRoutes;
+
   /// Resolves dynamic routes for top-level or child registry routes based on [settings].
   Route<dynamic>? dynamicRoutes(RouteSettings settings);
 
@@ -37,11 +51,13 @@ abstract class RootRouteRegistry with AppAnalyticsMixin {
 /// and route guarding checks.
 mixin RootRouteRegistryMixin on RootRouteRegistry {
   /// The aggregated list of all route names across the application that do not require authentication.
+  @override
   List<String> get unguardedRoutes => [
     ...routeRegistries.expand((registry) => registry.unguardedRoutes),
   ];
 
   /// Aggregates the static route mappings across all registered [routeRegistries].
+  @override
   Map<String, Widget Function(BuildContext)> get staticRoutes => {
     for (final registry in routeRegistries) ...registry.staticRoutes,
   };

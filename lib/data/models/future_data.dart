@@ -13,7 +13,8 @@ class AsyncDataNotifier<T extends Equatable>
 /// {@category Data}
 /// A [ValueNotifier] that manages the state of a [FutureData] object.
 class FutureDataNotifier<T extends Equatable>
-    extends ValueNotifier<FutureData<T>> {
+    extends ValueNotifier<FutureData<T>>
+    with DisposalAware {
   /// Creates a [FutureDataNotifier] with the initial [value].
   FutureDataNotifier(super.value);
 
@@ -46,34 +47,74 @@ class FutureDataNotifier<T extends Equatable>
 
   /// Sets the state to loading, optionally retaining or updating the [data].
   void setLoading({T? data}) {
+    if (isDisposed) return;
     value = value.copyWith(isLoading: true, data: data);
   }
 
   /// Sets the state with new [data] and marks loading as false.
   void setData(T data) {
+    if (isDisposed) return;
     value = value.copyWith(data: data, isLoading: false);
   }
 
   /// Sets the state with an [error] and marks loading as false.
   void setError(TaskError error) {
+    if (isDisposed) return;
     value = value.copyWith(error: error, isLoading: false);
   }
 
   /// Resets the state back to a pristine condition.
   void reset() {
+    if (isDisposed) return;
     value = value.reset();
   }
 
   /// Partially updates the state with the provided values.
   void updateWith({T? data, bool? isLoading, TaskError? error}) {
+    if (isDisposed) return;
     value = value.copyWith(data: data, isLoading: isLoading, error: error);
+  }
+
+  /// Runs [task] and publishes its result into this notifier.
+  ///
+  /// Holds the loading flag for the duration, turns a throw into an error
+  /// state rather than a spinner that never clears, and drops the write if the
+  /// notifier was disposed while the task was in flight. A failure
+  /// [shouldPublish] declines is neither written as an error state nor handed
+  /// to [onError].
+  ///
+  /// Returns the response, or `null` when a task was already running.
+  Future<TaskResponse<T>?> executeTask(
+    FutureCall<TaskResponse<T>> task, {
+    OnChanged<T>? onSuccess,
+    OnChanged<TaskError>? onError,
+    FunctionCall<bool>? isCurrent,
+    OnBoolValidation<TaskError>? shouldPublish,
+  }) {
+    return runGuardedTask(
+      task,
+      isLoading: () => isLoading,
+      setLoading: setLoading,
+      clearLoading: () => updateWith(isLoading: false),
+      onData: (data) {
+        setData(data);
+        onSuccess?.call(data);
+      },
+      onFailure: (error) {
+        setError(error);
+        onError?.call(error);
+      },
+      isCurrent: isCurrent,
+      shouldPublish: shouldPublish,
+    );
   }
 }
 
 /// {@category Data}
 /// A [ValueNotifier] that manages the state of a [FutureListData] object.
 class FutureListDataNotifier<T extends Equatable>
-    extends ValueNotifier<FutureListData<T>> {
+    extends ValueNotifier<FutureListData<T>>
+    with DisposalAware {
   /// Creates a [FutureListDataNotifier] with the initial [value].
   FutureListDataNotifier(super.value);
 
@@ -106,44 +147,86 @@ class FutureListDataNotifier<T extends Equatable>
 
   /// Sets the state to loading, optionally retaining or updating the [data].
   void setLoading({List<T>? data}) {
+    if (isDisposed) return;
     value = value.copyWith(isLoading: true, data: data);
   }
 
   /// Sets the state with new [data] and marks loading as false.
   void setData(List<T> data) {
+    if (isDisposed) return;
     value = value.copyWith(data: data, isLoading: false);
   }
 
   /// Sets the state with an [error] and marks loading as false.
   void setError(TaskError error) {
+    if (isDisposed) return;
     value = value.copyWith(error: error, isLoading: false);
   }
 
   /// Resets the state back to a pristine condition.
   void reset() {
+    if (isDisposed) return;
     value = value.reset();
   }
 
   /// Partially updates the state with the provided values.
   void updateWith({List<T>? data, bool? isLoading, TaskError? error}) {
+    if (isDisposed) return;
     value = value.copyWith(data: data, isLoading: isLoading, error: error);
   }
 
   /// Updates a single item in the list by replacing [oldItem] with [newItem].
   void updateSingleItem(T oldItem, T newItem) {
+    if (isDisposed) return;
     value = value.updateSingleItem(oldItem, newItem);
   }
 
   /// Removes a single [item] from the list.
   void removeSingleItem(T item) {
+    if (isDisposed) return;
     value = value.removeSingleItem(item);
+  }
+
+  /// Runs [task] and publishes its result into this notifier.
+  ///
+  /// Holds the loading flag for the duration, turns a throw into an error
+  /// state rather than a spinner that never clears, and drops the write if the
+  /// notifier was disposed while the task was in flight. A failure
+  /// [shouldPublish] declines is neither written as an error state nor handed
+  /// to [onError].
+  ///
+  /// Returns the response, or `null` when a task was already running.
+  Future<TaskResponse<List<T>>?> executeTask(
+    FutureCall<TaskResponse<List<T>>> task, {
+    OnChanged<List<T>>? onSuccess,
+    OnChanged<TaskError>? onError,
+    FunctionCall<bool>? isCurrent,
+    OnBoolValidation<TaskError>? shouldPublish,
+  }) {
+    return runGuardedTask(
+      task,
+      isLoading: () => isLoading,
+      setLoading: setLoading,
+      clearLoading: () => updateWith(isLoading: false),
+      onData: (data) {
+        setData(data);
+        onSuccess?.call(data);
+      },
+      onFailure: (error) {
+        setError(error);
+        onError?.call(error);
+      },
+      isCurrent: isCurrent,
+      shouldPublish: shouldPublish,
+    );
   }
 }
 
 /// {@category Data}
 /// A [ValueNotifier] that manages the state of a [PaginatedData] object.
 class PaginatedDataNotifier<T extends Identifiable>
-    extends ValueNotifier<PaginatedData<T>> {
+    extends ValueNotifier<PaginatedData<T>>
+    with DisposalAware {
   /// Creates a [PaginatedDataNotifier] with the initial [value].
   PaginatedDataNotifier(super.value);
 
@@ -176,21 +259,25 @@ class PaginatedDataNotifier<T extends Identifiable>
 
   /// Sets the state to loading, optionally retaining or updating the [data].
   void setLoading({List<T>? data}) {
+    if (isDisposed) return;
     value = value.copyWith(isLoading: true, data: data);
   }
 
   /// Sets the state with new [data] and marks loading as false.
   void setData(List<T> data) {
+    if (isDisposed) return;
     value = value.copyWith(data: data, isLoading: false);
   }
 
   /// Sets the state with an [error] and marks loading as false.
   void setError(TaskError error) {
+    if (isDisposed) return;
     value = value.copyWith(error: error, isLoading: false);
   }
 
   /// Resets the state back to a pristine condition.
   void reset() {
+    if (isDisposed) return;
     value = value.reset();
   }
 
@@ -204,6 +291,7 @@ class PaginatedDataNotifier<T extends Identifiable>
     int? limit,
     String? query,
   }) {
+    if (isDisposed) return;
     value = value.copyWith(
       data: data,
       isLoading: isLoading,
@@ -217,22 +305,63 @@ class PaginatedDataNotifier<T extends Identifiable>
 
   /// Updates a single item in the list by replacing [oldItem] with [newItem].
   void updateSingleItem(T oldItem, T newItem) {
+    if (isDisposed) return;
     value = value.updateSingleItem(oldItem, newItem);
   }
 
   /// Removes a single [item] from the list.
   void removeSingleItem(T item) {
+    if (isDisposed) return;
     value = value.removeSingleItem(item);
   }
 
   /// Adds a single [item] to the paginated data.
   void addSingleItem(T item, {bool unshift = true}) {
+    if (isDisposed) return;
     value = value.addSingleItem(item, unshift: unshift);
   }
 
   /// Adds [pageData] to the paginated data.
   void addData(PaginatedData<T> pageData, {bool ensureUnique = false}) {
+    if (isDisposed) return;
     value = value.addData(pageData, ensureUnique: ensureUnique);
+  }
+
+  /// Runs [task] for one page and hands the page to [onData].
+  ///
+  /// A page is not simply the new value — the first page replaces and a later
+  /// one appends — so the caller decides what to do with it. The loading flag,
+  /// the throw and the disposal check are handled here either way, and
+  /// [loadingData] is what stays on screen while the page is in flight. A
+  /// failure [shouldPublish] declines is neither written as an error state nor
+  /// handed to [onError].
+  ///
+  /// Returns the response, or `null` when a task was already running.
+  Future<TaskResponse<List<T>>?> executePageTask(
+    FutureCall<TaskResponse<List<T>>> task, {
+    required OnChanged<List<T>> onData,
+    List<T>? loadingData,
+    OnPressed? onSuccess,
+    OnChanged<TaskError>? onError,
+    FunctionCall<bool>? isCurrent,
+    OnBoolValidation<TaskError>? shouldPublish,
+  }) {
+    return runGuardedTask(
+      task,
+      isLoading: () => isLoading,
+      setLoading: () => setLoading(data: loadingData),
+      clearLoading: () => updateWith(isLoading: false),
+      onData: (data) {
+        onData(data);
+        onSuccess?.call();
+      },
+      onFailure: (error) {
+        setError(error);
+        onError?.call(error);
+      },
+      isCurrent: isCurrent,
+      shouldPublish: shouldPublish,
+    );
   }
 }
 
@@ -623,5 +752,9 @@ class PaginatedData<T extends Identifiable> extends AsyncData<T> {
     pages,
     limit,
     query,
+    // [ValueNotifier] skips an assignment it considers equal, so leaving the
+    // error out meant a [PaginatedDataNotifier.setError] that changed nothing
+    // else was discarded in silence and the failure never reached the screen.
+    error,
   ];
 }

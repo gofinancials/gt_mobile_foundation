@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
@@ -34,6 +36,15 @@ typedef OnChanged2<T, K> = void Function(T value, K otherValue);
 /// {@category Typedefs}
 /// Signature for an asynchronous callback triggered when a value of type [T] changes.
 typedef OnChangedAsync<T> = Future<void> Function(T value);
+
+/// {@category Typedefs}
+/// Signature for a callback on a value of type [T] that may be written either
+/// synchronously or asynchronously; whoever calls it awaits it either way.
+///
+/// Use it where the callback belongs to the caller rather than to us, so that
+/// the common synchronous case does not have to be marked `async` to be
+/// accepted.
+typedef OnChangedMaybeAsync<T> = FutureOr<void> Function(T value);
 
 /// {@category Typedefs}
 /// Signature for an asynchronous task that returns a [TaskResponse] of type [T].

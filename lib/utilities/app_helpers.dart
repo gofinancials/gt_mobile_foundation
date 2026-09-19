@@ -135,7 +135,26 @@ class AppHelpers {
   /// message shown to the user is sanitised.
   ///
   /// A server-supplied message on a [DioExceptionType.badResponse] is passed
-  /// through as-is: it comes from your own API and is meant to be read.
+  /// through as-is only below `500`: a `4xx` is the API's own refusal and is
+  /// meant to be read. A `5xx` this far along may not have come from the API
+  /// at all — a gateway or reverse proxy in front of it answers on the
+  /// origin's behalf, unencrypted, so that body is not trusted; a localized
+  /// string is shown instead.
+  ///
+  /// A proxy also answers below `500` — Cloudflare returns `429` when it
+  /// rate-limits and `403` when its firewall refuses — and status alone cannot
+  /// tell those from the API's own `4xx`. Cloudflare flags the pages it
+  /// authors, so a body carrying that flag is replaced the same way, whether
+  /// it arrives inside a [DioException] or as a bare [Map].
+  ///
+  /// A [String] is shown as-is only when it reads as a message. One that
+  /// spells a JSON map is read as that map, so a stringified proxy page meets
+  /// the same checks, and one that is markup — a router's or proxy's HTML
+  /// page — gives way to [defaultMessage].
+  ///
+  /// The localized strings resolve through the registered [AppConfig]. With
+  /// none registered those branches throw and [defaultMessage] is returned, so
+  /// a test has to register a config before it can exercise them.
   static Map<String, dynamic> parseError(
     dynamic error, {
     String defaultMessage = "",
@@ -150,7 +169,7 @@ class AppHelpers {
       }
 
       if (error is String) {
-        return {"message": error, "statusCode": 500};
+        return _parseErrorString(error, defaultMessage: defaultMessage);
       }
 
       if (error is Map) {
@@ -178,9 +197,25 @@ class AppHelpers {
       return {"message": message, "statusCode": responseCode ?? code};
     }
 
+    // A gateway or reverse proxy in front of the API answers a `5xx` on its
+    // behalf and never authored or encrypted that body, so it is not the
+    // API's message to show. A `4xx` is the API's own refusal and falls
+    // through to read normally below, where a body the proxy flagged as its
+    // own is still caught.
+    if (responseCode != null && responseCode >= 500) {
+      return {
+        "message": _strings.serverUnavailable.tr(),
+        "statusCode": responseCode,
+      };
+    }
+
     // Reaching here means the server answered, so its own message is the one
     // worth showing.
-    final data = error.response?.data;
+    // A body read as plain text is still the API's map, only undecoded.
+    final data = switch (error.response?.data) {
+      String raw => AppJson.decodedMap(raw),
+      final other => other,
+    };
     if (data is Map) {
       return _parseErrorMap(
         data,
@@ -189,6 +224,31 @@ class AppHelpers {
       );
     }
     return {"message": defaultMessage, "statusCode": responseCode ?? 500};
+  }
+
+  /// What marks a string as a page rather than a message.
+  static final _markup = RegExp(r'^\s*<|<html|<!doctype', caseSensitive: false);
+
+  /// Reads a bare string [error]: a message a repository threw on purpose, or
+  /// whatever a body nested where a narrower error was expected.
+  static Map<String, dynamic> _parseErrorString(
+    String error, {
+    String defaultMessage = "",
+    int statusCode = 500,
+  }) {
+    if (AppJson.decodedMap(error) case final map?) {
+      return _parseErrorMap(
+        map,
+        defaultMessage: defaultMessage,
+        statusCode: statusCode,
+      );
+    }
+
+    if (_markup.hasMatch(error)) {
+      return {"message": defaultMessage, "statusCode": statusCode};
+    }
+
+    return {"message": error, "statusCode": statusCode};
   }
 
   /// Returns the localized message and status for a transport-level [error],
@@ -222,30 +282,85 @@ class AppHelpers {
     };
   }
 
+  /// The keys an error body spells its response code with. `DecryptInterceptor`
+  /// writes decrypted ciphertext back under whichever case it found `data` in,
+  /// so a body that arrived spelled `Data` keeps every other key in that same
+  /// case, `Status` included.
+  static const _codeKeys = ['responseCode', 'Status'];
+
+  /// The keys an error body spells its top-level message with.
+  static const _messageKeys = ['message', 'Message'];
+
+  /// The keys an error body spells its short error string with.
+  static const _errorKeys = ['error', 'Error'];
+
+  /// The keys an error body spells its status message with.
+  static const _statusMessageKeys = ['statusMessage', 'StatusMessage'];
+
+  /// The keys a validation body spells its field-message map with.
+  static const _validationKeys = ['errors', 'Errors'];
+
+  /// The keys an error body nests a narrower error under.
+  static const _nestedErrorKeys = ['data', 'Data'];
+
+  /// The keys a validation body spells its heading with.
+  static const _titleKeys = ['title', 'Title'];
+
+  /// The key Cloudflare flags a page it authored with, on every status it
+  /// answers with. A body that carries it is never one the API wrote, nor one
+  /// `DecryptInterceptor` re-cased, so it has the one spelling.
+  static const _proxyFlagKeys = ['cloudflare_error'];
+
   static Map<String, dynamic> _parseErrorMap(
     Map error, {
     String defaultMessage = "",
     int statusCode = 500,
   }) {
+    final json = AppJson.asMap(error);
+
     // Interpolate before parsing: `int.tryParse` only accepts a String, so a
     // missing key (null) or a numeric code used to throw and lose the message.
-    final code = int.tryParse("${error["responseCode"]}") ?? statusCode;
+    final code =
+        int.tryParse("${AppJson.valueAt(json, _codeKeys)}") ?? statusCode;
 
-    if (error["message"] is String) {
-      return {"message": error["message"] as String, "statusCode": code};
+    // A reverse proxy answers below `500` too, in the same shape as its `5xx`
+    // page, and its `title` would otherwise be read out as the API's message.
+    // Read by [AppJson.asFlag] because an interceptor may have stringified it.
+    if (AppJson.asFlag(AppJson.valueAt(json, _proxyFlagKeys)) == true) {
+      return {"message": _strings.requestRefused.tr(), "statusCode": code};
     }
 
-    if (error["error"] case final String value when value.isNotEmpty) {
+    if (AppJson.valueAt(json, _messageKeys) case final String value) {
       return {"message": value, "statusCode": code};
     }
 
-    if (error["statusMessage"] is String) {
-      return {"message": error["statusMessage"] as String, "statusCode": code};
+    if (AppJson.valueAt(json, _errorKeys) case final String value
+        when value.isNotEmpty) {
+      return {"message": value, "statusCode": code};
     }
 
-    final nested = error["data"];
+    if (AppJson.valueAt(json, _statusMessageKeys) case final String value) {
+      return {"message": value, "statusCode": code};
+    }
+
+    // A rejected field is reported as a map of field names to their messages,
+    // with no `message` of its own. Without this the customer is told only
+    // that something went wrong, never which field or why.
+    if (_validationMessages(AppJson.valueAt(json, _validationKeys))
+        case final message?) {
+      return {"message": message, "statusCode": code};
+    }
+
+    final nested = AppJson.valueAt(json, _nestedErrorKeys);
     if (nested is Map) {
       return _parseErrorMap(
+        nested,
+        defaultMessage: defaultMessage,
+        statusCode: code,
+      );
+    }
+    if (nested is String) {
+      return _parseErrorString(
         nested,
         defaultMessage: defaultMessage,
         statusCode: code,
@@ -255,7 +370,39 @@ class AppHelpers {
       return parseError(nested, defaultMessage: defaultMessage);
     }
 
+    // The heading that accompanies a validation body, used only once its own
+    // field messages and any nested body have come to nothing.
+    if (AppJson.valueAt(json, _titleKeys) case final String title
+        when title.hasValue) {
+      return {"message": title, "statusCode": code};
+    }
+
     return {"message": defaultMessage, "statusCode": code};
+  }
+
+  /// Every message in a validation [errors] map, one per line, or `null` when
+  /// it holds none.
+  ///
+  /// A field maps either to a list of messages or to a single one, and the
+  /// same message can repeat across fields, so they are de-duplicated.
+  static String? _validationMessages(Object? errors) {
+    if (errors is! Map) return null;
+
+    final messages = <String>{};
+    for (final value in errors.values) {
+      switch (value) {
+        case Iterable values:
+          messages.addAll(
+            values.map((item) => "$item".value).where((item) => item.hasValue),
+          );
+        case final value?:
+          final message = "$value".value;
+          if (message.hasValue) messages.add(message);
+      }
+    }
+
+    if (messages.isEmpty) return null;
+    return messages.join("\n");
   }
 
   static updateValue(

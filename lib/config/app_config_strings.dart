@@ -58,6 +58,12 @@ class AppConfigStrings {
   /// Validation message for maximum length.
   final String maxLength;
 
+  /// Validation message for a fixed-width field, interpolating `num` for the
+  /// required length. Used for both a short and a long value: a field that
+  /// takes exactly six digits is not stated by "at least six" or "at most
+  /// six" alone.
+  final String exactLength;
+
   /// Validation message for a required password field.
   final String passwordRequired;
 
@@ -115,6 +121,31 @@ class AppConfigStrings {
   /// Error message shown when a request is cancelled before it completes.
   final String requestCancelled;
 
+  /// Message shown when the gateway understood and declined a request,
+  /// carrying no message of its own to show instead.
+  ///
+  /// Also shown for a sub-`500` page a reverse proxy authored, such as
+  /// Cloudflare's `429` rate limit or `403` firewall refusal, in place of its
+  /// body.
+  final String requestRefused;
+
+  /// Error message shown for a `5xx` response, in place of its body.
+  ///
+  /// A response this far along answered, but not necessarily the API: a
+  /// gateway or reverse proxy in front of it answers `5xx` on the origin's
+  /// behalf, unencrypted and unauthored by the API, so that body is never the
+  /// one to show.
+  final String serverUnavailable;
+
+  /// Error message shown when a reply arrived but could not be read.
+  ///
+  /// A gateway answers `200` carrying a shape the contract did not promise — a
+  /// renamed field, a list where a record was expected, a null where a number
+  /// was — and the decoder throws on it. That is not the generic
+  /// [requestFailedUnexpectedly]: the request itself succeeded, its answer is
+  /// what is wrong, and repeating it changes nothing.
+  final String malformedResponse;
+
   /// Creates an [AppConfigStrings] instance containing localized validation and error messages.
   const AppConfigStrings({
     required this.seconds,
@@ -133,6 +164,7 @@ class AppConfigStrings {
     required this.yearsOld,
     required this.yesterday,
     required this.fieldRequired,
+    required this.exactLength,
     required this.passwordRequired,
     required this.passwordMustHaveNChars,
     required this.invalidEmail,
@@ -154,5 +186,8 @@ class AppConfigStrings {
     required this.requestTimedOut,
     required this.secureConnectionFailed,
     required this.requestCancelled,
+    required this.requestRefused,
+    required this.serverUnavailable,
+    required this.malformedResponse,
   });
 }

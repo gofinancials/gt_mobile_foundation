@@ -69,6 +69,10 @@ class AppRegex {
     multiLine: true,
   );
   static final digitRegEx = RegExp(r"\d+");
+
+  /// Every character that is not a digit, for reducing a typed value —
+  /// a phone number, an account number — to the digits it carries.
+  static final nonDigits = RegExp(r"[^\d]");
   static final customSchemeRegex = RegExp(
     r"(?<scheme>\w{1,3})(:\/)(?<path>\/[\w\W\d\D]{1,})",
     caseSensitive: false,
