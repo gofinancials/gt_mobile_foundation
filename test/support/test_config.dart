@@ -53,6 +53,7 @@ class _TestConfig implements AppConfig {
     secureConnectionFailed: 'secureConnectionFailed',
     requestCancelled: 'requestCancelled',
     requestRefused: 'requestRefused',
+    serverUnavailable: 'serverUnavailable',
   );
 
   @override

@@ -135,7 +135,11 @@ class AppHelpers {
   /// message shown to the user is sanitised.
   ///
   /// A server-supplied message on a [DioExceptionType.badResponse] is passed
-  /// through as-is: it comes from your own API and is meant to be read.
+  /// through as-is only below `500`: a `4xx` is the API's own refusal and is
+  /// meant to be read. A `5xx` this far along may not have come from the API
+  /// at all — a gateway or reverse proxy in front of it answers on the
+  /// origin's behalf, unencrypted, so that body is not trusted; a localized
+  /// string is shown instead.
   static Map<String, dynamic> parseError(
     dynamic error, {
     String defaultMessage = "",
@@ -176,6 +180,17 @@ class AppHelpers {
 
     if (_sanitisedFailure(error) case (final message, final code)) {
       return {"message": message, "statusCode": responseCode ?? code};
+    }
+
+    // A gateway or reverse proxy in front of the API answers a `5xx` on its
+    // behalf and never authored or encrypted that body, so it is not the
+    // API's message to show. A `4xx` is the API's own refusal and falls
+    // through to read normally below.
+    if (responseCode != null && responseCode >= 500) {
+      return {
+        "message": _strings.serverUnavailable.tr(),
+        "statusCode": responseCode,
+      };
     }
 
     // Reaching here means the server answered, so its own message is the one

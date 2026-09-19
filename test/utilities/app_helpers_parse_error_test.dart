@@ -135,7 +135,7 @@ void main() {
     });
   });
 
-  test('badResponse still shows the API message', () {
+  test('badResponse still shows the API message below 500', () {
     final out = AppHelpers.parseError(
       _dio(
         DioExceptionType.badResponse,
@@ -145,6 +145,45 @@ void main() {
     );
     expect(out['message'], 'Insufficient funds');
     expect(out['statusCode'], 400);
+  });
+
+  group('a 5xx is never trusted to be the API', () {
+    Map<String, dynamic> parse(Object? body, int code) => AppHelpers.parseError(
+      _dio(DioExceptionType.badResponse, response: _res(body, code)),
+      defaultMessage: fallback,
+    );
+
+    test('a gateway 502 with a title is not shown verbatim', () {
+      final out = parse({'title': 'Error 502: Bad gateway'}, 502);
+      expect(out['message'], 'serverUnavailable');
+      expect(out['statusCode'], 502);
+    });
+
+    test('a router 503 HTML page is not shown verbatim', () {
+      final out = parse('Application is not available… all pods are down', 503);
+      expect(out['message'], 'serverUnavailable');
+      expect(out['statusCode'], 503);
+    });
+
+    test('a gateway 504 with a title is not shown verbatim', () {
+      final out = parse({'title': 'Error 504: Gateway time-out'}, 504);
+      expect(out['message'], 'serverUnavailable');
+      expect(out['statusCode'], 504);
+    });
+
+    test('an origin 500 message is not shown verbatim', () {
+      final out = parse({
+        'Message': 'Object reference not set to an instance of an object',
+      }, 500);
+      expect(out['message'], 'serverUnavailable');
+      expect(out['statusCode'], 500);
+    });
+
+    test('a 4xx is unaffected and still reads the body', () {
+      final out = parse({'message': 'Account locked'}, 423);
+      expect(out['message'], 'Account locked');
+      expect(out['statusCode'], 423);
+    });
   });
 
   group('a rejected field reports its own message', () {

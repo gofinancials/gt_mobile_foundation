@@ -125,6 +125,14 @@ class AppConfigStrings {
   /// carrying no message of its own to show instead.
   final String requestRefused;
 
+  /// Error message shown for a `5xx` response, in place of its body.
+  ///
+  /// A response this far along answered, but not necessarily the API: a
+  /// gateway or reverse proxy in front of it answers `5xx` on the origin's
+  /// behalf, unencrypted and unauthored by the API, so that body is never the
+  /// one to show.
+  final String serverUnavailable;
+
   /// Creates an [AppConfigStrings] instance containing localized validation and error messages.
   const AppConfigStrings({
     required this.seconds,
@@ -166,5 +174,6 @@ class AppConfigStrings {
     required this.secureConnectionFailed,
     required this.requestCancelled,
     required this.requestRefused,
+    required this.serverUnavailable,
   });
 }
