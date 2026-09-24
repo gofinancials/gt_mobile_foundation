@@ -52,6 +52,14 @@ typedef OnJwtRenewalFailure =
       StackTrace stackTrace,
     );
 
+/// {@category Typedefs}
+/// Signature for what a host does once the gateway says the session ended.
+///
+/// [error] is the reply that said so: the request's own, or the renewal's when
+/// renewal was what the gateway refused. Its status equals
+/// [JwtInterceptor.sessionExpiredStatus].
+typedef OnJwtSessionExpired = FutureOr<void> Function(DioException error);
+
 /// {@category Services}
 /// An interceptor that manages JWT tokens, handling injection of device IDs, Auth Bearer tokens, and token renewal.
 class JwtInterceptor extends QueuedInterceptorsWrapper {
@@ -74,12 +82,71 @@ class JwtInterceptor extends QueuedInterceptorsWrapper {
   /// whoever wrote [onRenew], never to this interceptor.
   final OnJwtRenewalFailure? onRenewalFailure;
 
+  /// The HTTP status the gateway reserves for a session it has ended.
+  ///
+  /// Named by the host, never assumed here: a `401` from a gateway can be a
+  /// business refusal on a credential it still honours, so reading one as an
+  /// ended session signs a customer out who is still signed in. The OneBank
+  /// gateway reserves `440`.
+  final int? sessionExpiredStatus;
+
+  /// Called when a reply's status is [sessionExpiredStatus].
+  ///
+  /// Only for a request that carried the session's current bearer token and
+  /// was not marked public (see [publicRequestExtraKey]), so a reply to a
+  /// request sent before the customer signed in again cannot end the session
+  /// they signed in to. A renewal answered with [sessionExpiredStatus] counts
+  /// too, since a gateway that refuses to renew has ended the session as
+  /// surely as one that refuses the request. It is seen only when [onRenew]
+  /// lets the gateway's [DioException] through; a renewal that catches it and
+  /// answers null reads as a [JwtRenewalException], which says nothing about
+  /// status.
+  ///
+  /// For a refused renewal this runs before [onRenewalFailure], and both run:
+  /// this one answers for the session, that one for the request waiting on
+  /// it. A host that also ends the session from [onRenewalFailure] ends it
+  /// twice, which the same debouncing absorbs.
+  ///
+  /// The guards tell a stale token from a current one; they cannot tell a
+  /// true [sessionExpiredStatus] from a gateway that sends it in error. One
+  /// that answers a token it has just issued this way — a new session not yet
+  /// seen by every node, say — passes every guard, and a host that signs the
+  /// customer out each time sends them round a loop: signed in, resumed to a
+  /// screen whose requests draw the same answer, signed out again. Only the
+  /// host knows when the customer last signed in, so breaking that loop is
+  /// the host's too: show the failure rather than signing out again when a
+  /// call arrives within moments of a sign-in, or after several in a row.
+  ///
+  /// It is not awaited and never swallows the error: the caller still receives
+  /// its failure and renders it. A screen's concurrent requests can all be
+  /// answered this way at once, so this can be called several times for one
+  /// ended session; telling those calls apart is the host's to do. A host that
+  /// clears the session's token here stops the calls that follow, because
+  /// their bearer is then no longer the current one.
+  ///
+  /// Left out, together with [sessionExpiredStatus], a reply passes through
+  /// this interceptor untouched.
+  final OnJwtSessionExpired? onSessionExpired;
+
+  /// Failures [_reject] raised, which dio hands back to [onError].
+  ///
+  /// A renewal refused for an ended session was reported when it was refused;
+  /// the rejection carries that refusal's status on the waiting request, and
+  /// reporting it again would count one refusal twice.
+  static final _rejections = Expando<bool>();
+
   /// Creates a new instance of [JwtInterceptor].
   JwtInterceptor(
     this._sessionService, {
     required this.onRenew,
     this.onRenewalFailure,
-  });
+    this.sessionExpiredStatus,
+    this.onSessionExpired,
+  }) : assert(
+         (sessionExpiredStatus == null) == (onSessionExpired == null),
+         "sessionExpiredStatus and onSessionExpired are given together or "
+         "not at all",
+       );
 
   /// Attaches the session's bearer token, renewing it first when it is due.
   ///
@@ -144,13 +211,16 @@ class JwtInterceptor extends QueuedInterceptorsWrapper {
       // request, or none at all, so it is a failure like any other.
       throw const JwtRenewalException("renewal produced no token");
     } catch (e, t) {
-      return _afterFailedRenewal(options, e, t);
+      return _afterFailedRenewal(options, accessToken, e, t);
     }
   }
 
   /// The token to carry on with once renewal failed, or a [_RenewalRejected].
+  ///
+  /// [renewing] is the token renewal was asked to replace.
   Future<String?> _afterFailedRenewal(
     RequestOptions options,
+    String? renewing,
     Object error,
     StackTrace stackTrace,
   ) async {
@@ -159,6 +229,10 @@ class JwtInterceptor extends QueuedInterceptorsWrapper {
       stackTrace: stackTrace,
       error: error,
     );
+
+    // A renewal refused for an ended session is reported before the decision
+    // below, which still rules on the request as it always has.
+    if (error is DioException) _reportLapse(error, options, renewing);
 
     final action = await _actionFor(options, error, stackTrace);
     if (action == JwtRenewalAction.fail) {
@@ -200,6 +274,68 @@ class JwtInterceptor extends QueuedInterceptorsWrapper {
     }
   }
 
+  /// Reports a reply that says the session ended, then passes it on.
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    if (_rejections[err] == true) return handler.next(err);
+
+    final options = err.requestOptions;
+    _reportLapse(err, options, _bearerOf(options));
+    return handler.next(err);
+  }
+
+  /// Calls [onSessionExpired] when [error] says the session [bearer] belongs
+  /// to has ended.
+  ///
+  /// [request] is the request whose public flag decides, and [bearer] the
+  /// token it was sent for.
+  void _reportLapse(
+    DioException error,
+    RequestOptions request,
+    String? bearer,
+  ) {
+    final lapse = onSessionExpired;
+    if (lapse == null) return;
+    if (error.response?.statusCode != sessionExpiredStatus) return;
+    if (request.isPublicRequest) return;
+
+    unawaited(_lapse(lapse, error, bearer));
+  }
+
+  /// Runs [lapse] for [error] when [bearer] is still the session's token.
+  ///
+  /// The token is read before the first await, so it is the one current when
+  /// the reply arrived rather than whatever [lapse] leaves behind.
+  Future<void> _lapse(
+    OnJwtSessionExpired lapse,
+    DioException error,
+    String? bearer,
+  ) async {
+    try {
+      final current = _sessionService.accessToken;
+      // A reply to a request sent on an earlier token speaks for a session the
+      // customer has already left.
+      if (!bearer.hasValue || bearer != current) return;
+
+      await lapse(error);
+    } catch (e, t) {
+      AppLogger.severe(
+        "JWT session expiry handler failed: $e",
+        stackTrace: t,
+        error: e,
+      );
+    }
+  }
+
+  /// The bearer token [options] was sent with, if any.
+  String? _bearerOf(RequestOptions options) {
+    const scheme = "Bearer ";
+    final authorization = options.headers["Authorization"];
+    if (authorization is! String) return null;
+    if (!authorization.startsWith(scheme)) return null;
+    return authorization.substring(scheme.length);
+  }
+
   /// Fails the request [cause] stopped, keeping [cause] readable downstream.
   void _reject(
     RequestOptions options,
@@ -219,6 +355,7 @@ class JwtInterceptor extends QueuedInterceptorsWrapper {
       ),
     };
 
+    _rejections[failure] = true;
     return handler.reject(failure, true);
   }
 }
