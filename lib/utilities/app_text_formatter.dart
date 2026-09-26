@@ -80,64 +80,137 @@ class AppTextFormatter {
     }
   }
 
-  /// The dial code to canonicalise against, as digits only.
+  /// The dial code to canonicalise against, as the app configured it.
   ///
   /// Taken from [AppConfig.countryCode], which apps already configure, so the
   /// library carries no country of its own.
-  static String get _dialCode {
-    return locator<AppConfig>().countryCode.replaceAll(AppRegex.nonDigits, '');
+  static String get _dialCode => locator<AppConfig>().countryCode;
+
+  /// The ITU calling code in [dial], as digits only: `234` for `+234`, and
+  /// `1` for the North American `+1-876` or `1-809,1-829,1-849`, which carry
+  /// area codes after the calling code.
+  static String _callingCode(String dial) {
+    final entry = dial.split(',').first;
+    return entry.split('-').first.replaceAll(AppRegex.nonDigits, '');
   }
 
-  /// The national digits of [tel] — the number with its dial code and any
-  /// trunk `0` stripped — or `null` when [tel] is not a well-formed number.
+  /// The single area code [dial] carries after its calling code, `876` for
+  /// `+1-876`, or empty when it carries none or several.
+  static String _areaCode(String dial) {
+    if (dial.contains(',')) return '';
+
+    final parts = dial.split('-');
+    if (parts.length < 2) return '';
+
+    return parts[1].replaceAll(AppRegex.nonDigits, '');
+  }
+
+  /// The national lengths to accept: [nationalLength] when the caller gives
+  /// one, otherwise the mobile lengths published for [callingCode], otherwise
+  /// ten.
+  static List<int> _nationalLengths(String callingCode, int? nationalLength) {
+    if (nationalLength != null) return [nationalLength];
+    return AppPhoneLengths.mobileByCallingCode[callingCode] ?? const [10];
+  }
+
+  static bool _isNational(String digits, List<int> lengths) {
+    return lengths.contains(digits.length);
+  }
+
+  static bool _isTrunked(String digits, List<int> lengths) {
+    return digits.startsWith('0') && lengths.contains(digits.length - 1);
+  }
+
+  /// [digits] without a leading [callingCode], stripped only when what
+  /// remains is itself a plausible national number.
+  static String _withoutCallingCode(
+    String digits,
+    String callingCode,
+    List<int> lengths,
+  ) {
+    if (callingCode.isEmpty || !digits.startsWith(callingCode)) return digits;
+
+    final rest = digits.substring(callingCode.length);
+    if (!_isNational(rest, lengths) && !_isTrunked(rest, lengths)) {
+      return digits;
+    }
+
+    return rest;
+  }
+
+  static String _withoutTrunkZero(String digits, List<int> lengths) {
+    if (!_isTrunked(digits, lengths)) return digits;
+    return digits.substring(1);
+  }
+
+  /// [digits] with [areaCode] in front when they were typed without it, so
+  /// `555 1234` under `+1-876` becomes `876 555 1234`.
+  static String _withAreaCode(
+    String digits,
+    String areaCode,
+    List<int> lengths,
+  ) {
+    if (areaCode.isEmpty || _isNational(digits, lengths)) return digits;
+
+    final withAreaCode = '$areaCode$digits';
+    if (!_isNational(withAreaCode, lengths)) return digits;
+
+    return withAreaCode;
+  }
+
+  /// The national digits of [tel] — the number with its calling code and any
+  /// trunk `0` stripped — or `null` when [tel] is not a well-formed number,
+  /// including one written with anything but [AppRegex.phoneCharacters].
   ///
   /// The same number reaches the app as `0803 123 4567`, `+234 803 123 4567`,
   /// `2348031234567` and `8031234567`, and every one of those must reduce to
-  /// the same [nationalLength] digits before it is compared or sent.
+  /// the same national digits before it is compared or sent.
   ///
-  /// The dial code is only stripped when what remains is itself a plausible
-  /// national number, so a national number that happens to begin with the
-  /// dial code's digits survives intact.
+  /// [dialCode] defaults to [AppConfig.countryCode] and may be written as a
+  /// [Country.dial] or [Country.countryCode] is, including the North American
+  /// `+1-876` form; digits typed without that area code get it back.
+  ///
+  /// The number must have [nationalLength] digits when given; otherwise one of
+  /// the lengths [AppPhoneLengths] publishes for the calling code, falling
+  /// back to ten for a calling code it does not know.
+  ///
+  /// The calling code is only stripped when what remains is itself a
+  /// plausible national number, so a national number that happens to begin
+  /// with the calling code's digits survives intact.
   static String? nationalPhoneDigits(
     String? tel, {
     String? dialCode,
-    int nationalLength = 10,
+    int? nationalLength,
   }) {
-    if (tel == null) return null;
+    if (tel == null || !AppRegex.phoneCharacters.hasMatch(tel.trim())) {
+      return null;
+    }
+
+    final dial = dialCode ?? _dialCode;
+    final callingCode = _callingCode(dial);
+    final lengths = _nationalLengths(callingCode, nationalLength);
 
     var digits = tel.replaceAll(AppRegex.nonDigits, '');
-    final code = (dialCode ?? _dialCode).replaceAll(AppRegex.nonDigits, '');
+    digits = _withoutCallingCode(digits, callingCode, lengths);
+    digits = _withoutTrunkZero(digits, lengths);
+    digits = _withAreaCode(digits, _areaCode(dial), lengths);
 
-    if (code.hasValue &&
-        digits.length > nationalLength &&
-        digits.startsWith(code)) {
-      final withoutCode = digits.substring(code.length);
-      final isNational = withoutCode.length == nationalLength;
-      final isTrunked =
-          withoutCode.length == nationalLength + 1 &&
-          withoutCode.startsWith('0');
-      if (isNational || isTrunked) digits = withoutCode;
-    }
-
-    if (digits.length == nationalLength + 1 && digits.startsWith('0')) {
-      digits = digits.substring(1);
-    }
-
-    if (digits.length != nationalLength || digits.startsWith('0')) return null;
+    if (!_isNational(digits, lengths) || digits.startsWith('0')) return null;
 
     return digits;
   }
 
-  /// [tel] in the form a gateway expects: the dial code followed by the
+  /// [tel] in the form a gateway expects: the calling code followed by the
   /// national digits, with no spaces or punctuation.
   ///
-  /// Returns `null` when [tel] cannot be reduced to [nationalLength] national
-  /// digits, so a caller decides for itself whether to send the raw value or
-  /// refuse it. Set [withPlus] for the `+234…` form some services require.
+  /// Returns `null` when [tel] cannot be reduced to national digits, as
+  /// [nationalPhoneDigits] describes, so a caller decides for itself whether
+  /// to send the raw value or refuse it. Set [withPlus] for the `+234…` form
+  /// some services require.
   static String? canonicalPhone(
     String? tel, {
     String? dialCode,
-    int nationalLength = 10,
+    int? nationalLength,
     bool withPlus = false,
   }) {
     final national = nationalPhoneDigits(
@@ -147,15 +220,15 @@ class AppTextFormatter {
     );
     if (national == null) return null;
 
-    final code = (dialCode ?? _dialCode).replaceAll(AppRegex.nonDigits, '');
-    return "${withPlus ? '+' : ''}$code$national";
+    final callingCode = _callingCode(dialCode ?? _dialCode);
+    return "${withPlus ? '+' : ''}$callingCode$national";
   }
 
   /// Whether [tel] reduces to a well-formed national number.
   static bool isCanonicalisablePhone(
     String? tel, {
     String? dialCode,
-    int nationalLength = 10,
+    int? nationalLength,
   }) {
     return nationalPhoneDigits(
           tel,

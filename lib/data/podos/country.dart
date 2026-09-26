@@ -29,6 +29,16 @@ class Country extends Equatable {
   final String? languages;
   final int? m49;
   final String? mARC;
+
+  /// The number of digits a mobile number can have after the country calling
+  /// code, with no trunk `0` — `[10]` for Nigeria, `[9]` for Ghana, `[10, 11]`
+  /// for Germany. `null` where no numbering plan is published.
+  ///
+  /// Measured from the ITU calling code, so for the North American entries
+  /// whose [dial] carries an area code (`1-876`) the area code is counted.
+  ///
+  /// Sourced from Google's libphonenumber metadata (Apache-2.0).
+  final List<int>? mobileNumberLengths;
   final String? officialNameEnglish;
   final String? tLD;
   final String? wMO;
@@ -58,6 +68,7 @@ class Country extends Equatable {
     this.languages,
     this.m49,
     this.mARC,
+    this.mobileNumberLengths,
     this.officialNameEnglish,
     this.tLD,
     this.wMO,
@@ -129,11 +140,19 @@ class Country extends Equatable {
       languages: json['Languages'],
       m49: json['M49'],
       mARC: json['MARC'],
+      mobileNumberLengths: _parseLengths(
+        json['Mobile_Number_Lengths'] ?? json['MobileNumberLengths'],
+      ),
       officialNameEnglish:
           json['Official_Name_English'] ?? json['officialNameEnglish'],
       tLD: json['TLD'],
       wMO: json['WMO'],
     );
+  }
+
+  static List<int>? _parseLengths(dynamic lengths) {
+    if (lengths is! List) return null;
+    return List.unmodifiable(lengths.whereType<num>().map((it) => it.toInt()));
   }
 
   @override

@@ -39,6 +39,10 @@ class AppRegex {
   static final specialCharRegEx = RegExp(r"[^A-Za-z0-9]+");
   static final eightCharRegEx = RegExp(r".{8,}");
   static final phoneRegex = RegExp(r"^(\+[0-9]{1,4}\s)?[0-9]{5,15}$");
+
+  /// The characters a phone number may be written with: digits, spaces,
+  /// brackets, dots and hyphens, after an optional leading `+`.
+  static final phoneCharacters = RegExp(r"^\+?[\d\s().-]+$");
   static final imageRegex = RegExp(
     r"\.(gif|jp(e)?g|tif(f)?|png|webp|bmp|heic)$",
   );
@@ -182,6 +186,20 @@ class AppRegex {
   );
   static final base64IndicatorRegex = RegExp(r'[g-zG-Z+/=_-]');
   static final base64Regex = RegExp(r'^[A-Za-z0-9+/_-]+={0,2}$');
+  static final sixDigits = RegExp(r'^\d{6}$');
+  static final controlCharacters = RegExp(r'[\u0000-\u001F\u007F]');
+  static final name = RegExp(r"^[A-Za-z .'-]+$");
+  static final nameBoundary = RegExp(r"^[ .'-]|[ .'-]$");
+  static final containsLetter = RegExp(r'[A-Za-z]');
+  static final address = RegExp(r"^[A-Za-z0-9 #&(),./'-]+$");
+  static final label = RegExp(r"^[A-Za-z0-9 &(),./'-]+$");
+  static final identifier = RegExp(r'^[A-Za-z0-9/-]+$');
+  static final taxId = RegExp(r'^[A-Za-z0-9-]+$');
+  static final visibleAscii = RegExp(r'^[\x20-\x7E]+$');
+  static final emailLocalPart = RegExp(r'^[A-Za-z0-9._+\-]+$');
+  static final emailDomain = RegExp(r'^[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+  static final emailDomainLabel = RegExp(r'^[A-Za-z0-9-]+$');
+  static final postalCode = RegExp(r'^\d{6}$');
 
   static String getMatchGroupValue({
     required RegExp pattern,

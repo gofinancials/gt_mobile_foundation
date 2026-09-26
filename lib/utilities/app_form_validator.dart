@@ -107,13 +107,20 @@ class AppValidators {
     return null;
   }
 
-  /// Validates the [tel] (phone number) format using regex.
+  /// Validates that [tel] is a phone number for the country [countryCode]
+  /// dials, such as `+234` or a [Country.countryCode].
+  ///
+  /// Accepts what [AppTextFormatter.nationalPhoneDigits] can reduce to a
+  /// national number of the right length: [nationalLength] when given,
+  /// otherwise the country's mobile lengths. An empty [countryCode] means
+  /// [AppConfig.countryCode].
   static String? phoneValidator(
     String? tel, {
     String? errorMessage,
     String? emptyMessage,
     String countryCode = "",
     bool isRequired = true,
+    int? nationalLength,
   }) {
     final isEmpty = _isEmpty(tel);
     final hasCountryCode = countryCode.hasValue;
@@ -124,12 +131,13 @@ class AppValidators {
       return emptyMessage ?? strings.fieldRequired.tr();
     }
 
-    String normalisedTel = tel?.replaceAll(AppRegex.space, '') ?? "";
-    if (hasCountryCode) normalisedTel = "$countryCode $normalisedTel";
+    final isValid = AppTextFormatter.isCanonicalisablePhone(
+      tel,
+      dialCode: hasCountryCode ? countryCode : null,
+      nationalLength: nationalLength,
+    );
 
-    if (!AppRegex.phoneRegex.hasMatch(normalisedTel)) {
-      return errorMessage ?? strings.invalidPhone.tr();
-    }
+    if (!isValid) return errorMessage ?? strings.invalidPhone.tr();
     return null;
   }
 
