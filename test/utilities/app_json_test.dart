@@ -237,4 +237,52 @@ void main() {
       expect(AppJson.flagAt({'a': 'maybe'}, ['a']), isNull);
     });
   });
+  group('AppJson placeholder messages', () {
+    const placeholders = [
+      '<none>',
+      'none',
+      'null',
+      ' NONE ',
+      'Null',
+      ' <None>',
+    ];
+
+    for (final placeholder in placeholders) {
+      test('"$placeholder" reads as no message', () {
+        expect(AppJson.asMessage(placeholder), isNull);
+        expect(AppJson.message({'responseMessage': placeholder}), isEmpty);
+      });
+    }
+
+    test('a placeholder gives way to the next spelling', () {
+      expect(
+        AppJson.message({'responseMessage': '<none>', 'message': 'Declined'}),
+        'Declined',
+      );
+    });
+
+    test('a blank message gives way to the next spelling', () {
+      expect(
+        AppJson.message({'responseMessage': '  ', 'description': 'Declined'}),
+        'Declined',
+      );
+    });
+
+    test('a message is trimmed', () {
+      expect(AppJson.asMessage('  Declined '), 'Declined');
+    });
+
+    test('a message that only contains a placeholder word is kept', () {
+      expect(
+        AppJson.asMessage('None of your accounts'),
+        'None of your accounts',
+      );
+    });
+
+    test('a value that is not a string is no message', () {
+      expect(AppJson.asMessage(null), isNull);
+      expect(AppJson.asMessage(42), isNull);
+      expect(AppJson.asMessage({'message': 'x'}), isNull);
+    });
+  });
 }

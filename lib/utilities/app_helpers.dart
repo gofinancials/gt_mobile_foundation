@@ -245,7 +245,8 @@ class AppHelpers {
       return {"message": defaultMessage, "statusCode": statusCode};
     }
 
-    return {"message": error, "statusCode": statusCode};
+    final message = AppJson.asMessage(error) ?? defaultMessage;
+    return {"message": message, "statusCode": statusCode};
   }
 
   /// Returns the localized message and status for a transport-level [error],
@@ -308,6 +309,12 @@ class AppHelpers {
   /// `DecryptInterceptor` re-cased, so it has the one spelling.
   static const _proxyFlagKeys = ['cloudflare_error'];
 
+  /// The message under the first of [keys] present in [json], or `null` when
+  /// that one is blank, a placeholder or not a string.
+  static String? _messageAt(Map<String, dynamic> json, List<String> keys) {
+    return AppJson.asMessage(AppJson.valueAt(json, keys));
+  }
+
   static Map<String, dynamic> _parseErrorMap(
     Map error, {
     String defaultMessage = "",
@@ -327,16 +334,18 @@ class AppHelpers {
       return {"message": _strings.requestRefused.tr(), "statusCode": code};
     }
 
-    if (AppJson.valueAt(json, _messageKeys) case final String value) {
+    // A blank or placeholder message is no message, so the search goes on to
+    // the next field rather than showing the customer an empty or `<none>`
+    // error.
+    if (_messageAt(json, _messageKeys) case final value?) {
       return {"message": value, "statusCode": code};
     }
 
-    if (AppJson.valueAt(json, _errorKeys) case final String value
-        when value.isNotEmpty) {
+    if (_messageAt(json, _errorKeys) case final value?) {
       return {"message": value, "statusCode": code};
     }
 
-    if (AppJson.valueAt(json, _statusMessageKeys) case final String value) {
+    if (_messageAt(json, _statusMessageKeys) case final value?) {
       return {"message": value, "statusCode": code};
     }
 
@@ -369,8 +378,7 @@ class AppHelpers {
 
     // The heading that accompanies a validation body, used only once its own
     // field messages and any nested body have come to nothing.
-    if (AppJson.valueAt(json, _titleKeys) case final String title
-        when title.hasValue) {
+    if (_messageAt(json, _titleKeys) case final title?) {
       return {"message": title, "statusCode": code};
     }
 
@@ -385,18 +393,11 @@ class AppHelpers {
   static String? _validationMessages(Object? errors) {
     if (errors is! Map) return null;
 
-    final messages = <String>{};
-    for (final value in errors.values) {
-      switch (value) {
-        case Iterable values:
-          messages.addAll(
-            values.map((item) => "$item".value).where((item) => item.hasValue),
-          );
-        case final value?:
-          final message = "$value".value;
-          if (message.hasValue) messages.add(message);
-      }
-    }
+    final messages = errors.values
+        .expand((value) => value is Iterable ? value : [value])
+        .map((item) => AppJson.asMessage("$item"))
+        .nonNulls
+        .toSet();
 
     if (messages.isEmpty) return null;
     return messages.join("\n");

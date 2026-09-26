@@ -398,4 +398,102 @@ The BVN is invalid.''');
       expect(parse({'errors': 'unexpected'})['message'], fallback);
     });
   });
+  group('a blank or placeholder message is no message', () {
+    const placeholders = [
+      '<none>',
+      'none',
+      'null',
+      ' NONE ',
+      'Null',
+      ' <None>',
+    ];
+
+    for (final placeholder in placeholders) {
+      test('"$placeholder" as the message falls back', () {
+        final out = AppHelpers.parseError({
+          'message': placeholder,
+          'responseCode': '400',
+        }, defaultMessage: fallback);
+        expect(out['message'], fallback);
+        expect(out['statusCode'], 400);
+      });
+
+      test('"$placeholder" thrown as a string falls back', () {
+        final out = AppHelpers.parseError(
+          placeholder,
+          defaultMessage: fallback,
+        );
+        expect(out['message'], fallback);
+      });
+
+      test('"$placeholder" in a 4xx body falls back', () {
+        final out = AppHelpers.parseError(
+          _dio(
+            DioExceptionType.badResponse,
+            response: _res({'message': placeholder}, 400),
+          ),
+          defaultMessage: fallback,
+        );
+        expect(out['message'], fallback);
+        expect(out['statusCode'], 400);
+      });
+    }
+
+    test('an empty message falls through to the field errors', () {
+      final out = AppHelpers.parseError({
+        'message': '',
+        'errors': {
+          'amount': ['Amount is required'],
+        },
+      }, defaultMessage: fallback);
+      expect(out['message'], 'Amount is required');
+    });
+
+    test('a placeholder message falls through to the error key', () {
+      final out = AppHelpers.parseError({
+        'message': '<none>',
+        'error': 'Account locked',
+      }, defaultMessage: fallback);
+      expect(out['message'], 'Account locked');
+    });
+
+    test('a placeholder message falls through to a nested body', () {
+      final out = AppHelpers.parseError({
+        'message': 'null',
+        'data': {'message': 'Daily limit exceeded'},
+      }, defaultMessage: fallback);
+      expect(out['message'], 'Daily limit exceeded');
+    });
+
+    test('a placeholder nested under data falls back', () {
+      final out = AppHelpers.parseError({
+        'data': '<none>',
+      }, defaultMessage: fallback);
+      expect(out['message'], fallback);
+    });
+
+    test('placeholder field errors are dropped', () {
+      final out = AppHelpers.parseError({
+        'errors': {
+          'nin': ['<none>'],
+          'amount': ['Amount is required', null],
+        },
+      }, defaultMessage: fallback);
+      expect(out['message'], 'Amount is required');
+    });
+
+    test('a placeholder title falls back', () {
+      final out = AppHelpers.parseError({
+        'title': 'none',
+      }, defaultMessage: fallback);
+      expect(out['message'], fallback);
+    });
+
+    test('a message is trimmed', () {
+      final out = AppHelpers.parseError({
+        'message': '  Insufficient funds ',
+      }, defaultMessage: fallback);
+      expect(out['message'], 'Insufficient funds');
+    });
+  });
 }

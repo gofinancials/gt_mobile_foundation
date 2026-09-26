@@ -435,4 +435,26 @@ void main() {
       expect(response.message, 'Refused');
     });
   });
+  group('ApiEnvelope.refusalMessage placeholders', () {
+    const placeholders = [
+      '<none>',
+      'none',
+      'null',
+      ' NONE ',
+      'Null',
+      ' <None>',
+    ];
+
+    for (final placeholder in placeholders) {
+      test('"$placeholder" falls back to the refusal message', () {
+        expect(
+          ApiEnvelope.refusalMessage({
+            'isSuccessful': false,
+            'responseMessage': placeholder,
+          }),
+          'requestRefused',
+        );
+      });
+    }
+  });
 }
