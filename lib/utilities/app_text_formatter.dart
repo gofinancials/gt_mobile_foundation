@@ -24,7 +24,7 @@ class AppTextFormatter {
   /// Formats the given [tel] string as a standardized phone number layout.
   static String formatPhone(String tel) {
     String digits = tel.withoutWhiteSpaceAndSpecialChar;
-    digits = digits.replaceAll(RegExp(r'\D'), '');
+    digits = digits.replaceAll(AppRegex.nonDigits, '');
     if (digits.isEmpty) return tel.trim();
 
     bool hasPlus = tel.trim().startsWith('+');
@@ -275,7 +275,7 @@ class AppTextFormatter {
       symbol: ignoreSymbol ? "" : "$currencySymbol${spaceIcon ? " " : ""}",
     );
 
-    amount = amount.replaceAll(RegExp(r'[^0-9\.]'), "");
+    amount = amount.replaceAll(AppRegex.nonAmount, "");
     final amountDouble = double.tryParse(amount);
     if (amountDouble == null) return "";
     return formatter.format(amountDouble);
@@ -302,7 +302,7 @@ class AppTextFormatter {
       symbol: ignoreSymbol ? "" : "$currencySymbol${spaceIcon ? " " : ""}",
     );
 
-    amount = amount.replaceAll(RegExp(r'[^0-9\.]'), "");
+    amount = amount.replaceAll(AppRegex.nonAmount, "");
     final amountDouble = double.tryParse(amount);
     if (amountDouble == null) return "";
     return formatter.format(amountDouble);
@@ -318,7 +318,7 @@ class AppTextFormatter {
 
     final formatter = NumberFormat(pattern, ignoreLocale ? null : _locale);
     amount = amount.withoutWhiteSpaceAndSpecialChar.replaceAll(
-      RegExp(r'[^0-9\.]'),
+      AppRegex.nonAmount,
       "",
     );
     return formatter.format(num.tryParse(amount));
@@ -331,7 +331,7 @@ class AppTextFormatter {
     final formatter = NumberFormat.compact(
       locale: ignoreLocale ? null : _locale,
     );
-    amount = amount.replaceAll(RegExp(r'[^0-9\.]'), "");
+    amount = amount.replaceAll(AppRegex.nonAmount, "");
     final amountDouble = double.tryParse(amount);
     if (amountDouble == null || amountDouble == 0) return "0";
     return formatter.format(amountDouble);
@@ -342,7 +342,7 @@ class AppTextFormatter {
     if (!amount.hasValue) return "";
 
     final formatter = NumberFormat();
-    amount = amount.replaceAll(RegExp(r'[^0-9\.]'), "");
+    amount = amount.replaceAll(AppRegex.nonAmount, "");
     final amountDouble = double.tryParse(amount);
     if (amountDouble == null || amountDouble == 0) return "0";
     return formatter.format(amountDouble);
@@ -428,7 +428,29 @@ class AppTextFormatter {
 
 /// {@category Utilities}
 /// A [TextInputFormatter] that automatically formats the input as a number with commas.
+///
+/// A keystroke that would take the amount past [decimalDigits] places, or its
+/// whole part past [maxWholeDigits] digits, is refused. Deleting is always
+/// allowed, so a longer value set in code can still be shortened.
+///
+/// A single `,` typed where there is no decimal point yet is read as the
+/// decimal point, for keyboards in regions that use a comma. Commas already
+/// in the text, or pasted with it, are read as grouping.
 class AppAmountFormatter extends TextInputFormatter {
+  /// The most digits allowed after the decimal point. Zero refuses a decimal
+  /// point altogether.
+  final int decimalDigits;
+
+  /// The most digits allowed before the decimal point.
+  ///
+  /// With [decimalDigits] at 2, keep this at 13 or below so the amount stays
+  /// within the 15 significant digits a double holds exactly.
+  final int maxWholeDigits;
+
+  const AppAmountFormatter({this.decimalDigits = 2, this.maxWholeDigits = 12})
+    : assert(decimalDigits >= 0),
+      assert(maxWholeDigits > 0);
+
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
@@ -443,9 +465,10 @@ class AppAmountFormatter extends TextInputFormatter {
         );
       }
 
-      final amount = newValue.text.isNotEmpty
-          ? newValue.text.replaceAll(RegExp(r'[^0-9\.]'), "")
-          : "";
+      final amount = _withDecimalComma(
+        oldValue,
+        newValue,
+      ).replaceAll(AppRegex.nonAmount, "");
 
       if (amount.isEmpty) {
         return newValue.copyWith(text: "");
@@ -455,19 +478,19 @@ class AppAmountFormatter extends TextInputFormatter {
       final parts = amount.split('.');
       if (parts.length > 2) return oldValue;
 
-      final integerPart = parts[0];
+      final wholePart = _wholeDigits(parts[0]);
       final decimalPart = parts.length > 1 ? parts[1] : null;
 
-      String formattedInteger = integerPart.isNotEmpty
-          ? AppTextFormatter.formatNumberLong(integerPart)
-          : (amount.startsWith('.') ? "0" : "");
-
-      String formattedText = formattedInteger;
-      if (decimalPart != null) {
-        formattedText += ".$decimalPart";
-      } else if (amount.endsWith('.')) {
-        formattedText += ".";
+      final isDeletion = newValue.text.length < oldValue.text.length;
+      if (!isDeletion && _exceedsLimits(wholePart, decimalPart)) {
+        return oldValue;
       }
+
+      String formattedText = wholePart.replaceAll(
+        AppRegex.thousandsBoundary,
+        ",",
+      );
+      if (decimalPart != null) formattedText += ".$decimalPart";
 
       return TextEditingValue(
         text: formattedText,
@@ -478,6 +501,40 @@ class AppAmountFormatter extends TextInputFormatter {
       AppLogger.severe("$e", stackTrace: t, error: e);
       return oldValue;
     }
+  }
+
+  /// The text of [newValue], with a single `,` just typed read as the decimal
+  /// point when the amount has none yet.
+  String _withDecimalComma(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+    final typedAt = newValue.selection.baseOffset - 1;
+
+    if (decimalDigits == 0) return text;
+    if (text.length != oldValue.text.length + 1) return text;
+    if (typedAt < 0 || typedAt >= text.length) return text;
+    if (text[typedAt] != ",") return text;
+    if (oldValue.text.contains(".")) return text;
+    if (text.replaceRange(typedAt, typedAt + 1, "") != oldValue.text) {
+      return text;
+    }
+
+    return text.replaceRange(typedAt, typedAt + 1, ".");
+  }
+
+  /// The whole part of the amount without leading zeros, or `0` when it is
+  /// empty or all zeros.
+  static String _wholeDigits(String digits) {
+    final trimmed = digits.replaceFirst(AppRegex.leadingZeros, "");
+    return trimmed.isEmpty ? "0" : trimmed;
+  }
+
+  bool _exceedsLimits(String wholePart, String? decimalPart) {
+    if (wholePart.length > maxWholeDigits) return true;
+    if (decimalPart == null) return false;
+    return decimalDigits == 0 || decimalPart.length > decimalDigits;
   }
 }
 

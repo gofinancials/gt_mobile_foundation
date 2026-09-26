@@ -12,10 +12,7 @@ void main() {
     });
 
     test('rejects a value one short', () {
-      expect(
-        AppValidators.exactLength('012345678', length: 10),
-        'exactLength',
-      );
+      expect(AppValidators.exactLength('012345678', length: 10), 'exactLength');
     });
 
     test('rejects a value one long', () {
@@ -101,6 +98,41 @@ void main() {
           errorMessage: 'Wrong length',
         ),
         'Required',
+      );
+    });
+  });
+  group('AppValidators.amountValidator', () {
+    test('accepts up to two decimal places', () {
+      expect(AppValidators.amountValidator('1,000.55'), isNull);
+      expect(AppValidators.amountValidator('1,000.5'), isNull);
+      expect(AppValidators.amountValidator('1,000'), isNull);
+    });
+
+    test('rejects a third decimal place', () {
+      expect(AppValidators.amountValidator('1,000.555'), 'invalidAmount');
+    });
+
+    test('follows the currency decimal places', () {
+      expect(
+        AppValidators.amountValidator('1,000.5', decimalDigits: 0),
+        'invalidAmount',
+      );
+      expect(
+        AppValidators.amountValidator('1,000.555', decimalDigits: 3),
+        isNull,
+      );
+    });
+  });
+
+  group('AppValidators.balanceValidator', () {
+    test('accepts two decimal places within the balance', () {
+      expect(AppValidators.balanceValidator('10.55', balance: 20), isNull);
+    });
+
+    test('rejects a third decimal place', () {
+      expect(
+        AppValidators.balanceValidator('10.555', balance: 20),
+        'invalidAmount',
       );
     });
   });

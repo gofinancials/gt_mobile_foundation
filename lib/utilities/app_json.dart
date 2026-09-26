@@ -61,7 +61,7 @@ class AppJson {
     num number => number,
     String raw =>
       num.tryParse(raw.replaceAll(',', '')) ??
-          num.tryParse(raw.replaceAll(RegExp(r'[^0-9.\-]'), '')) ??
+          num.tryParse(raw.replaceAll(AppRegex.nonSignedAmount, '')) ??
           fallback,
     _ => fallback,
   };

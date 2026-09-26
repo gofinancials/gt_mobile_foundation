@@ -111,10 +111,10 @@ class AppHelpers {
   static num? extractAmount(String? amount) {
     if (!amount.hasValue) return null;
 
-    final pattern = RegExp(r"(\$|£|€|N)");
+    final pattern = AppRegex.currencyPrefix;
     final val = (amount!.startsWith(pattern) ? amount.substring(1) : amount)
         .trim();
-    final number = num.tryParse(val.replaceAll(RegExp(r'[^0-9\.]'), "").trim());
+    final number = num.tryParse(val.replaceAll(AppRegex.nonAmount, "").trim());
     return number;
   }
 
@@ -226,9 +226,6 @@ class AppHelpers {
     return {"message": defaultMessage, "statusCode": responseCode ?? 500};
   }
 
-  /// What marks a string as a page rather than a message.
-  static final _markup = RegExp(r'^\s*<|<html|<!doctype', caseSensitive: false);
-
   /// Reads a bare string [error]: a message a repository threw on purpose, or
   /// whatever a body nested where a narrower error was expected.
   static Map<String, dynamic> _parseErrorString(
@@ -244,7 +241,7 @@ class AppHelpers {
       );
     }
 
-    if (_markup.hasMatch(error)) {
+    if (AppRegex.htmlMarkup.hasMatch(error)) {
       return {"message": defaultMessage, "statusCode": statusCode};
     }
 

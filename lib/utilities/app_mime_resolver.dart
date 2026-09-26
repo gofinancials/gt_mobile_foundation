@@ -136,17 +136,6 @@ abstract final class AppMimeResolver {
     _asf: _typesOf(const ["wmv", "wma"]),
   };
 
-  static final _dataUriRegex = RegExp(
-    r"^data:([\w.+-]+/[\w.+-]+)[;,]",
-    caseSensitive: false,
-  );
-  static final _schemeRegex = RegExp(
-    r"^[a-z][a-z0-9+.-]+:",
-    caseSensitive: false,
-  );
-  static final _pathSeparatorRegex = RegExp(r"[\\/]");
-  static final _typeRegex = RegExp(r"^application/[\w.+-]+$");
-
   /// Returns `true` when [mimeType] says nothing specific: it is absent, a
   /// wildcard such as `image/*`, or an unknown-binary type such as
   /// `application/octet-stream`.
@@ -391,12 +380,13 @@ abstract final class AppMimeResolver {
     if (!path.hasValue) return null;
     var target = path!.trim();
     if (target.lower.startsWith("data:")) return null;
-    if (_schemeRegex.hasMatch(target)) {
+    if (AppRegex.uriScheme.hasMatch(target)) {
       target =
-          Uri.tryParse(target)?.path ?? target.split(RegExp(r"[?#]")).first;
+          Uri.tryParse(target)?.path ??
+          target.split(AppRegex.uriQueryOrFragment).first;
     }
 
-    final name = target.split(_pathSeparatorRegex).last;
+    final name = target.split(AppRegex.pathSeparator).last;
     final dot = name.lastIndexOf(".");
     if (dot <= 0 || dot == name.length - 1) return null;
     return name.substring(dot + 1).lower;
@@ -416,7 +406,9 @@ abstract final class AppMimeResolver {
   }
 
   static String? _dataUriType(String value) {
-    return _normalise(_dataUriRegex.firstMatch(value.trimLeft())?.group(1));
+    return _normalise(
+      AppRegex.dataUriMimeType.firstMatch(value.trimLeft())?.group(1),
+    );
   }
 
   static bool _isHttpUrl(String value) {
@@ -808,7 +800,7 @@ abstract final class AppMimeResolver {
 
     final start = 30 + nameLength + _uint16le(b, 28);
     final type = _latin1(b, start, min(_uint32le(b, 18), 128)).trim();
-    return _typeRegex.hasMatch(type) ? type.lower : null;
+    return AppRegex.applicationMimeType.hasMatch(type) ? type.lower : null;
   }
 
   /// Entry names from the central directory at the end of the archive, or

@@ -6,6 +6,13 @@ import 'package:gt_mobile_foundation/foundation.dart';
 class AppValidators {
   static bool _isEmpty(String? text) => !text.hasValue;
 
+  /// Whether the amount in [value] has more than [decimalDigits] digits after
+  /// its decimal point.
+  static bool _exceedsDecimals(String value, int decimalDigits) {
+    final parts = value.replaceAll(AppRegex.nonAmount, "").split('.');
+    return parts.length > 1 && parts.last.length > decimalDigits;
+  }
+
   static AppConfigStrings get strings {
     return locator<AppConfig>().strings;
   }
@@ -254,6 +261,9 @@ class AppValidators {
   }
 
   /// Validates that [value] parses to a valid amount within [minAmount] and [maxAmount].
+  ///
+  /// An amount with more than [decimalDigits] places is invalid, since the
+  /// currency cannot carry it.
   static String? amountValidator(
     String? value, {
     String? errorMessage,
@@ -262,6 +272,7 @@ class AppValidators {
     num? minAmount,
     num? maxAmount,
     bool isRequired = true,
+    int decimalDigits = 2,
   }) {
     final isEmpty = _isEmpty(value);
 
@@ -272,7 +283,7 @@ class AppValidators {
     }
 
     final num? amount = AppHelpers.extractAmount(value);
-    if (amount == null) {
+    if (amount == null || _exceedsDecimals(value!, decimalDigits)) {
       return errorMessage ?? strings.invalidAmount.tr();
     }
     if (minAmount != null && amount < minAmount) {
@@ -287,11 +298,15 @@ class AppValidators {
   }
 
   /// Validates that the numeric [value] does not exceed the provided [balance].
+  ///
+  /// An amount with more than [decimalDigits] places is invalid, since the
+  /// currency cannot carry it.
   static String? balanceValidator(
     String? value, {
     String? errorMessage,
     String? emptyMessage,
     required num balance,
+    int decimalDigits = 2,
   }) {
     final isEmpty = _isEmpty(value);
 
@@ -300,7 +315,7 @@ class AppValidators {
     }
 
     final num? amount = AppHelpers.extractAmount(value);
-    if (amount == null) {
+    if (amount == null || _exceedsDecimals(value!, decimalDigits)) {
       return errorMessage ?? strings.invalidAmount.tr();
     }
     if (amount > balance) {
@@ -358,7 +373,7 @@ class AppValidators {
 
     final value = trimmed ?? "";
 
-    if (digitsOnly && !RegExp(r'^\d+$').hasMatch(value)) {
+    if (digitsOnly && !AppRegex.digitsOnly.hasMatch(value)) {
       return errorMessage ?? strings.invalidNumber.tr();
     }
 
