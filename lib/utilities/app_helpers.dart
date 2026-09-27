@@ -283,8 +283,10 @@ class AppHelpers {
   /// The keys an error body spells its response code with. `DecryptInterceptor`
   /// writes decrypted ciphertext back under whichever case it found `data` in,
   /// so a body that arrived spelled `Data` keeps every other key in that same
-  /// case, `Status` included.
-  static const _codeKeys = ['responseCode', 'Status'];
+  /// case, `Status` included. The gateway's envelope spells its code
+  /// `ResponseCode` in that case, and a caller keyed on a gateway code needs
+  /// it in place of the HTTP status.
+  static const _codeKeys = ['responseCode', 'ResponseCode', 'Status'];
 
   /// The keys an error body spells its top-level message with.
   static const _messageKeys = ['message', 'Message'];

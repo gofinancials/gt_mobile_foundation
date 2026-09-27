@@ -64,6 +64,37 @@ void main() {
       expect(out['statusCode'], 422);
     });
 
+    test('the gateway code is read in either case', () {
+      final bodies = {
+        'camelCase': {
+          'isSuccessful': false,
+          'responseCode': '3',
+          'responseMessage': 'Invalid Phone Number',
+        },
+        'PascalCase': {
+          'IsSuccessful': false,
+          'ResponseCode': '3',
+          'ResponseMessage': 'Invalid Phone Number',
+          'Data': null,
+        },
+        'PascalCase nested under data': {
+          'data': {
+            'IsSuccessful': false,
+            'ResponseCode': '3',
+            'ResponseMessage': 'Invalid Phone Number',
+          },
+        },
+      };
+      bodies.forEach((label, body) {
+        final out = AppHelpers.parseError(
+          _dio(DioExceptionType.badResponse, response: _res(body, 400)),
+          defaultMessage: fallback,
+        );
+        expect(out['message'], 'Invalid Phone Number', reason: label);
+        expect(out['statusCode'], 3, reason: label);
+      });
+    });
+
     test('a blank message does not hide the envelope ResponseMessage', () {
       final out = AppHelpers.parseError({
         'message': '',

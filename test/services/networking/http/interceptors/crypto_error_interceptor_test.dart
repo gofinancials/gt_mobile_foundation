@@ -112,7 +112,7 @@ void main() {
       });
       final parsed = AppHelpers.parseError(passed, defaultMessage: 'GENERIC');
       expect(parsed['message'], 'Unauthorized client');
-      expect(parsed['statusCode'], 401);
+      expect(parsed['statusCode'], 4);
     });
 
     test(
