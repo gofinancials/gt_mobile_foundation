@@ -289,6 +289,11 @@ class AppHelpers {
   /// The keys an error body spells its top-level message with.
   static const _messageKeys = ['message', 'Message'];
 
+  /// The keys the gateway's own envelope spells its message with. Read apart
+  /// from [_messageKeys] because a body may carry both, and a blank `message`
+  /// must not hide the envelope's.
+  static const _responseMessageKeys = ['responseMessage', 'ResponseMessage'];
+
   /// The keys an error body spells its short error string with.
   static const _errorKeys = ['error', 'Error'];
 
@@ -338,6 +343,10 @@ class AppHelpers {
     // the next field rather than showing the customer an empty or `<none>`
     // error.
     if (_messageAt(json, _messageKeys) case final value?) {
+      return {"message": value, "statusCode": code};
+    }
+
+    if (_messageAt(json, _responseMessageKeys) case final value?) {
       return {"message": value, "statusCode": code};
     }
 

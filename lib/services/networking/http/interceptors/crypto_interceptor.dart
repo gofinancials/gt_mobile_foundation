@@ -139,7 +139,9 @@ class DecryptInterceptor extends InterceptorsWrapper {
   /// empty ciphertext when it carries none.
   ///
   /// The gateway sends the body either bare or under `data`; the error
-  /// pipeline also sees the capital-D `Data` spelling.
+  /// pipeline also sees the capital-D `Data` spelling. A text body that spells
+  /// a map reaches here already decoded by [_envelope], so a string that
+  /// reaches here is read as the bare ciphertext.
   (String, String) _ciphertext(dynamic rawData) => switch (rawData) {
     String str => (str, "data"),
     Map map when map["data"] is String => (map["data"] as String, "data"),
@@ -147,10 +149,21 @@ class DecryptInterceptor extends InterceptorsWrapper {
     _ => ("", "data"),
   };
 
+  /// [body] as the map it spells when it is text, or [body] itself.
+  ///
+  /// Dio decodes a body as JSON only under a JSON content type, so a reply
+  /// sent without one arrives as text. A body read as plain text is still the
+  /// gateway's envelope, only undecoded, and reading it whole as the
+  /// ciphertext fails decryption and leaves the envelope encrypted.
+  dynamic _envelope(dynamic body) => switch (body) {
+    String raw => AppJson.decodedMap(raw) ?? raw,
+    final other => other,
+  };
+
   /// [response] with its body decrypted, or [response] itself when there was
   /// nothing to decrypt or decryption did not succeed.
   Future<Response> _decrypted(Response response) async {
-    final rawData = response.data;
+    final rawData = _envelope(response.data);
     final (data, key) = _ciphertext(rawData);
 
     if (!data.hasValue) return response;

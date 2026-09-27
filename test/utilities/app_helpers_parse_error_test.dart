@@ -38,6 +38,15 @@ void main() {
       'nested Data': {
         'Data': {'message': 'Daily limit exceeded'},
       },
+      'responseMessage key': {'responseMessage': 'Unauthorized client'},
+      'ResponseMessage key': {'ResponseMessage': 'Unauthorized client'},
+      'ResponseMessage nested under data': {
+        'data': {
+          'IsSuccessful': false,
+          'ResponseCode': '04',
+          'ResponseMessage': 'Unauthorized client',
+        },
+      },
     };
     cases.forEach((label, body) {
       test(label, () {
@@ -53,6 +62,14 @@ void main() {
       }, defaultMessage: fallback);
       expect(out['message'], 'Daily limit exceeded');
       expect(out['statusCode'], 422);
+    });
+
+    test('a blank message does not hide the envelope ResponseMessage', () {
+      final out = AppHelpers.parseError({
+        'message': '',
+        'ResponseMessage': 'Unauthorized client',
+      }, defaultMessage: fallback);
+      expect(out['message'], 'Unauthorized client');
     });
 
     test('a body spelled entirely in the capitalised case is still read', () {
