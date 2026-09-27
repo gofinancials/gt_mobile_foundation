@@ -58,6 +58,13 @@ class EncryptInterceptor extends InterceptorsWrapper {
       return handler.next(options);
     }
     try {
+      // The tag identifies the client, so it goes on every sensitive request,
+      // including a GET with no body to encrypt; the gateway refuses a client
+      // it cannot identify.
+      options = options.copyWith(
+        headers: {...options.headers, tagHeaderKey: _appTag},
+      );
+
       final data = options.data;
       if (data is! List && data is! Map && data is! String) {
         return handler.next(options);
@@ -68,10 +75,7 @@ class EncryptInterceptor extends InterceptorsWrapper {
       encryptWatch.stop();
       options.recordPhase("encrypt", encryptWatch.elapsed);
 
-      options = options.copyWith(
-        data: {"data": encryptedData},
-        headers: {...options.headers, tagHeaderKey: _appTag},
-      );
+      options = options.copyWith(data: {"data": encryptedData});
 
       AppLogger.info({
         "plainText": "***REDACTED***",

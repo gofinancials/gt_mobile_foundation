@@ -128,6 +128,50 @@ void main() {
       });
     });
 
+    test('EncryptInterceptor tags a sensitive request with no body', () async {
+      late RequestOptions sentRequest;
+      final model = AppHttpModel(
+        'https://example.com',
+        interceptors: [
+          EncryptInterceptor(
+            cryptoService,
+            mode: .base64,
+            strategy: .colonDelimited,
+          ),
+          InterceptorsWrapper(
+            onRequest: (options, handler) {
+              sentRequest = options;
+              handler.resolve(
+                Response(
+                  requestOptions: options,
+                  data: {'responseCode': '00', 'message': 'Successful'},
+                  statusCode: 200,
+                ),
+                true,
+              );
+            },
+          ),
+        ],
+      );
+      final service = _TestHttpService(model);
+
+      await service.get(
+        '/onboarding/getonboardingprogress/08012345678',
+        isSensitiveRequest: true,
+      );
+
+      expect(sentRequest.method, 'GET');
+      expect(sentRequest.data, isNull);
+      expect(
+        cryptoService.decrypt(
+          sentRequest.headers['App-Tag'] as String,
+          mode: .base64,
+          strategy: .colonDelimited,
+        ),
+        tag,
+      );
+    });
+
     test(
       'sensitive requests and responses are transformed end to end',
       () async {
