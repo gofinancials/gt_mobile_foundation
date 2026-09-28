@@ -186,6 +186,13 @@ class AppRegex {
   );
   static final base64IndicatorRegex = RegExp(r'[g-zG-Z+/=_-]');
   static final base64Regex = RegExp(r'^[A-Za-z0-9+/_-]+={0,2}$');
+
+  /// A gateway ciphertext: one hex or base64 token, or an `<iv>:<ciphertext>`
+  /// pair. An AES-GCM payload carries at least a 12-byte IV and a 16-byte tag,
+  /// so anything shorter than 32 characters is plain text.
+  static final ciphertext = RegExp(
+    r'^(?=.{32,}$)[A-Za-z0-9+/_-]+={0,2}(:[A-Za-z0-9+/_-]+={0,2})?$',
+  );
   static final sixDigits = RegExp(r'^\d{6}$');
   static final controlCharacters = RegExp(r'[\u0000-\u001F\u007F]');
   static final name = RegExp(r"^[A-Za-z .'-]+$");

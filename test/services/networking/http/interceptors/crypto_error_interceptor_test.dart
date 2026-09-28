@@ -169,12 +169,14 @@ void main() {
       });
     });
 
-    test('a non-sensitive request is left alone', () async {
+    test('a refusal to a non-sensitive request is decrypted', () async {
       final body = {'data': encrypt('{"message":"Refused"}')};
 
       final passed = await run(error(data: body, sensitive: false));
 
-      expect(passed?.response?.data, same(body));
+      expect(passed?.response?.data, {
+        'data': {'message': 'Refused'},
+      });
     });
 
     test('a transport error with no response passes through', () async {
