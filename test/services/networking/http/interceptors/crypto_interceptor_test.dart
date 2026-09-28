@@ -15,6 +15,17 @@ class _TestBody extends MapCodable {
   Map<String, dynamic> toJson() => value;
 }
 
+/// Captures what the interceptor passes down the response pipeline.
+///
+/// It deliberately does not delegate to `super`, which would complete the
+/// handler's future with the response and leave it unobserved.
+class _CapturingResponseHandler extends ResponseInterceptorHandler {
+  Response? captured;
+
+  @override
+  void next(Response response) => captured = response;
+}
+
 void main() {
   group('Crypto interceptors', () {
     const tag = 'OneBankProDevMobileApiKey00001';
@@ -85,6 +96,81 @@ void main() {
         expect(response.data, {'data': ciphertext});
       });
     }
+
+    test('DecryptInterceptor decrypts an envelope read as text', () async {
+      final interceptor = DecryptInterceptor(
+        cryptoService,
+        mode: .base64,
+        strategy: .colonDelimited,
+      );
+      final ciphertext = cryptoService.encrypt(
+        '{"transactionId":42}',
+        mode: .base64,
+        strategy: .colonDelimited,
+      );
+      final response = Response(
+        requestOptions: RequestOptions(
+          path: '/api/v1/transfer',
+          extra: {sensitiveRequestExtraKey: true},
+        ),
+        data: '{"responseCode":"00","data":"$ciphertext"}',
+        statusCode: 200,
+      );
+      final handler = _CapturingResponseHandler();
+
+      interceptor.onResponse(response, handler);
+      // onResponse is async; let its microtasks drain.
+      await Future<void>.delayed(Duration.zero);
+
+      expect(handler.captured?.data, {
+        'responseCode': '00',
+        'data': {'transactionId': 42},
+      });
+    });
+
+    test('EncryptInterceptor tags a sensitive request with no body', () async {
+      late RequestOptions sentRequest;
+      final model = AppHttpModel(
+        'https://example.com',
+        interceptors: [
+          EncryptInterceptor(
+            cryptoService,
+            mode: .base64,
+            strategy: .colonDelimited,
+          ),
+          InterceptorsWrapper(
+            onRequest: (options, handler) {
+              sentRequest = options;
+              handler.resolve(
+                Response(
+                  requestOptions: options,
+                  data: {'responseCode': '00', 'message': 'Successful'},
+                  statusCode: 200,
+                ),
+                true,
+              );
+            },
+          ),
+        ],
+      );
+      final service = _TestHttpService(model);
+
+      await service.get(
+        '/onboarding/getonboardingprogress/08012345678',
+        isSensitiveRequest: true,
+      );
+
+      expect(sentRequest.method, 'GET');
+      expect(sentRequest.data, isNull);
+      expect(
+        cryptoService.decrypt(
+          sentRequest.headers['App-Tag'] as String,
+          mode: .base64,
+          strategy: .colonDelimited,
+        ),
+        tag,
+      );
+    });
 
     test(
       'sensitive requests and responses are transformed end to end',

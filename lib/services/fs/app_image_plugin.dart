@@ -42,11 +42,21 @@ class AppImagePlugin {
   }
 
   /// Opens the device's native file picker configured specifically to select a single image file.
-  static Future<FsResponse> pickImage({int? imageQuality}) async {
+  ///
+  /// [imageQuality] re-encodes the image, and [maxWidth] and [maxHeight] scale
+  /// it down to fit, so a large photograph can be brought under an upload
+  /// limit. Left out, the image is returned as picked.
+  static Future<FsResponse> pickImage({
+    int? imageQuality,
+    double? maxWidth,
+    double? maxHeight,
+  }) async {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
         imageQuality: imageQuality,
+        maxWidth: maxWidth,
+        maxHeight: maxHeight,
       );
       if (image != null) return await _response(image);
       return const FsResponse(
@@ -93,9 +103,22 @@ class AppImagePlugin {
   ///
   /// The optional [limit] parameter restricts the maximum number of images
   /// a user can select. It defaults to 5.
-  static Future<List<FsResponse>> pickImages({int limit = 5}) async {
+  ///
+  /// [imageQuality], [maxWidth] and [maxHeight] apply to every image, as they
+  /// do for [pickImage].
+  static Future<List<FsResponse>> pickImages({
+    int limit = 5,
+    int? imageQuality,
+    double? maxWidth,
+    double? maxHeight,
+  }) async {
     try {
-      final List<XFile> images = await _picker.pickMultiImage(limit: limit);
+      final List<XFile> images = await _picker.pickMultiImage(
+        limit: limit,
+        imageQuality: imageQuality,
+        maxWidth: maxWidth,
+        maxHeight: maxHeight,
+      );
       return await Future.wait(images.map(_response));
     } catch (e, t) {
       return [

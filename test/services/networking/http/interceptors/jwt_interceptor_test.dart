@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
@@ -32,6 +34,12 @@ class _Stub implements HttpClientAdapter {
   var reached = false;
   String? authorization;
 
+  /// The status every reply carries.
+  var status = 200;
+
+  /// Runs while the request is in flight, before its reply.
+  void Function()? inFlight;
+
   @override
   Future<ResponseBody> fetch(
     RequestOptions o,
@@ -40,9 +48,10 @@ class _Stub implements HttpClientAdapter {
   ) async {
     reached = true;
     authorization = o.headers['Authorization'] as String?;
+    inFlight?.call();
     return ResponseBody.fromString(
-      '{"ok":true}',
-      200,
+      status == 200 ? '{"ok":true}' : '{"message":"session ended"}',
+      status,
       headers: {
         Headers.contentTypeHeader: [Headers.jsonContentType],
       },
@@ -76,6 +85,8 @@ void main() {
   Dio build({
     required FutureCall<String?> onRenew,
     OnJwtRenewalFailure? onRenewalFailure,
+    int? sessionExpiredStatus,
+    OnJwtSessionExpired? onSessionExpired,
     bool refresh = true,
     bool hasToken = true,
     bool isExpired = false,
@@ -93,6 +104,8 @@ void main() {
           session,
           onRenew: onRenew,
           onRenewalFailure: onRenewalFailure,
+          sessionExpiredStatus: sessionExpiredStatus,
+          onSessionExpired: onSessionExpired,
         ),
       );
   }
@@ -337,6 +350,208 @@ void main() {
 
       await dio.get<dynamic>('/ping');
       expect(adapter.reached, isTrue);
+    });
+  });
+
+  group('a session the gateway has ended', () {
+    late List<DioException> lapses;
+
+    Dio lapsing({
+      FutureCall<String?>? onRenew,
+      OnJwtRenewalFailure? onRenewalFailure,
+      OnJwtSessionExpired? onSessionExpired,
+      bool refresh = false,
+      int status = 440,
+    }) {
+      lapses = [];
+      final dio = build(
+        onRenew: onRenew ?? () async => 'fresh',
+        onRenewalFailure: onRenewalFailure,
+        sessionExpiredStatus: 440,
+        onSessionExpired: onSessionExpired ?? lapses.add,
+        refresh: refresh,
+      );
+      adapter.status = status;
+      return dio;
+    }
+
+    test('is reported, and the caller still receives its failure', () async {
+      final dio = lapsing();
+
+      final parsed = AppHelpers.parseError(await failureOf(dio));
+      expect(lapses.single.response?.statusCode, 440);
+      expect(
+        parsed['statusCode'],
+        440,
+        reason: 'the caller renders its own failure',
+      );
+    });
+
+    test('is not read from any other status', () async {
+      // A 401 from this gateway can refuse a request on a credential it still
+      // honours; reading it as an ended session looped a customer through
+      // sign-in.
+      final dio = lapsing(status: 401);
+
+      await failureOf(dio);
+      expect(lapses, isEmpty);
+    });
+
+    test('is not reported for a request sent on an earlier token', () async {
+      final dio = lapsing();
+      // The customer signs in again while this request is in flight.
+      adapter.inFlight = () => session.accessToken = 'next';
+
+      await failureOf(dio);
+      expect(
+        lapses,
+        isEmpty,
+        reason: 'the reply speaks for a session the customer already left',
+      );
+    });
+
+    test('is not reported for a request marked public', () async {
+      final dio = lapsing();
+
+      await failureOf(
+        dio,
+        options: Options(extra: {publicRequestExtraKey: true}),
+      );
+      expect(lapses, isEmpty);
+    });
+
+    test('is not reported for a request sent with no token', () async {
+      final dio = lapsing();
+      session.accessToken = null;
+
+      await failureOf(dio);
+      expect(adapter.authorization, isNull);
+      expect(lapses, isEmpty);
+    });
+
+    test('is reported once for each concurrent request', () async {
+      // One screen's fan-out is answered together; telling the calls apart is
+      // the host's.
+      final dio = lapsing();
+
+      await Future.wait(List.generate(3, (_) => failureOf(dio)));
+      expect(lapses, hasLength(3));
+    });
+
+    test('stops once the host clears the session', () async {
+      final dio = lapsing(
+        onSessionExpired: (error) {
+          lapses.add(error);
+          session.accessToken = null;
+        },
+      );
+
+      await Future.wait(List.generate(3, (_) => failureOf(dio)));
+      expect(
+        lapses,
+        hasLength(1),
+        reason: 'the bearer the rest carried is no longer the current one',
+      );
+    });
+
+    test('is not awaited', () async {
+      final dio = lapsing(onSessionExpired: (_) => Completer<void>().future);
+
+      expect(await failureOf(dio), isA<DioException>());
+    });
+
+    test('a handler that throws leaves the failure as it was', () async {
+      final dio = lapsing(onSessionExpired: (_) => throw StateError('down'));
+
+      final parsed = AppHelpers.parseError(await failureOf(dio));
+      expect(parsed['statusCode'], 440);
+    });
+
+    test('is reported when renewal is what the gateway refused', () async {
+      final dio = lapsing(
+        onRenew: () async => throw gatewayFailure(440, {'message': 'ended'}),
+        onRenewalFailure: (_, _, _) => JwtRenewalAction.fail,
+        refresh: true,
+      );
+
+      final parsed = AppHelpers.parseError(await failureOf(dio));
+      expect(adapter.reached, isFalse);
+      expect(lapses.single.requestOptions.path, '/renew');
+      expect(parsed['statusCode'], 440);
+    });
+
+    test(
+      'a refused renewal is reported once, not again on rejection',
+      () async {
+        // dio hands a request interceptor's rejection back to every onError,
+        // this interceptor's included, carrying the renewal's status.
+        final dio = lapsing(
+          onRenew: () async => throw gatewayFailure(440, {'message': 'ended'}),
+          onRenewalFailure: (_, _, _) => JwtRenewalAction.fail,
+          refresh: true,
+        );
+
+        await failureOf(
+          dio,
+          options: Options(headers: {'Authorization': 'Bearer stale'}),
+        );
+        expect(lapses, hasLength(1));
+      },
+    );
+
+    test('a refused renewal still leaves the request to the handler', () async {
+      final dio = lapsing(
+        onRenew: () async => throw gatewayFailure(440, {'message': 'ended'}),
+        onRenewalFailure: (_, _, _) => JwtRenewalAction.proceed,
+        refresh: true,
+        status: 200,
+      );
+
+      await dio.get<dynamic>('/ping');
+      expect(adapter.authorization, 'Bearer stale');
+      expect(lapses, hasLength(1));
+    });
+
+    test(
+      'a refused renewal is not reported once the host closed the session',
+      () async {
+        final dio = lapsing(
+          onRenew: () async {
+            session.accessToken = null;
+            throw gatewayFailure(440, {'message': 'ended'});
+          },
+          onRenewalFailure: (_, _, _) => JwtRenewalAction.fail,
+          refresh: true,
+        );
+
+        await failureOf(dio);
+        expect(lapses, isEmpty);
+      },
+    );
+
+    test('a refused renewal for a public request is not reported', () async {
+      final dio = lapsing(
+        onRenew: () async => throw gatewayFailure(440, {'message': 'ended'}),
+        onRenewalFailure: (_, _, _) => JwtRenewalAction.fail,
+        refresh: true,
+      );
+
+      await failureOf(
+        dio,
+        options: Options(extra: {publicRequestExtraKey: true}),
+      );
+      expect(lapses, isEmpty);
+    });
+
+    test('the status and handler are given together', () {
+      expect(
+        () => JwtInterceptor(
+          _Session(),
+          onRenew: () async => null,
+          sessionExpiredStatus: 440,
+        ),
+        throwsAssertionError,
+      );
     });
   });
 }
