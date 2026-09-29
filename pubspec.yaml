@@ -21,6 +21,7 @@ dependencies:
   firebase_core: ^4.9.0
   firebase_crashlytics: ^5.2.2
   firebase_messaging: ^16.2.2
+  flutter_native_contact_picker: ^0.0.12
   flutter_secure_storage: ^10.3.1
   get_it: ^8.2.0
   image_picker: ^1.2.2
@@ -44,6 +45,7 @@ dev_dependencies:
   firebase_core_platform_interface: ^8.1.1
   firebase_messaging_platform_interface: ^4.10.0
   flutter_lints: ^5.0.0
+  image_picker_platform_interface: ^2.11.1
   plugin_platform_interface: ^2.1.8
   share_plus_platform_interface: ^6.1.0
   video_player_platform_interface: ^6.7.0

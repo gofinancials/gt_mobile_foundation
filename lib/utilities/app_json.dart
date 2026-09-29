@@ -35,6 +35,10 @@ class AppJson {
     'description',
   ];
 
+  /// What a gateway writes in a message field when it has nothing to say,
+  /// compared trimmed and in lower case.
+  static const placeholderMessages = ['<none>', 'none', 'null'];
+
   /// [value] as a string-keyed map, or [fallback] for anything that is not a
   /// map.
   ///
@@ -61,7 +65,7 @@ class AppJson {
     num number => number,
     String raw =>
       num.tryParse(raw.replaceAll(',', '')) ??
-          num.tryParse(raw.replaceAll(RegExp(r'[^0-9.\-]'), '')) ??
+          num.tryParse(raw.replaceAll(AppRegex.nonSignedAmount, '')) ??
           fallback,
     _ => fallback,
   };
@@ -208,8 +212,28 @@ class AppJson {
   }
 
   /// The message the gateway attached to [json], empty when it attached none.
-  static String message(Map<String, dynamic> json) =>
-      stringAt(json, messageKeys);
+  ///
+  /// A blank or placeholder message under one spelling gives way to the next,
+  /// as if it were absent.
+  static String message(Map<String, dynamic> json) {
+    for (final key in messageKeys) {
+      if (asMessage(json[key]) case final text?) return text;
+    }
+    return '';
+  }
+
+  /// [value] trimmed, as a message worth showing, or `null` when it is not a
+  /// string, is blank or is one of [placeholderMessages].
+  ///
+  /// A gateway that fills a message field with `<none>` instead of leaving it
+  /// out would otherwise hand the customer that placeholder as the error.
+  static String? asMessage(Object? value) {
+    if (value is! String) return null;
+    final text = value.trim();
+    if (text.isEmpty) return null;
+    if (placeholderMessages.contains(text.lower)) return null;
+    return text;
+  }
 
   static Object? _decodeOrNull(String raw) {
     try {

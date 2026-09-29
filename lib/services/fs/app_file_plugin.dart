@@ -40,6 +40,49 @@ class AppFilePlugin {
     return 200;
   }
 
+  /// Builds the response for a picked [choiceFile], typed from its content
+  /// and checked against the size limit for that type.
+  static Future<FsResponse> _response(
+    PlatformFile choiceFile,
+    FsDocumentType documentType,
+  ) async {
+    try {
+      final path = choiceFile.path;
+      if (path == null) {
+        return FsResponse(
+          type: documentType,
+          error: const FsError(type: .empty),
+        );
+      }
+
+      final File file = File(path);
+      final mimeType = await getFileMimeType(
+        file,
+        type: documentType,
+        name: choiceFile.name,
+      );
+      final maxSizeInMb = getMaxSizeInMb(mimeType ?? "");
+
+      if (AppHelpers.fileSizeInMb(file) > maxSizeInMb) {
+        return FsResponse(
+          error: const FsError(type: .oversized),
+          type: documentType,
+        );
+      }
+      return FsResponse(
+        file: file,
+        name: choiceFile.name,
+        type: documentType,
+        mimeType: mimeType,
+      );
+    } catch (e, t) {
+      return FsResponse(
+        error: FsError(type: .unknown, error: e, stackTrace: t),
+        type: documentType,
+      );
+    }
+  }
+
   /// Opens the device's native file picker to let the user select a file.
   /// Validates file size against limits based on the user's tier.
   static Future<FsResponse> pickFile({
@@ -61,40 +104,49 @@ class AppFilePlugin {
         );
       }
 
-      final choiceFile = pickedFile.files.first;
-
-      if (choiceFile.path == null) {
-        return FsResponse(
-          type: documentType,
-          error: const FsError(type: .empty),
-        );
-      }
-
-      final File file = File(choiceFile.path!);
-      final mimeType = await getFileMimeType(
-        file,
-        type: documentType,
-        name: choiceFile.name,
-      );
-      final maxSizeInMb = getMaxSizeInMb(mimeType ?? "");
-
-      if (AppHelpers.fileSizeInMb(file) > maxSizeInMb) {
-        return FsResponse(
-          error: const FsError(type: .oversized),
-          type: documentType,
-        );
-      }
+      return await _response(pickedFile.files.first, documentType);
+    } catch (e, t) {
       return FsResponse(
-        file: file,
-        name: choiceFile.name,
-        type: documentType,
-        mimeType: mimeType,
-      );
-    } catch (e) {
-      return FsResponse(
-        error: const FsError(type: .unknown),
+        error: FsError(type: .unknown, error: e, stackTrace: t),
         type: documentType,
       );
+    }
+  }
+
+  /// Opens the device's native file picker to let the user select several
+  /// files at once.
+  ///
+  /// Returns one [FsResponse] per picked file, in the order picked. Each file
+  /// is checked on its own, so an oversized or unreadable file carries its
+  /// own error without affecting the others.
+  ///
+  /// Returns an empty list when the user dismisses the picker, and a single
+  /// [FsErrorType.unknown] response when the picker itself fails.
+  static Future<List<FsResponse>> pickFiles({
+    String? title,
+    FsDocumentType documentType = .document,
+  }) async {
+    try {
+      final pickedFiles = await _picker.pickFiles(
+        allowedExtensions: documentType.extensions,
+        allowMultiple: true,
+        dialogTitle: title,
+        type: documentType.type,
+        withReadStream: true,
+      );
+
+      if (pickedFiles == null) return [];
+
+      return await Future.wait(
+        pickedFiles.files.map((file) => _response(file, documentType)),
+      );
+    } catch (e, t) {
+      return [
+        FsResponse(
+          error: FsError(type: .unknown, error: e, stackTrace: t),
+          type: documentType,
+        ),
+      ];
     }
   }
 

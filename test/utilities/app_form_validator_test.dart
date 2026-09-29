@@ -12,10 +12,7 @@ void main() {
     });
 
     test('rejects a value one short', () {
-      expect(
-        AppValidators.exactLength('012345678', length: 10),
-        'exactLength',
-      );
+      expect(AppValidators.exactLength('012345678', length: 10), 'exactLength');
     });
 
     test('rejects a value one long', () {
@@ -102,6 +99,111 @@ void main() {
         ),
         'Required',
       );
+    });
+  });
+  group('AppValidators.amountValidator', () {
+    test('accepts up to two decimal places', () {
+      expect(AppValidators.amountValidator('1,000.55'), isNull);
+      expect(AppValidators.amountValidator('1,000.5'), isNull);
+      expect(AppValidators.amountValidator('1,000'), isNull);
+    });
+
+    test('rejects a third decimal place', () {
+      expect(AppValidators.amountValidator('1,000.555'), 'invalidAmount');
+    });
+
+    test('follows the currency decimal places', () {
+      expect(
+        AppValidators.amountValidator('1,000.5', decimalDigits: 0),
+        'invalidAmount',
+      );
+      expect(
+        AppValidators.amountValidator('1,000.555', decimalDigits: 3),
+        isNull,
+      );
+    });
+  });
+
+  group('AppValidators.balanceValidator', () {
+    test('accepts two decimal places within the balance', () {
+      expect(AppValidators.balanceValidator('10.55', balance: 20), isNull);
+    });
+
+    test('rejects a third decimal place', () {
+      expect(
+        AppValidators.balanceValidator('10.555', balance: 20),
+        'invalidAmount',
+      );
+    });
+  });
+
+  group('AppValidators.phoneValidator', () {
+    test('accepts a Nigerian mobile number', () {
+      expect(
+        AppValidators.phoneValidator('0803 123 4567', countryCode: '+234'),
+        isNull,
+      );
+    });
+
+    test('rejects Nigerian mobile numbers one and two digits short', () {
+      expect(
+        AppValidators.phoneValidator('801234567', countryCode: '+234'),
+        'invalidPhone',
+      );
+      expect(
+        AppValidators.phoneValidator('80123456', countryCode: '+234'),
+        'invalidPhone',
+      );
+    });
+
+    test('checks the length of the selected country', () {
+      expect(
+        AppValidators.phoneValidator('024 123 4567', countryCode: '+233'),
+        isNull,
+      );
+      expect(
+        AppValidators.phoneValidator('024 123 4567', countryCode: '+234'),
+        'invalidPhone',
+      );
+    });
+
+    test('accepts a country whose dial carries an area code', () {
+      expect(
+        AppValidators.phoneValidator('555 1234', countryCode: '+1-876'),
+        isNull,
+      );
+    });
+
+    test('uses the configured country when none is selected', () {
+      expect(AppValidators.phoneValidator('08031234567'), isNull);
+      expect(AppValidators.phoneValidator('0241234567'), 'invalidPhone');
+    });
+
+    test('honours an explicit length', () {
+      expect(
+        AppValidators.phoneValidator(
+          '12345678',
+          countryCode: '+234',
+          nationalLength: 8,
+        ),
+        isNull,
+      );
+    });
+
+    test('rejects letters', () {
+      expect(
+        AppValidators.phoneValidator('0803a1234567', countryCode: '+234'),
+        'invalidPhone',
+      );
+    });
+
+    test('prefers the caller\'s messages', () {
+      expect(AppValidators.phoneValidator('0803', errorMessage: 'bad'), 'bad');
+      expect(AppValidators.phoneValidator('', emptyMessage: 'empty'), 'empty');
+    });
+
+    test('allows an optional field left empty', () {
+      expect(AppValidators.phoneValidator('', isRequired: false), isNull);
     });
   });
 }

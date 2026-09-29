@@ -39,6 +39,10 @@ class AppRegex {
   static final specialCharRegEx = RegExp(r"[^A-Za-z0-9]+");
   static final eightCharRegEx = RegExp(r".{8,}");
   static final phoneRegex = RegExp(r"^(\+[0-9]{1,4}\s)?[0-9]{5,15}$");
+
+  /// The characters a phone number may be written with: digits, spaces,
+  /// brackets, dots and hyphens, after an optional leading `+`.
+  static final phoneCharacters = RegExp(r"^\+?[\d\s().-]+$");
   static final imageRegex = RegExp(
     r"\.(gif|jp(e)?g|tif(f)?|png|webp|bmp|heic)$",
   );
@@ -73,6 +77,50 @@ class AppRegex {
   /// Every character that is not a digit, for reducing a typed value —
   /// a phone number, an account number — to the digits it carries.
   static final nonDigits = RegExp(r"[^\d]");
+
+  /// Every character that is neither a digit nor a decimal point, for
+  /// reducing a typed or formatted amount to the number it carries.
+  static final nonAmount = RegExp(r"[^0-9.]");
+
+  /// Every character that is neither a digit, a decimal point nor a minus
+  /// sign, for reducing a value to the signed number it carries.
+  static final nonSignedAmount = RegExp(r"[^0-9.\-]");
+
+  /// A leading currency symbol or `N` for naira, as typed before an amount.
+  static final currencyPrefix = RegExp(r"(\$|£|€|N)");
+
+  /// A value made only of digits, with at least one.
+  static final digitsOnly = RegExp(r"^\d+$");
+
+  /// What marks a string as an HTML page rather than a message.
+  static final htmlMarkup = RegExp(
+    r"^\s*<|<html|<!doctype",
+    caseSensitive: false,
+  );
+
+  /// The MIME type declared at the start of a `data:` URI, in group 1.
+  static final dataUriMimeType = RegExp(
+    r"^data:([\w.+-]+/[\w.+-]+)[;,]",
+    caseSensitive: false,
+  );
+
+  /// A URI scheme such as `https:` or `content:` at the start of a string.
+  static final uriScheme = RegExp(r"^[a-z][a-z0-9+.-]+:", caseSensitive: false);
+
+  /// The start of a URI's query or fragment.
+  static final uriQueryOrFragment = RegExp(r"[?#]");
+
+  /// A forward or back slash between path segments.
+  static final pathSeparator = RegExp(r"[\\/]");
+
+  /// A MIME type in the `application/` family.
+  static final applicationMimeType = RegExp(r"^application/[\w.+-]+$");
+
+  /// The zeros at the start of a string of digits.
+  static final leadingZeros = RegExp(r"^0+");
+
+  /// Each position in a run of digits where a thousands separator belongs.
+  static final thousandsBoundary = RegExp(r"\B(?=(\d{3})+(?!\d))");
   static final customSchemeRegex = RegExp(
     r"(?<scheme>\w{1,3})(:\/)(?<path>\/[\w\W\d\D]{1,})",
     caseSensitive: false,
@@ -138,6 +186,27 @@ class AppRegex {
   );
   static final base64IndicatorRegex = RegExp(r'[g-zG-Z+/=_-]');
   static final base64Regex = RegExp(r'^[A-Za-z0-9+/_-]+={0,2}$');
+
+  /// A gateway ciphertext: one hex or base64 token, or an `<iv>:<ciphertext>`
+  /// pair. An AES-GCM payload carries at least a 12-byte IV and a 16-byte tag,
+  /// so anything shorter than 32 characters is plain text.
+  static final ciphertext = RegExp(
+    r'^(?=.{32,}$)[A-Za-z0-9+/_-]+={0,2}(:[A-Za-z0-9+/_-]+={0,2})?$',
+  );
+  static final sixDigits = RegExp(r'^\d{6}$');
+  static final controlCharacters = RegExp(r'[\u0000-\u001F\u007F]');
+  static final name = RegExp(r"^[A-Za-z .'-]+$");
+  static final nameBoundary = RegExp(r"^[ .'-]|[ .'-]$");
+  static final containsLetter = RegExp(r'[A-Za-z]');
+  static final address = RegExp(r"^[A-Za-z0-9 #&(),./'-]+$");
+  static final label = RegExp(r"^[A-Za-z0-9 &(),./'-]+$");
+  static final identifier = RegExp(r'^[A-Za-z0-9/-]+$');
+  static final taxId = RegExp(r'^[A-Za-z0-9-]+$');
+  static final visibleAscii = RegExp(r'^[\x20-\x7E]+$');
+  static final emailLocalPart = RegExp(r'^[A-Za-z0-9._+\-]+$');
+  static final emailDomain = RegExp(r'^[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+  static final emailDomainLabel = RegExp(r'^[A-Za-z0-9-]+$');
+  static final postalCode = RegExp(r'^\d{6}$');
 
   static String getMatchGroupValue({
     required RegExp pattern,

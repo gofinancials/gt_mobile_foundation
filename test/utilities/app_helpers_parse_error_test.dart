@@ -38,6 +38,15 @@ void main() {
       'nested Data': {
         'Data': {'message': 'Daily limit exceeded'},
       },
+      'responseMessage key': {'responseMessage': 'Unauthorized client'},
+      'ResponseMessage key': {'ResponseMessage': 'Unauthorized client'},
+      'ResponseMessage nested under data': {
+        'data': {
+          'IsSuccessful': false,
+          'ResponseCode': '04',
+          'ResponseMessage': 'Unauthorized client',
+        },
+      },
     };
     cases.forEach((label, body) {
       test(label, () {
@@ -53,6 +62,45 @@ void main() {
       }, defaultMessage: fallback);
       expect(out['message'], 'Daily limit exceeded');
       expect(out['statusCode'], 422);
+    });
+
+    test('the gateway code is read in either case', () {
+      final bodies = {
+        'camelCase': {
+          'isSuccessful': false,
+          'responseCode': '3',
+          'responseMessage': 'Invalid Phone Number',
+        },
+        'PascalCase': {
+          'IsSuccessful': false,
+          'ResponseCode': '3',
+          'ResponseMessage': 'Invalid Phone Number',
+          'Data': null,
+        },
+        'PascalCase nested under data': {
+          'data': {
+            'IsSuccessful': false,
+            'ResponseCode': '3',
+            'ResponseMessage': 'Invalid Phone Number',
+          },
+        },
+      };
+      bodies.forEach((label, body) {
+        final out = AppHelpers.parseError(
+          _dio(DioExceptionType.badResponse, response: _res(body, 400)),
+          defaultMessage: fallback,
+        );
+        expect(out['message'], 'Invalid Phone Number', reason: label);
+        expect(out['statusCode'], 3, reason: label);
+      });
+    });
+
+    test('a blank message does not hide the envelope ResponseMessage', () {
+      final out = AppHelpers.parseError({
+        'message': '',
+        'ResponseMessage': 'Unauthorized client',
+      }, defaultMessage: fallback);
+      expect(out['message'], 'Unauthorized client');
     });
 
     test('a body spelled entirely in the capitalised case is still read', () {
@@ -396,6 +444,104 @@ The BVN is invalid.''');
 
     test('an errors value that is not a map is ignored', () {
       expect(parse({'errors': 'unexpected'})['message'], fallback);
+    });
+  });
+  group('a blank or placeholder message is no message', () {
+    const placeholders = [
+      '<none>',
+      'none',
+      'null',
+      ' NONE ',
+      'Null',
+      ' <None>',
+    ];
+
+    for (final placeholder in placeholders) {
+      test('"$placeholder" as the message falls back', () {
+        final out = AppHelpers.parseError({
+          'message': placeholder,
+          'responseCode': '400',
+        }, defaultMessage: fallback);
+        expect(out['message'], fallback);
+        expect(out['statusCode'], 400);
+      });
+
+      test('"$placeholder" thrown as a string falls back', () {
+        final out = AppHelpers.parseError(
+          placeholder,
+          defaultMessage: fallback,
+        );
+        expect(out['message'], fallback);
+      });
+
+      test('"$placeholder" in a 4xx body falls back', () {
+        final out = AppHelpers.parseError(
+          _dio(
+            DioExceptionType.badResponse,
+            response: _res({'message': placeholder}, 400),
+          ),
+          defaultMessage: fallback,
+        );
+        expect(out['message'], fallback);
+        expect(out['statusCode'], 400);
+      });
+    }
+
+    test('an empty message falls through to the field errors', () {
+      final out = AppHelpers.parseError({
+        'message': '',
+        'errors': {
+          'amount': ['Amount is required'],
+        },
+      }, defaultMessage: fallback);
+      expect(out['message'], 'Amount is required');
+    });
+
+    test('a placeholder message falls through to the error key', () {
+      final out = AppHelpers.parseError({
+        'message': '<none>',
+        'error': 'Account locked',
+      }, defaultMessage: fallback);
+      expect(out['message'], 'Account locked');
+    });
+
+    test('a placeholder message falls through to a nested body', () {
+      final out = AppHelpers.parseError({
+        'message': 'null',
+        'data': {'message': 'Daily limit exceeded'},
+      }, defaultMessage: fallback);
+      expect(out['message'], 'Daily limit exceeded');
+    });
+
+    test('a placeholder nested under data falls back', () {
+      final out = AppHelpers.parseError({
+        'data': '<none>',
+      }, defaultMessage: fallback);
+      expect(out['message'], fallback);
+    });
+
+    test('placeholder field errors are dropped', () {
+      final out = AppHelpers.parseError({
+        'errors': {
+          'nin': ['<none>'],
+          'amount': ['Amount is required', null],
+        },
+      }, defaultMessage: fallback);
+      expect(out['message'], 'Amount is required');
+    });
+
+    test('a placeholder title falls back', () {
+      final out = AppHelpers.parseError({
+        'title': 'none',
+      }, defaultMessage: fallback);
+      expect(out['message'], fallback);
+    });
+
+    test('a message is trimmed', () {
+      final out = AppHelpers.parseError({
+        'message': '  Insufficient funds ',
+      }, defaultMessage: fallback);
+      expect(out['message'], 'Insufficient funds');
     });
   });
 }

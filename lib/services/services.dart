@@ -1,5 +1,6 @@
 export 'analytics/analytics.dart';
 export 'biometric_auth/biometric_auth.dart';
+export 'contacts/contacts.dart';
 export 'crashlytics/crashlytics.dart';
 export 'crypto/crypto.dart';
 export 'firebase_config/firebase_config.dart';

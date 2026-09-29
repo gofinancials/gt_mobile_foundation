@@ -111,10 +111,10 @@ class AppHelpers {
   static num? extractAmount(String? amount) {
     if (!amount.hasValue) return null;
 
-    final pattern = RegExp(r"(\$|£|€|N)");
+    final pattern = AppRegex.currencyPrefix;
     final val = (amount!.startsWith(pattern) ? amount.substring(1) : amount)
         .trim();
-    final number = num.tryParse(val.replaceAll(RegExp(r'[^0-9\.]'), "").trim());
+    final number = num.tryParse(val.replaceAll(AppRegex.nonAmount, "").trim());
     return number;
   }
 
@@ -226,9 +226,6 @@ class AppHelpers {
     return {"message": defaultMessage, "statusCode": responseCode ?? 500};
   }
 
-  /// What marks a string as a page rather than a message.
-  static final _markup = RegExp(r'^\s*<|<html|<!doctype', caseSensitive: false);
-
   /// Reads a bare string [error]: a message a repository threw on purpose, or
   /// whatever a body nested where a narrower error was expected.
   static Map<String, dynamic> _parseErrorString(
@@ -244,11 +241,12 @@ class AppHelpers {
       );
     }
 
-    if (_markup.hasMatch(error)) {
+    if (AppRegex.htmlMarkup.hasMatch(error)) {
       return {"message": defaultMessage, "statusCode": statusCode};
     }
 
-    return {"message": error, "statusCode": statusCode};
+    final message = AppJson.asMessage(error) ?? defaultMessage;
+    return {"message": message, "statusCode": statusCode};
   }
 
   /// Returns the localized message and status for a transport-level [error],
@@ -285,11 +283,18 @@ class AppHelpers {
   /// The keys an error body spells its response code with. `DecryptInterceptor`
   /// writes decrypted ciphertext back under whichever case it found `data` in,
   /// so a body that arrived spelled `Data` keeps every other key in that same
-  /// case, `Status` included.
-  static const _codeKeys = ['responseCode', 'Status'];
+  /// case, `Status` included. The gateway's envelope spells its code
+  /// `ResponseCode` in that case, and a caller keyed on a gateway code needs
+  /// it in place of the HTTP status.
+  static const _codeKeys = ['responseCode', 'ResponseCode', 'Status'];
 
   /// The keys an error body spells its top-level message with.
   static const _messageKeys = ['message', 'Message'];
+
+  /// The keys the gateway's own envelope spells its message with. Read apart
+  /// from [_messageKeys] because a body may carry both, and a blank `message`
+  /// must not hide the envelope's.
+  static const _responseMessageKeys = ['responseMessage', 'ResponseMessage'];
 
   /// The keys an error body spells its short error string with.
   static const _errorKeys = ['error', 'Error'];
@@ -311,6 +316,12 @@ class AppHelpers {
   /// `DecryptInterceptor` re-cased, so it has the one spelling.
   static const _proxyFlagKeys = ['cloudflare_error'];
 
+  /// The message under the first of [keys] present in [json], or `null` when
+  /// that one is blank, a placeholder or not a string.
+  static String? _messageAt(Map<String, dynamic> json, List<String> keys) {
+    return AppJson.asMessage(AppJson.valueAt(json, keys));
+  }
+
   static Map<String, dynamic> _parseErrorMap(
     Map error, {
     String defaultMessage = "",
@@ -330,16 +341,22 @@ class AppHelpers {
       return {"message": _strings.requestRefused.tr(), "statusCode": code};
     }
 
-    if (AppJson.valueAt(json, _messageKeys) case final String value) {
+    // A blank or placeholder message is no message, so the search goes on to
+    // the next field rather than showing the customer an empty or `<none>`
+    // error.
+    if (_messageAt(json, _messageKeys) case final value?) {
       return {"message": value, "statusCode": code};
     }
 
-    if (AppJson.valueAt(json, _errorKeys) case final String value
-        when value.isNotEmpty) {
+    if (_messageAt(json, _responseMessageKeys) case final value?) {
       return {"message": value, "statusCode": code};
     }
 
-    if (AppJson.valueAt(json, _statusMessageKeys) case final String value) {
+    if (_messageAt(json, _errorKeys) case final value?) {
+      return {"message": value, "statusCode": code};
+    }
+
+    if (_messageAt(json, _statusMessageKeys) case final value?) {
       return {"message": value, "statusCode": code};
     }
 
@@ -372,8 +389,7 @@ class AppHelpers {
 
     // The heading that accompanies a validation body, used only once its own
     // field messages and any nested body have come to nothing.
-    if (AppJson.valueAt(json, _titleKeys) case final String title
-        when title.hasValue) {
+    if (_messageAt(json, _titleKeys) case final title?) {
       return {"message": title, "statusCode": code};
     }
 
@@ -388,18 +404,11 @@ class AppHelpers {
   static String? _validationMessages(Object? errors) {
     if (errors is! Map) return null;
 
-    final messages = <String>{};
-    for (final value in errors.values) {
-      switch (value) {
-        case Iterable values:
-          messages.addAll(
-            values.map((item) => "$item".value).where((item) => item.hasValue),
-          );
-        case final value?:
-          final message = "$value".value;
-          if (message.hasValue) messages.add(message);
-      }
-    }
+    final messages = errors.values
+        .expand((value) => value is Iterable ? value : [value])
+        .map((item) => AppJson.asMessage("$item"))
+        .nonNulls
+        .toSet();
 
     if (messages.isEmpty) return null;
     return messages.join("\n");

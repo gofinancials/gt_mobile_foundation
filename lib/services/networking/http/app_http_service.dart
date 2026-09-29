@@ -6,6 +6,16 @@ typedef DioResponse = ApiResponse<Response>;
 /// Key used to store request sensitivity metadata in Dio's `extra` map.
 const sensitiveRequestExtraKey = "IS_SENSITIVE_REQUEST";
 
+/// Key a host sets in Dio's `extra` map to mark a request public.
+///
+/// A public request is one whose reply says nothing about the customer's
+/// session — a sign-in, a configuration read — so [JwtInterceptor] never
+/// reads it as the session having ended — nor a renewal refused on its
+/// behalf, since a sign-in screen that treated one as a lapse would send the
+/// customer to the screen they are already on. Set it through
+/// `Options(extra: {publicRequestExtraKey: true})`.
+const publicRequestExtraKey = "IS_PUBLIC_REQUEST";
+
 /// Key used to store the request's start timestamp in Dio's `extra` map.
 const requestStartExtraKey = "REQUEST_STARTED_AT_MICROS";
 
@@ -19,6 +29,14 @@ const requestPhasesExtraKey = "REQUEST_PHASE_DURATIONS_MS";
 extension SensitiveRequestExtension on RequestOptions {
   /// Whether this request was marked sensitive when it was issued.
   bool get isSensitiveRequest => extra[sensitiveRequestExtraKey] == true;
+}
+
+/// {@category Services}
+/// Reads the public flag a host writes into Dio's `extra` map under
+/// [publicRequestExtraKey].
+extension PublicRequestExtension on RequestOptions {
+  /// Whether the host marked this request public when it was issued.
+  bool get isPublicRequest => extra[publicRequestExtraKey] == true;
 }
 
 /// {@category Services}

@@ -54,6 +54,13 @@ class EncryptInterceptor extends InterceptorsWrapper {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    // The tag identifies the client, not the encryption, so it goes on every
+    // request; the gateway refuses a client it cannot identify, including one
+    // whose body it reads in plain form.
+    options = options.copyWith(
+      headers: {...options.headers, tagHeaderKey: _appTag},
+    );
+
     if (!options.isSensitiveRequest) {
       return handler.next(options);
     }
@@ -68,10 +75,7 @@ class EncryptInterceptor extends InterceptorsWrapper {
       encryptWatch.stop();
       options.recordPhase("encrypt", encryptWatch.elapsed);
 
-      options = options.copyWith(
-        data: {"data": encryptedData},
-        headers: {...options.headers, tagHeaderKey: _appTag},
-      );
+      options = options.copyWith(data: {"data": encryptedData});
 
       AppLogger.info({
         "plainText": "***REDACTED***",
@@ -139,7 +143,9 @@ class DecryptInterceptor extends InterceptorsWrapper {
   /// empty ciphertext when it carries none.
   ///
   /// The gateway sends the body either bare or under `data`; the error
-  /// pipeline also sees the capital-D `Data` spelling.
+  /// pipeline also sees the capital-D `Data` spelling. A text body that spells
+  /// a map reaches here already decoded by [_envelope], so a string that
+  /// reaches here is read as the bare ciphertext.
   (String, String) _ciphertext(dynamic rawData) => switch (rawData) {
     String str => (str, "data"),
     Map map when map["data"] is String => (map["data"] as String, "data"),
@@ -147,13 +153,36 @@ class DecryptInterceptor extends InterceptorsWrapper {
     _ => ("", "data"),
   };
 
+  /// [body] as the map it spells when it is text, or [body] itself.
+  ///
+  /// Dio decodes a body as JSON only under a JSON content type, so a reply
+  /// sent without one arrives as text. A body read as plain text is still the
+  /// gateway's envelope, only undecoded, and reading it whole as the
+  /// ciphertext fails decryption and leaves the envelope encrypted.
+  dynamic _envelope(dynamic body) => switch (body) {
+    String raw => AppJson.decodedMap(raw) ?? raw,
+    final other => other,
+  };
+
+  /// Whether [data] should be decrypted.
+  ///
+  /// A sensitive request's reply is always encrypted. Any other reply is
+  /// decrypted only when it is in the gateway's encrypted form, because the
+  /// gateway encrypts some replies, refusals included, to requests sent in
+  /// the clear, and a clear `data` string must not be read as ciphertext.
+  bool _isEncrypted(String data, RequestOptions options) {
+    if (!data.hasValue) return false;
+    if (options.isSensitiveRequest) return true;
+    return AppRegex.ciphertext.hasMatch(data);
+  }
+
   /// [response] with its body decrypted, or [response] itself when there was
   /// nothing to decrypt or decryption did not succeed.
   Future<Response> _decrypted(Response response) async {
-    final rawData = response.data;
+    final rawData = _envelope(response.data);
     final (data, key) = _ciphertext(rawData);
 
-    if (!data.hasValue) return response;
+    if (!_isEncrypted(data, response.requestOptions)) return response;
 
     final decryptWatch = Stopwatch()..start();
     final plainText = _service.decrypt(data, mode: mode, strategy: strategy);
@@ -186,9 +215,6 @@ class DecryptInterceptor extends InterceptorsWrapper {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
-    if (!response.requestOptions.isSensitiveRequest) {
-      return handler.next(response);
-    }
     try {
       AppLogger.info("Decrypting response for ${response.requestOptions.uri}");
       return handler.next(await _decrypted(response));
@@ -209,7 +235,6 @@ class DecryptInterceptor extends InterceptorsWrapper {
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     final response = err.response;
     if (response == null) return handler.next(err);
-    if (!response.requestOptions.isSensitiveRequest) return handler.next(err);
     if (skipErrorStatuses.contains(response.statusCode)) {
       return handler.next(err);
     }

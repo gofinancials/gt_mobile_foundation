@@ -91,6 +91,42 @@ void main() {
       expect(passed?.response?.data, {'message': 'Account locked'});
     });
 
+    test('an envelope read as text is decrypted as the envelope', () async {
+      // A gateway 401 sent without a Content-Type: Dio hands over the text,
+      // and the customer was shown the ciphertext as the message.
+      final ciphertext = encrypt(
+        '{"IsSuccessful":false,"ResponseCode":"04",'
+        '"ResponseMessage":"Unauthorized client"}',
+      );
+
+      final passed = await run(
+        error(data: '{"data":"$ciphertext"}', statusCode: 401),
+      );
+
+      expect(passed?.response?.data, {
+        'data': {
+          'IsSuccessful': false,
+          'ResponseCode': '04',
+          'ResponseMessage': 'Unauthorized client',
+        },
+      });
+      final parsed = AppHelpers.parseError(passed, defaultMessage: 'GENERIC');
+      expect(parsed['message'], 'Unauthorized client');
+      expect(parsed['statusCode'], 4);
+    });
+
+    test(
+      'a text body with no ciphertext is passed through unchanged',
+      () async {
+        const body = '{"message":"Bad request"}';
+
+        final err = error(data: body);
+        final passed = await run(err);
+
+        expect(passed, same(err));
+      },
+    );
+
     test('the capital-D Data spelling is decrypted in place', () async {
       final ciphertext = encrypt('{"message":"Refused"}');
 
@@ -133,12 +169,14 @@ void main() {
       });
     });
 
-    test('a non-sensitive request is left alone', () async {
+    test('a refusal to a non-sensitive request is decrypted', () async {
       final body = {'data': encrypt('{"message":"Refused"}')};
 
       final passed = await run(error(data: body, sensitive: false));
 
-      expect(passed?.response?.data, same(body));
+      expect(passed?.response?.data, {
+        'data': {'message': 'Refused'},
+      });
     });
 
     test('a transport error with no response passes through', () async {

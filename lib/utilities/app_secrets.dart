@@ -387,7 +387,7 @@ class AppStringMaskUtils {
     String maskChar = '*',
   }) {
     if (pan == null || pan.isEmpty) return '';
-    final cleanPan = pan.replaceAll(RegExp(r'\s+'), '');
+    final cleanPan = pan.replaceAll(AppRegex.space, '');
     return mask(
       cleanPan,
       startVisible: prefixLength,
@@ -398,14 +398,14 @@ class AppStringMaskUtils {
 
   /// Internal helper to normalize Nigerian phone numbers to standard 11-digit local format (`08100115314`).
   static String? _tryNormalizeNigerianPhone(String raw) {
-    String digits = raw.replaceAll(RegExp(r'[^\d]'), '');
+    String digits = raw.replaceAll(AppRegex.nonDigits, '');
     if (digits.startsWith('234')) {
       digits = digits.substring(3);
     } else if (digits.startsWith('0') && digits.length == 11) {
       digits = digits.substring(1);
     }
 
-    if (digits.length == 10 && RegExp(r'^\d{10}$').hasMatch(digits)) {
+    if (digits.length == 10) {
       return '0$digits';
     }
 

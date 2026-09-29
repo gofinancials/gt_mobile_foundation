@@ -24,7 +24,7 @@ class AppTextFormatter {
   /// Formats the given [tel] string as a standardized phone number layout.
   static String formatPhone(String tel) {
     String digits = tel.withoutWhiteSpaceAndSpecialChar;
-    digits = digits.replaceAll(RegExp(r'\D'), '');
+    digits = digits.replaceAll(AppRegex.nonDigits, '');
     if (digits.isEmpty) return tel.trim();
 
     bool hasPlus = tel.trim().startsWith('+');
@@ -80,64 +80,137 @@ class AppTextFormatter {
     }
   }
 
-  /// The dial code to canonicalise against, as digits only.
+  /// The dial code to canonicalise against, as the app configured it.
   ///
   /// Taken from [AppConfig.countryCode], which apps already configure, so the
   /// library carries no country of its own.
-  static String get _dialCode {
-    return locator<AppConfig>().countryCode.replaceAll(AppRegex.nonDigits, '');
+  static String get _dialCode => locator<AppConfig>().countryCode;
+
+  /// The ITU calling code in [dial], as digits only: `234` for `+234`, and
+  /// `1` for the North American `+1-876` or `1-809,1-829,1-849`, which carry
+  /// area codes after the calling code.
+  static String _callingCode(String dial) {
+    final entry = dial.split(',').first;
+    return entry.split('-').first.replaceAll(AppRegex.nonDigits, '');
   }
 
-  /// The national digits of [tel] — the number with its dial code and any
-  /// trunk `0` stripped — or `null` when [tel] is not a well-formed number.
+  /// The single area code [dial] carries after its calling code, `876` for
+  /// `+1-876`, or empty when it carries none or several.
+  static String _areaCode(String dial) {
+    if (dial.contains(',')) return '';
+
+    final parts = dial.split('-');
+    if (parts.length < 2) return '';
+
+    return parts[1].replaceAll(AppRegex.nonDigits, '');
+  }
+
+  /// The national lengths to accept: [nationalLength] when the caller gives
+  /// one, otherwise the mobile lengths published for [callingCode], otherwise
+  /// ten.
+  static List<int> _nationalLengths(String callingCode, int? nationalLength) {
+    if (nationalLength != null) return [nationalLength];
+    return AppPhoneLengths.mobileByCallingCode[callingCode] ?? const [10];
+  }
+
+  static bool _isNational(String digits, List<int> lengths) {
+    return lengths.contains(digits.length);
+  }
+
+  static bool _isTrunked(String digits, List<int> lengths) {
+    return digits.startsWith('0') && lengths.contains(digits.length - 1);
+  }
+
+  /// [digits] without a leading [callingCode], stripped only when what
+  /// remains is itself a plausible national number.
+  static String _withoutCallingCode(
+    String digits,
+    String callingCode,
+    List<int> lengths,
+  ) {
+    if (callingCode.isEmpty || !digits.startsWith(callingCode)) return digits;
+
+    final rest = digits.substring(callingCode.length);
+    if (!_isNational(rest, lengths) && !_isTrunked(rest, lengths)) {
+      return digits;
+    }
+
+    return rest;
+  }
+
+  static String _withoutTrunkZero(String digits, List<int> lengths) {
+    if (!_isTrunked(digits, lengths)) return digits;
+    return digits.substring(1);
+  }
+
+  /// [digits] with [areaCode] in front when they were typed without it, so
+  /// `555 1234` under `+1-876` becomes `876 555 1234`.
+  static String _withAreaCode(
+    String digits,
+    String areaCode,
+    List<int> lengths,
+  ) {
+    if (areaCode.isEmpty || _isNational(digits, lengths)) return digits;
+
+    final withAreaCode = '$areaCode$digits';
+    if (!_isNational(withAreaCode, lengths)) return digits;
+
+    return withAreaCode;
+  }
+
+  /// The national digits of [tel] — the number with its calling code and any
+  /// trunk `0` stripped — or `null` when [tel] is not a well-formed number,
+  /// including one written with anything but [AppRegex.phoneCharacters].
   ///
   /// The same number reaches the app as `0803 123 4567`, `+234 803 123 4567`,
   /// `2348031234567` and `8031234567`, and every one of those must reduce to
-  /// the same [nationalLength] digits before it is compared or sent.
+  /// the same national digits before it is compared or sent.
   ///
-  /// The dial code is only stripped when what remains is itself a plausible
-  /// national number, so a national number that happens to begin with the
-  /// dial code's digits survives intact.
+  /// [dialCode] defaults to [AppConfig.countryCode] and may be written as a
+  /// [Country.dial] or [Country.countryCode] is, including the North American
+  /// `+1-876` form; digits typed without that area code get it back.
+  ///
+  /// The number must have [nationalLength] digits when given; otherwise one of
+  /// the lengths [AppPhoneLengths] publishes for the calling code, falling
+  /// back to ten for a calling code it does not know.
+  ///
+  /// The calling code is only stripped when what remains is itself a
+  /// plausible national number, so a national number that happens to begin
+  /// with the calling code's digits survives intact.
   static String? nationalPhoneDigits(
     String? tel, {
     String? dialCode,
-    int nationalLength = 10,
+    int? nationalLength,
   }) {
-    if (tel == null) return null;
+    if (tel == null || !AppRegex.phoneCharacters.hasMatch(tel.trim())) {
+      return null;
+    }
+
+    final dial = dialCode ?? _dialCode;
+    final callingCode = _callingCode(dial);
+    final lengths = _nationalLengths(callingCode, nationalLength);
 
     var digits = tel.replaceAll(AppRegex.nonDigits, '');
-    final code = (dialCode ?? _dialCode).replaceAll(AppRegex.nonDigits, '');
+    digits = _withoutCallingCode(digits, callingCode, lengths);
+    digits = _withoutTrunkZero(digits, lengths);
+    digits = _withAreaCode(digits, _areaCode(dial), lengths);
 
-    if (code.hasValue &&
-        digits.length > nationalLength &&
-        digits.startsWith(code)) {
-      final withoutCode = digits.substring(code.length);
-      final isNational = withoutCode.length == nationalLength;
-      final isTrunked =
-          withoutCode.length == nationalLength + 1 &&
-          withoutCode.startsWith('0');
-      if (isNational || isTrunked) digits = withoutCode;
-    }
-
-    if (digits.length == nationalLength + 1 && digits.startsWith('0')) {
-      digits = digits.substring(1);
-    }
-
-    if (digits.length != nationalLength || digits.startsWith('0')) return null;
+    if (!_isNational(digits, lengths) || digits.startsWith('0')) return null;
 
     return digits;
   }
 
-  /// [tel] in the form a gateway expects: the dial code followed by the
+  /// [tel] in the form a gateway expects: the calling code followed by the
   /// national digits, with no spaces or punctuation.
   ///
-  /// Returns `null` when [tel] cannot be reduced to [nationalLength] national
-  /// digits, so a caller decides for itself whether to send the raw value or
-  /// refuse it. Set [withPlus] for the `+234…` form some services require.
+  /// Returns `null` when [tel] cannot be reduced to national digits, as
+  /// [nationalPhoneDigits] describes, so a caller decides for itself whether
+  /// to send the raw value or refuse it. Set [withPlus] for the `+234…` form
+  /// some services require.
   static String? canonicalPhone(
     String? tel, {
     String? dialCode,
-    int nationalLength = 10,
+    int? nationalLength,
     bool withPlus = false,
   }) {
     final national = nationalPhoneDigits(
@@ -147,15 +220,15 @@ class AppTextFormatter {
     );
     if (national == null) return null;
 
-    final code = (dialCode ?? _dialCode).replaceAll(AppRegex.nonDigits, '');
-    return "${withPlus ? '+' : ''}$code$national";
+    final callingCode = _callingCode(dialCode ?? _dialCode);
+    return "${withPlus ? '+' : ''}$callingCode$national";
   }
 
   /// Whether [tel] reduces to a well-formed national number.
   static bool isCanonicalisablePhone(
     String? tel, {
     String? dialCode,
-    int nationalLength = 10,
+    int? nationalLength,
   }) {
     return nationalPhoneDigits(
           tel,
@@ -275,7 +348,7 @@ class AppTextFormatter {
       symbol: ignoreSymbol ? "" : "$currencySymbol${spaceIcon ? " " : ""}",
     );
 
-    amount = amount.replaceAll(RegExp(r'[^0-9\.]'), "");
+    amount = amount.replaceAll(AppRegex.nonAmount, "");
     final amountDouble = double.tryParse(amount);
     if (amountDouble == null) return "";
     return formatter.format(amountDouble);
@@ -302,7 +375,7 @@ class AppTextFormatter {
       symbol: ignoreSymbol ? "" : "$currencySymbol${spaceIcon ? " " : ""}",
     );
 
-    amount = amount.replaceAll(RegExp(r'[^0-9\.]'), "");
+    amount = amount.replaceAll(AppRegex.nonAmount, "");
     final amountDouble = double.tryParse(amount);
     if (amountDouble == null) return "";
     return formatter.format(amountDouble);
@@ -318,7 +391,7 @@ class AppTextFormatter {
 
     final formatter = NumberFormat(pattern, ignoreLocale ? null : _locale);
     amount = amount.withoutWhiteSpaceAndSpecialChar.replaceAll(
-      RegExp(r'[^0-9\.]'),
+      AppRegex.nonAmount,
       "",
     );
     return formatter.format(num.tryParse(amount));
@@ -331,7 +404,7 @@ class AppTextFormatter {
     final formatter = NumberFormat.compact(
       locale: ignoreLocale ? null : _locale,
     );
-    amount = amount.replaceAll(RegExp(r'[^0-9\.]'), "");
+    amount = amount.replaceAll(AppRegex.nonAmount, "");
     final amountDouble = double.tryParse(amount);
     if (amountDouble == null || amountDouble == 0) return "0";
     return formatter.format(amountDouble);
@@ -342,7 +415,7 @@ class AppTextFormatter {
     if (!amount.hasValue) return "";
 
     final formatter = NumberFormat();
-    amount = amount.replaceAll(RegExp(r'[^0-9\.]'), "");
+    amount = amount.replaceAll(AppRegex.nonAmount, "");
     final amountDouble = double.tryParse(amount);
     if (amountDouble == null || amountDouble == 0) return "0";
     return formatter.format(amountDouble);
@@ -428,7 +501,29 @@ class AppTextFormatter {
 
 /// {@category Utilities}
 /// A [TextInputFormatter] that automatically formats the input as a number with commas.
+///
+/// A keystroke that would take the amount past [decimalDigits] places, or its
+/// whole part past [maxWholeDigits] digits, is refused. Deleting is always
+/// allowed, so a longer value set in code can still be shortened.
+///
+/// A single `,` typed where there is no decimal point yet is read as the
+/// decimal point, for keyboards in regions that use a comma. Commas already
+/// in the text, or pasted with it, are read as grouping.
 class AppAmountFormatter extends TextInputFormatter {
+  /// The most digits allowed after the decimal point. Zero refuses a decimal
+  /// point altogether.
+  final int decimalDigits;
+
+  /// The most digits allowed before the decimal point.
+  ///
+  /// With [decimalDigits] at 2, keep this at 13 or below so the amount stays
+  /// within the 15 significant digits a double holds exactly.
+  final int maxWholeDigits;
+
+  const AppAmountFormatter({this.decimalDigits = 2, this.maxWholeDigits = 12})
+    : assert(decimalDigits >= 0),
+      assert(maxWholeDigits > 0);
+
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
@@ -443,9 +538,10 @@ class AppAmountFormatter extends TextInputFormatter {
         );
       }
 
-      final amount = newValue.text.isNotEmpty
-          ? newValue.text.replaceAll(RegExp(r'[^0-9\.]'), "")
-          : "";
+      final amount = _withDecimalComma(
+        oldValue,
+        newValue,
+      ).replaceAll(AppRegex.nonAmount, "");
 
       if (amount.isEmpty) {
         return newValue.copyWith(text: "");
@@ -455,19 +551,19 @@ class AppAmountFormatter extends TextInputFormatter {
       final parts = amount.split('.');
       if (parts.length > 2) return oldValue;
 
-      final integerPart = parts[0];
+      final wholePart = _wholeDigits(parts[0]);
       final decimalPart = parts.length > 1 ? parts[1] : null;
 
-      String formattedInteger = integerPart.isNotEmpty
-          ? AppTextFormatter.formatNumberLong(integerPart)
-          : (amount.startsWith('.') ? "0" : "");
-
-      String formattedText = formattedInteger;
-      if (decimalPart != null) {
-        formattedText += ".$decimalPart";
-      } else if (amount.endsWith('.')) {
-        formattedText += ".";
+      final isDeletion = newValue.text.length < oldValue.text.length;
+      if (!isDeletion && _exceedsLimits(wholePart, decimalPart)) {
+        return oldValue;
       }
+
+      String formattedText = wholePart.replaceAll(
+        AppRegex.thousandsBoundary,
+        ",",
+      );
+      if (decimalPart != null) formattedText += ".$decimalPart";
 
       return TextEditingValue(
         text: formattedText,
@@ -478,6 +574,40 @@ class AppAmountFormatter extends TextInputFormatter {
       AppLogger.severe("$e", stackTrace: t, error: e);
       return oldValue;
     }
+  }
+
+  /// The text of [newValue], with a single `,` just typed read as the decimal
+  /// point when the amount has none yet.
+  String _withDecimalComma(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+    final typedAt = newValue.selection.baseOffset - 1;
+
+    if (decimalDigits == 0) return text;
+    if (text.length != oldValue.text.length + 1) return text;
+    if (typedAt < 0 || typedAt >= text.length) return text;
+    if (text[typedAt] != ",") return text;
+    if (oldValue.text.contains(".")) return text;
+    if (text.replaceRange(typedAt, typedAt + 1, "") != oldValue.text) {
+      return text;
+    }
+
+    return text.replaceRange(typedAt, typedAt + 1, ".");
+  }
+
+  /// The whole part of the amount without leading zeros, or `0` when it is
+  /// empty or all zeros.
+  static String _wholeDigits(String digits) {
+    final trimmed = digits.replaceFirst(AppRegex.leadingZeros, "");
+    return trimmed.isEmpty ? "0" : trimmed;
+  }
+
+  bool _exceedsLimits(String wholePart, String? decimalPart) {
+    if (wholePart.length > maxWholeDigits) return true;
+    if (decimalPart == null) return false;
+    return decimalDigits == 0 || decimalPart.length > decimalDigits;
   }
 }
 
