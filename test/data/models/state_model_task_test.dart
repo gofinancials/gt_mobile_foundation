@@ -287,6 +287,31 @@ void main() {
       expect(notifier.isLoading, isFalse);
     });
 
+    test('a success after a failure clears the error', () async {
+      final notifier = FutureDataNotifier<_Item>.pristine();
+
+      await notifier.executeTask(_fails);
+      await notifier.executeTask(() => _succeeds(2));
+
+      expect(notifier.data, const _Item(2));
+      expect(notifier.hasError, isFalse);
+      expect(notifier.isLoading, isFalse);
+    });
+
+    test('a retry keeps the earlier error while it is in flight', () async {
+      final notifier = FutureDataNotifier<_Item>.pristine();
+      final gate = Completer<TaskResponse<_Item>>();
+
+      await notifier.executeTask(_fails);
+      final running = notifier.executeTask(() => gate.future);
+
+      expect(notifier.isLoading, isTrue);
+      expect(notifier.error, _failure);
+
+      gate.complete(TaskSuccess(data: const _Item(1)));
+      await running;
+    });
+
     test('a throw becomes an error state, not a stuck spinner', () async {
       final notifier = FutureDataNotifier<_Item>.pristine();
 
@@ -398,6 +423,30 @@ void main() {
       expect(notifier.isLoading, isFalse);
     });
 
+    test(
+      'an empty success after a failure reads as empty, not failed',
+      () async {
+        final notifier = FutureListDataNotifier<_Item>.pristine();
+
+        await notifier.executeTask(() async => TaskFailure(error: _failure));
+        await notifier.executeTask(() async => TaskSuccess(data: const []));
+
+        expect(notifier.hasError, isFalse);
+        expect(notifier.hasData, isFalse);
+        expect(notifier.isLoading, isFalse);
+      },
+    );
+
+    test('updateWith can clear the error without a reset', () {
+      final notifier = FutureListDataNotifier<_Item>.pristine()
+        ..setError(_failure);
+
+      notifier.updateWith(clearError: true);
+
+      expect(notifier.hasError, isFalse);
+      expect(notifier.isPristine, isFalse);
+    });
+
     test('a throw becomes an error state, not a stuck spinner', () async {
       final notifier = FutureListDataNotifier<_Item>.pristine();
 
@@ -433,6 +482,15 @@ void main() {
   });
 
   group('PaginatedDataNotifier', () {
+    test('setData after a failure clears the error', () {
+      final notifier = PaginatedDataNotifier<_Page>.pristine()
+        ..setError(_failure);
+
+      notifier.setData(const []);
+
+      expect(notifier.hasError, isFalse);
+    });
+
     test('an error-only change is published, not swallowed as equal', () {
       final notifier = PaginatedDataNotifier<_Page>.pristine();
       var notifications = 0;

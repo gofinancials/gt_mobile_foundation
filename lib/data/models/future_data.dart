@@ -46,15 +46,19 @@ class FutureDataNotifier<T extends Equatable>
   String get updateTime => value.updateTime;
 
   /// Sets the state to loading, optionally retaining or updating the [data].
+  ///
+  /// Any earlier error is kept: a request in flight has not yet disproved it,
+  /// and a failure that is never published must not leave the screen blank.
   void setLoading({T? data}) {
     if (isDisposed) return;
     value = value.copyWith(isLoading: true, data: data);
   }
 
-  /// Sets the state with new [data] and marks loading as false.
+  /// Sets the state with new [data], marks loading as false and clears any
+  /// earlier error — a successful result supersedes the failure before it.
   void setData(T data) {
     if (isDisposed) return;
-    value = value.copyWith(data: data, isLoading: false);
+    value = value.copyWith(data: data, isLoading: false, clearError: true);
   }
 
   /// Sets the state with an [error] and marks loading as false.
@@ -70,9 +74,22 @@ class FutureDataNotifier<T extends Equatable>
   }
 
   /// Partially updates the state with the provided values.
-  void updateWith({T? data, bool? isLoading, TaskError? error}) {
+  ///
+  /// Pass [clearError] to drop the current error; it takes precedence over
+  /// [error].
+  void updateWith({
+    T? data,
+    bool? isLoading,
+    TaskError? error,
+    bool clearError = false,
+  }) {
     if (isDisposed) return;
-    value = value.copyWith(data: data, isLoading: isLoading, error: error);
+    value = value.copyWith(
+      data: data,
+      isLoading: isLoading,
+      error: error,
+      clearError: clearError,
+    );
   }
 
   /// Runs [task] and publishes its result into this notifier.
@@ -146,15 +163,19 @@ class FutureListDataNotifier<T extends Equatable>
   String get updateTime => value.updateTime;
 
   /// Sets the state to loading, optionally retaining or updating the [data].
+  ///
+  /// Any earlier error is kept: a request in flight has not yet disproved it,
+  /// and a failure that is never published must not leave the screen blank.
   void setLoading({List<T>? data}) {
     if (isDisposed) return;
     value = value.copyWith(isLoading: true, data: data);
   }
 
-  /// Sets the state with new [data] and marks loading as false.
+  /// Sets the state with new [data], marks loading as false and clears any
+  /// earlier error — a successful result supersedes the failure before it.
   void setData(List<T> data) {
     if (isDisposed) return;
-    value = value.copyWith(data: data, isLoading: false);
+    value = value.copyWith(data: data, isLoading: false, clearError: true);
   }
 
   /// Sets the state with an [error] and marks loading as false.
@@ -170,9 +191,22 @@ class FutureListDataNotifier<T extends Equatable>
   }
 
   /// Partially updates the state with the provided values.
-  void updateWith({List<T>? data, bool? isLoading, TaskError? error}) {
+  ///
+  /// Pass [clearError] to drop the current error; it takes precedence over
+  /// [error].
+  void updateWith({
+    List<T>? data,
+    bool? isLoading,
+    TaskError? error,
+    bool clearError = false,
+  }) {
     if (isDisposed) return;
-    value = value.copyWith(data: data, isLoading: isLoading, error: error);
+    value = value.copyWith(
+      data: data,
+      isLoading: isLoading,
+      error: error,
+      clearError: clearError,
+    );
   }
 
   /// Updates a single item in the list by replacing [oldItem] with [newItem].
@@ -258,15 +292,19 @@ class PaginatedDataNotifier<T extends Identifiable>
   String get updateTime => value.updateTime;
 
   /// Sets the state to loading, optionally retaining or updating the [data].
+  ///
+  /// Any earlier error is kept: a request in flight has not yet disproved it,
+  /// and a failure that is never published must not leave the screen blank.
   void setLoading({List<T>? data}) {
     if (isDisposed) return;
     value = value.copyWith(isLoading: true, data: data);
   }
 
-  /// Sets the state with new [data] and marks loading as false.
+  /// Sets the state with new [data], marks loading as false and clears any
+  /// earlier error — a successful result supersedes the failure before it.
   void setData(List<T> data) {
     if (isDisposed) return;
-    value = value.copyWith(data: data, isLoading: false);
+    value = value.copyWith(data: data, isLoading: false, clearError: true);
   }
 
   /// Sets the state with an [error] and marks loading as false.
@@ -282,10 +320,14 @@ class PaginatedDataNotifier<T extends Identifiable>
   }
 
   /// Partially updates the state with the provided values.
+  ///
+  /// Pass [clearError] to drop the current error; it takes precedence over
+  /// [error].
   void updateWith({
     List<T>? data,
     bool? isLoading,
     TaskError? error,
+    bool clearError = false,
     int? page,
     int? pages,
     int? limit,
@@ -296,6 +338,7 @@ class PaginatedDataNotifier<T extends Identifiable>
       data: data,
       isLoading: isLoading,
       error: error,
+      clearError: clearError,
       page: page,
       pages: pages,
       limit: limit,
@@ -445,12 +488,21 @@ class FutureData<T extends Equatable> extends AsyncData<T> {
   @override
   DateTime? get updatedAt => _updatedAt;
 
+  /// Creates a copy with the specified fields replaced.
+  ///
+  /// A null argument keeps the current value, so [error] alone cannot remove
+  /// an error; pass [clearError] for that. It takes precedence over [error].
   @override
-  FutureData<T> copyWith({T? data, bool? isLoading, TaskError? error}) {
+  FutureData<T> copyWith({
+    T? data,
+    bool? isLoading,
+    TaskError? error,
+    bool clearError = false,
+  }) {
     return FutureData(
       data: data ?? this.data,
       isLoading: isLoading ?? this.isLoading,
-      error: error ?? this.error,
+      error: clearError ? null : error ?? this.error,
       updatedAt: DateTime.now(),
     );
   }
@@ -512,16 +564,21 @@ class FutureListData<T extends Equatable> extends AsyncData<T> {
   @override
   DateTime? get updatedAt => _updatedAt;
 
+  /// Creates a copy with the specified fields replaced.
+  ///
+  /// A null argument keeps the current value, so [error] alone cannot remove
+  /// an error; pass [clearError] for that. It takes precedence over [error].
   @override
   FutureListData<T> copyWith({
     List<T>? data,
     bool? isLoading,
     TaskError? error,
+    bool clearError = false,
   }) {
     return FutureListData(
       data: data ?? this.data,
       isLoading: isLoading ?? this.isLoading,
-      error: error ?? this.error,
+      error: clearError ? null : error ?? this.error,
       updatedAt: DateTime.now(),
     );
   }
@@ -634,11 +691,16 @@ class PaginatedData<T extends Identifiable> extends AsyncData<T> {
   @override
   DateTime? get updatedAt => _updatedAt;
 
+  /// Creates a copy with the specified fields replaced.
+  ///
+  /// A null argument keeps the current value, so [error] alone cannot remove
+  /// an error; pass [clearError] for that. It takes precedence over [error].
   @override
   PaginatedData<T> copyWith({
     List<T>? data,
     bool? isLoading,
     TaskError? error,
+    bool clearError = false,
     String? query,
     int? page,
     int? pages,
@@ -647,7 +709,7 @@ class PaginatedData<T extends Identifiable> extends AsyncData<T> {
     return PaginatedData(
       data: data ?? this.data,
       isLoading: isLoading ?? this.isLoading,
-      error: error ?? this.error,
+      error: clearError ? null : error ?? this.error,
       query: query,
       page: page ?? this.page,
       pages: pages ?? this.pages,

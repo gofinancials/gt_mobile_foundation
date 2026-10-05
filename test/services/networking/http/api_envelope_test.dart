@@ -282,6 +282,38 @@ void main() {
       expect(result.data, 1);
     });
 
+    test('a mutation accepts a 204 with no body', () async {
+      for (final body in [null, '', '  ']) {
+        Map<String, dynamic>? decoded;
+        final result = await service.sendEnvelope(
+          () async => _reply(data: body, raw: body, statusCode: 204),
+          (envelope) => decoded = envelope,
+        );
+
+        expect(result.isSuccess, isTrue, reason: 'body: "$body"');
+        expect(decoded, isEmpty);
+      }
+    });
+
+    test('a mutation still refuses a body that is an empty envelope', () async {
+      final result = await service.sendEnvelope(
+        () async => _reply(data: <String, dynamic>{}, raw: {}, statusCode: 200),
+        (envelope) => envelope,
+      );
+
+      expect(result.isFailure, isTrue);
+    });
+
+    test('a bodiless reply outside 2xx is still a failure', () async {
+      final result = await service.sendEnvelope(
+        () async => _reply(data: null, statusCode: 500),
+        (envelope) => envelope,
+      );
+
+      expect(result.isFailure, isTrue);
+      expect(result.error?.statusCode, '500');
+    });
+
     test('a transport failure stays a failure', () async {
       final result = await service.sendEnvelope<int>(
         () async => throw DioException(
