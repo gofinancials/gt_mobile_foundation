@@ -59,12 +59,26 @@ class ApiEnvelope {
     return flag != false && !(flag == null && requireSuccessFlag);
   }
 
+  /// Whether [response] arrived with no body at all.
+  ///
+  /// Dio hands a `204 No Content` over as `null` under a JSON content type and
+  /// as empty text without one. A body that was sent, even `{}`, is an
+  /// envelope and is read as one.
+  static bool isBodiless(DioResponse response) =>
+      _isBlank(response.data) && _isBlank(response.rawResponse?.data);
+
   /// The gateway's own message for a refused [envelope], or the generic one.
   static String refusalMessage(Map<String, dynamic> envelope) {
     final message = AppJson.message(envelope);
     if (message.hasValue) return message;
     return locator<AppConfig>().strings.requestRefused.tr();
   }
+
+  static bool _isBlank(Object? body) => switch (body) {
+    null => true,
+    String text => !text.hasValue,
+    _ => false,
+  };
 
   /// The wrapper's status keys, never its `data`.
   static Map<String, dynamic> _status(Map<String, dynamic> raw) => {
@@ -84,6 +98,11 @@ extension ApiEnvelopeRequest on AppHttpMixin {
   /// gateway's own message. A mutation keeps [requireSuccessFlag] on, so a
   /// missing flag also fails; a read turns it off, because its payload is the
   /// evidence.
+  ///
+  /// A `2xx` that arrives with no body is accepted whatever
+  /// [requireSuccessFlag] says: the status is the gateway's whole answer, and
+  /// there is no body to report a refusal in. [decode] then receives an empty
+  /// map, and making sense of that is the caller's job.
   ///
   /// Both of the caller's own steps are guarded, so a failure in either
   /// arrives as a [TaskFailure] rather than a rejected future: [send] by
@@ -110,10 +129,7 @@ extension ApiEnvelopeRequest on AppHttpMixin {
     return switch (response) {
       TaskFailure(:final error) => TaskFailure(error: error),
       TaskSuccess(data: (final reply, final envelope))
-          when !ApiEnvelope.accepts(
-            envelope,
-            requireSuccessFlag: requireSuccessFlag,
-          ) =>
+          when !_isAccepted(reply, envelope, requireSuccessFlag) =>
         TaskFailure(
           error: TaskError(
             message: ApiEnvelope.refusalMessage(envelope),
@@ -127,6 +143,24 @@ extension ApiEnvelopeRequest on AppHttpMixin {
     };
   }
 
+  /// Whether the gateway completed the operation [reply] answers.
+  bool _isAccepted(
+    DioResponse reply,
+    Map<String, dynamic> envelope,
+    bool requireSuccessFlag,
+  ) {
+    if (ApiEnvelope.isBodiless(reply) && _isSuccessStatus(reply)) return true;
+    return ApiEnvelope.accepts(
+      envelope,
+      requireSuccessFlag: requireSuccessFlag,
+    );
+  }
+
+  bool _isSuccessStatus(DioResponse reply) {
+    final status = _statusCodeOf(reply);
+    return status >= 200 && status < 300;
+  }
+
   /// The HTTP status [reply] arrived with, never the business code the gateway
   /// nested in its body.
   ///
@@ -138,6 +172,7 @@ extension ApiEnvelopeRequest on AppHttpMixin {
   ///
   /// A reply that reached here arrived, so `200` is the reading when the
   /// transport did not state one.
-  String _statusOf(DioResponse reply) =>
-      "${reply.rawResponse?.statusCode ?? 200}";
+  String _statusOf(DioResponse reply) => "${_statusCodeOf(reply)}";
+
+  int _statusCodeOf(DioResponse reply) => reply.rawResponse?.statusCode ?? 200;
 }
