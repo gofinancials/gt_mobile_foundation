@@ -8,12 +8,12 @@ const sensitiveRequestExtraKey = "IS_SENSITIVE_REQUEST";
 
 /// Key a host sets in Dio's `extra` map to mark a request public.
 ///
-/// A public request is one whose reply says nothing about the customer's
-/// session — a sign-in, a configuration read — so [JwtInterceptor] never
-/// reads it as the session having ended — nor a renewal refused on its
-/// behalf, since a sign-in screen that treated one as a lapse would send the
-/// customer to the screen they are already on. Set it through
-/// `Options(extra: {publicRequestExtraKey: true})`.
+/// A public request is one that belongs to no session — a sign-in, a passcode
+/// reset, a configuration read — so [JwtInterceptor] passes it through: it is
+/// not renewed for, is not given the session's bearer, and its reply is never
+/// read as the session having ended, since a sign-in screen that treated one
+/// as a lapse would send the customer to the screen they are already on. Set
+/// it through `Options(extra: {publicRequestExtraKey: true})`.
 const publicRequestExtraKey = "IS_PUBLIC_REQUEST";
 
 /// Key used to store the request's start timestamp in Dio's `extra` map.

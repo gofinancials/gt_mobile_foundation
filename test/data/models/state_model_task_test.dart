@@ -265,6 +265,165 @@ void main() {
       expect(published, isFalse);
       expect(model.isLoading, isFalse);
     });
+
+    test('an asynchronous onError is awaited', () async {
+      final model = _TestStateModel();
+      final gate = Completer<void>();
+      var settled = false;
+
+      final running = model
+          .executeAction(_fails, onError: (_) => gate.future)
+          .then((_) => settled = true);
+
+      await pumpEventQueue();
+      expect(settled, isFalse, reason: 'onError has not finished');
+      expect(model.isLoading, isFalse, reason: 'the default does not hold');
+
+      gate.complete();
+      await running;
+      expect(settled, isTrue);
+    });
+  });
+
+  group('StateModel.executeAction holding until settled', () {
+    test('stays loading while an async onSuccess runs', () async {
+      final model = _TestStateModel();
+      final gate = Completer<void>();
+      var calls = 0;
+
+      final first = model.executeAction(
+        _succeeds,
+        onSuccess: (_) => gate.future,
+        holdUntilSettled: true,
+      );
+      await pumpEventQueue();
+      expect(model.isLoading, isTrue);
+
+      // A second confirm while the first payment is still being recorded.
+      final second = await model.executeAction(() {
+        calls++;
+        return _succeeds();
+      });
+      expect(second, isNull);
+      expect(calls, 0, reason: 'the bill must not be paid twice');
+
+      gate.complete();
+      await first;
+      expect(model.isLoading, isFalse);
+    });
+
+    test('stays loading while an async onError runs', () async {
+      final model = _TestStateModel();
+      final gate = Completer<void>();
+      TaskError? received;
+
+      final running = model.executeAction(
+        _fails,
+        onError: (error) async {
+          received = error;
+          await gate.future;
+        },
+        holdUntilSettled: true,
+      );
+      await pumpEventQueue();
+      expect(received, _failure);
+      expect(model.isLoading, isTrue);
+      expect(await model.executeAction(_succeeds), isNull);
+
+      gate.complete();
+      await running;
+      expect(model.isLoading, isFalse);
+    });
+
+    test('a throw out of onSuccess still releases the flag', () async {
+      final model = _TestStateModel();
+      bool? loadingInOnError;
+      TaskError? received;
+
+      await model.executeAction(
+        _succeeds,
+        onSuccess: (_) async => throw StateError('callback blew up'),
+        onError: (error) {
+          received = error;
+          loadingInOnError = model.isLoading;
+        },
+        holdUntilSettled: true,
+      );
+
+      expect(received?.message, 'requestFailedUnexpectedly');
+      expect(loadingInOnError, isTrue);
+      expect(model.isLoading, isFalse);
+    });
+
+    test('a throw out of onError still releases the flag', () async {
+      final model = _TestStateModel();
+
+      await expectLater(
+        model.executeAction(
+          _fails,
+          onError: (_) async => throw StateError('callback blew up'),
+          holdUntilSettled: true,
+        ),
+        throwsStateError,
+      );
+      expect(model.isLoading, isFalse, reason: 'no spinner left stranded');
+    });
+
+    test('a call begun inside a held callback is refused', () async {
+      final model = _TestStateModel();
+      TaskResponse<_Item>? chained;
+
+      await model.executeAction(
+        _succeeds,
+        onSuccess: (_) async => chained = await model.executeAction(_succeeds),
+        holdUntilSettled: true,
+      );
+
+      expect(chained, isNull);
+      expect(model.isLoading, isFalse);
+    });
+
+    test('releasing never lowers a newer call\'s hold', () async {
+      final model = _TestStateModel();
+      final firstGate = Completer<void>();
+      final nextGate = Completer<TaskResponse<_Item>>();
+
+      final first = model.executeAction(
+        _succeeds,
+        onSuccess: (_) => firstGate.future,
+        holdUntilSettled: true,
+      );
+      await pumpEventQueue();
+
+      model.reset();
+      final next = model.executeAction(() => nextGate.future);
+      expect(model.isLoading, isTrue);
+
+      firstGate.complete();
+      await first;
+      expect(model.isLoading, isTrue, reason: 'the newer call still runs');
+
+      nextGate.complete(TaskSuccess(data: const _Item(2)));
+      await next;
+      expect(model.isLoading, isFalse);
+    });
+
+    test('a reply arriving after disposal publishes nothing', () async {
+      final model = _TestStateModel();
+      final gate = Completer<TaskResponse<_Item>>();
+      var published = false;
+
+      final running = model.executeAction(
+        () => gate.future,
+        onSuccess: (_) => published = true,
+        holdUntilSettled: true,
+      );
+      model.dispose();
+      gate.complete(TaskSuccess(data: const _Item(1)));
+      await running;
+
+      expect(published, isFalse);
+    });
   });
 
   group('FutureDataNotifier.executeTask', () {

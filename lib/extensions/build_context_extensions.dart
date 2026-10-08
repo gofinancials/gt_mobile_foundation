@@ -10,13 +10,6 @@ extension BuildContextExtension on BuildContext {
   /// Returns the closest [ScrollableState] ancestor, if any.
   ScrollableState? get scrollState => Scrollable.maybeOf(this);
 
-  /// Copies the provided [value] to the system clipboard.
-  copyTextToClipboard(String? value) {
-    if (!value.hasValue) return;
-    Clipboard.setData(ClipboardData(text: value!));
-    showSnackBar(stringKeys.copiedToClipboard.tr({"value": value}));
-  }
-
   /// Shows a snackbar
   showSnackBar(String message) {
     try {
