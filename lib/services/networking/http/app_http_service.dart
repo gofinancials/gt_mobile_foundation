@@ -16,6 +16,13 @@ const sensitiveRequestExtraKey = "IS_SENSITIVE_REQUEST";
 /// it through `Options(extra: {publicRequestExtraKey: true})`.
 const publicRequestExtraKey = "IS_PUBLIC_REQUEST";
 
+/// Key [DecryptInterceptor] sets in a response's `extra` map once it has
+/// decrypted that response's body.
+///
+/// A proxy in front of the gateway never encrypts the page it answers with,
+/// so a body that was decrypted is the API's own, whatever its status.
+const decryptedResponseExtraKey = "IS_DECRYPTED_RESPONSE";
+
 /// Key used to store the request's start timestamp in Dio's `extra` map.
 const requestStartExtraKey = "REQUEST_STARTED_AT_MICROS";
 
@@ -37,6 +44,14 @@ extension SensitiveRequestExtension on RequestOptions {
 extension PublicRequestExtension on RequestOptions {
   /// Whether the host marked this request public when it was issued.
   bool get isPublicRequest => extra[publicRequestExtraKey] == true;
+}
+
+/// {@category Services}
+/// Reads the mark [DecryptInterceptor] writes into a response's `extra` map
+/// under [decryptedResponseExtraKey].
+extension DecryptedResponseExtension on Response {
+  /// Whether [DecryptInterceptor] decrypted this response's body.
+  bool get isDecrypted => extra[decryptedResponseExtraKey] == true;
 }
 
 /// {@category Services}

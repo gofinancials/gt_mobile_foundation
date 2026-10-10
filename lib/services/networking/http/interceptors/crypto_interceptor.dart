@@ -109,7 +109,8 @@ class DecryptInterceptor extends InterceptorsWrapper {
   ///
   /// A gateway answers its own 502, 503 and 504 with an HTML page it never
   /// encrypted, so attempting to decrypt one wastes the attempt and buries the
-  /// real status in a decryption failure.
+  /// real status in a decryption failure. A skipped body is never marked under
+  /// [decryptedResponseExtraKey], so the error parser reads it as a proxy's.
   final Set<int> skipErrorStatuses;
 
   /// Creates a new instance of [DecryptInterceptor].
@@ -125,6 +126,9 @@ class DecryptInterceptor extends InterceptorsWrapper {
   ///
   /// If the original payload is a [Map], it replaces the field that carried the
   /// ciphertext, named by [key], with the decrypted content.
+  ///
+  /// The resolved response is marked under [decryptedResponseExtraKey], so the
+  /// error parser can tell the API's own `5xx` from a page a proxy wrote.
   Response _resolveResponse(
     dynamic rawData,
     dynamic decryptedData,
@@ -136,7 +140,10 @@ class DecryptInterceptor extends InterceptorsWrapper {
       Map map => {...map, key: decryptedData},
       _ => decryptedData,
     };
-    return response.copyWith(data: resolvedData);
+    return response.copyWith(
+      data: resolvedData,
+      extra: {...response.extra, decryptedResponseExtraKey: true},
+    );
   }
 
   /// The ciphertext [rawData] carries and the key it carried it under, or an
@@ -231,6 +238,10 @@ class DecryptInterceptor extends InterceptorsWrapper {
   /// and the customer is shown a generic failure instead of what the bank
   /// said. It decrypts with the same mode and strategy as the success path,
   /// because there is one gateway contract, not two.
+  ///
+  /// The gateway answers some business refusals with a `500`, so the mark a
+  /// decrypted body carries is what lets [AppHelpers.parseError] show that
+  /// refusal rather than an outage.
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     final response = err.response;
