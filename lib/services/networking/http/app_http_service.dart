@@ -8,13 +8,20 @@ const sensitiveRequestExtraKey = "IS_SENSITIVE_REQUEST";
 
 /// Key a host sets in Dio's `extra` map to mark a request public.
 ///
-/// A public request is one whose reply says nothing about the customer's
-/// session — a sign-in, a configuration read — so [JwtInterceptor] never
-/// reads it as the session having ended — nor a renewal refused on its
-/// behalf, since a sign-in screen that treated one as a lapse would send the
-/// customer to the screen they are already on. Set it through
-/// `Options(extra: {publicRequestExtraKey: true})`.
+/// A public request is one that belongs to no session — a sign-in, a passcode
+/// reset, a configuration read — so [JwtInterceptor] passes it through: it is
+/// not renewed for, is not given the session's bearer, and its reply is never
+/// read as the session having ended, since a sign-in screen that treated one
+/// as a lapse would send the customer to the screen they are already on. Set
+/// it through `Options(extra: {publicRequestExtraKey: true})`.
 const publicRequestExtraKey = "IS_PUBLIC_REQUEST";
+
+/// Key [DecryptInterceptor] sets in a response's `extra` map once it has
+/// decrypted that response's body.
+///
+/// A proxy in front of the gateway never encrypts the page it answers with,
+/// so a body that was decrypted is the API's own, whatever its status.
+const decryptedResponseExtraKey = "IS_DECRYPTED_RESPONSE";
 
 /// Key used to store the request's start timestamp in Dio's `extra` map.
 const requestStartExtraKey = "REQUEST_STARTED_AT_MICROS";
@@ -37,6 +44,14 @@ extension SensitiveRequestExtension on RequestOptions {
 extension PublicRequestExtension on RequestOptions {
   /// Whether the host marked this request public when it was issued.
   bool get isPublicRequest => extra[publicRequestExtraKey] == true;
+}
+
+/// {@category Services}
+/// Reads the mark [DecryptInterceptor] writes into a response's `extra` map
+/// under [decryptedResponseExtraKey].
+extension DecryptedResponseExtension on Response {
+  /// Whether [DecryptInterceptor] decrypted this response's body.
+  bool get isDecrypted => extra[decryptedResponseExtraKey] == true;
 }
 
 /// {@category Services}

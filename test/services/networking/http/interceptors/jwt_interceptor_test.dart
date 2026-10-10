@@ -353,6 +353,68 @@ void main() {
     });
   });
 
+  group('requests marked public', () {
+    final public = Options(extra: {publicRequestExtraKey: true});
+
+    test('are not renewed for, however due the token is', () async {
+      var renewed = false;
+      final dio = build(
+        onRenew: () async {
+          renewed = true;
+          return 'fresh';
+        },
+      );
+
+      await dio.get<dynamic>('/ping', options: public);
+      expect(renewed, isFalse, reason: 'a sign-in waits on no renewal');
+      expect(adapter.reached, isTrue);
+    });
+
+    test('are not given the session bearer', () async {
+      final dio = build(onRenew: () async => 'fresh', refresh: false);
+
+      await dio.get<dynamic>('/ping', options: public);
+      expect(
+        adapter.authorization,
+        isNull,
+        reason: 'the session the customer is leaving is not theirs to carry',
+      );
+    });
+
+    test('never reach the renewal failure handler', () async {
+      var asked = false;
+      final dio = build(
+        onRenew: () async => throw StateError('refresh down'),
+        onRenewalFailure: (_, _, _) {
+          asked = true;
+          return JwtRenewalAction.fail;
+        },
+        isExpired: true,
+      );
+
+      await dio.get<dynamic>('/ping', options: public);
+      expect(asked, isFalse);
+      expect(adapter.reached, isTrue);
+    });
+
+    test('keep an Authorization header their caller set', () async {
+      final dio = build(onRenew: () async => 'fresh');
+
+      await dio.get<dynamic>(
+        '/ping',
+        options: Options(
+          extra: {publicRequestExtraKey: true},
+          headers: {'Authorization': 'Bearer own'},
+        ),
+      );
+      expect(
+        adapter.authorization,
+        'Bearer own',
+        reason: 'passing through leaves the request as the caller built it',
+      );
+    });
+  });
+
   group('a session the gateway has ended', () {
     late List<DioException> lapses;
 
@@ -529,17 +591,38 @@ void main() {
       },
     );
 
-    test('a refused renewal for a public request is not reported', () async {
+    test('a public request is never renewed for, so none is refused', () async {
+      var renewed = false;
       final dio = lapsing(
-        onRenew: () async => throw gatewayFailure(440, {'message': 'ended'}),
+        onRenew: () async {
+          renewed = true;
+          throw gatewayFailure(440, {'message': 'ended'});
+        },
         onRenewalFailure: (_, _, _) => JwtRenewalAction.fail,
         refresh: true,
+        status: 200,
       );
+
+      await dio.get<dynamic>(
+        '/ping',
+        options: Options(extra: {publicRequestExtraKey: true}),
+      );
+      expect(renewed, isFalse);
+      expect(adapter.reached, isTrue);
+      expect(lapses, isEmpty);
+    });
+
+    test('a public request carrying its own bearer is not a lapse', () async {
+      final dio = lapsing();
 
       await failureOf(
         dio,
-        options: Options(extra: {publicRequestExtraKey: true}),
+        options: Options(
+          extra: {publicRequestExtraKey: true},
+          headers: {'Authorization': 'Bearer stale'},
+        ),
       );
+      expect(adapter.authorization, 'Bearer stale');
       expect(lapses, isEmpty);
     });
 

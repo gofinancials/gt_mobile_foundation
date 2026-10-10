@@ -41,9 +41,18 @@ mixin DisposalAware on ChangeNotifier {
   /// the response is still returned. It is asked before [onFailure], not
   /// inside it, because once [onFailure] runs the failure is already shown.
   ///
-  /// The flag is cleared *before* the callbacks run, because a success
-  /// callback may begin the next action and would otherwise meet an object
-  /// that is still loading.
+  /// By default the flag is cleared *before* the callbacks run, because a
+  /// success callback may begin the next action and would otherwise meet an
+  /// object that is still loading.
+  ///
+  /// [holdUntilSettled] keeps it raised until [onData] or [onFailure] has
+  /// finished instead. The flag is also what refuses a second call, so with
+  /// the default an asynchronous callback runs while the object accepts new
+  /// ones: harmless after a read, but after a payment the receipt, the
+  /// recents write and the balance refresh are part of the payment, and a
+  /// second confirm in that window would pay again. The cost is the case the
+  /// default exists for — while held, a call begun from inside a callback is
+  /// refused like any other.
   ///
   /// Returns the task's response, or `null` when the call was refused because
   /// one was already running.
@@ -54,30 +63,63 @@ mixin DisposalAware on ChangeNotifier {
     required OnPressed setLoading,
     required OnPressed clearLoading,
     required OnChangedMaybeAsync<T> onData,
-    required OnChanged<TaskError> onFailure,
+    required OnChangedMaybeAsync<TaskError> onFailure,
     FunctionCall<bool>? isCurrent,
     OnBoolValidation<TaskError>? shouldPublish,
+    bool holdUntilSettled = false,
   }) async {
     if (isLoading() || isDisposed || isCurrent?.call() == false) return null;
 
     final holder = _taskHolder = Object();
     setLoading();
 
+    // Release this call's hold, but only if a newer call has not taken it in
+    // the meantime — and only if the flag is still raised. A `reset` lowers it
+    // and restores the pristine state, and clearing a flag that is already
+    // clear is not free: it writes a value, so the reset state would be
+    // overwritten by a loaded one carrying the same emptiness, and every
+    // listener would be told about it.
+    void release() {
+      if (identical(_taskHolder, holder) && isLoading()) clearLoading();
+    }
+
     final response = await _guarded(task);
 
-    // Release this call's hold before anything reads the flag, but only if a
-    // newer call has not taken it in the meantime — and only if the flag is
-    // still raised. A `reset` lowers it and restores the pristine state, and
-    // clearing a flag that is already clear is not free: it writes a value,
-    // so the reset state would be overwritten by a loaded one carrying the
-    // same emptiness, and every listener would be told about it.
-    if (identical(_taskHolder, holder) && isLoading()) clearLoading();
+    // Released before anything reads the flag, unless the caller asked to
+    // hold it through the callbacks.
+    if (!holdUntilSettled) release();
 
-    if (isDisposed || isCurrent?.call() == false) return response;
+    try {
+      await _publish(
+        response,
+        onData: onData,
+        onFailure: onFailure,
+        isCurrent: isCurrent,
+        shouldPublish: shouldPublish,
+      );
+    } finally {
+      // Only a held flag is released here: a callback under the default may
+      // have raised it again for its own purposes.
+      if (holdUntilSettled) release();
+    }
 
-    void publishFailure(TaskError error) {
+    return response;
+  }
+
+  /// Hands [response] to [onData] or [onFailure], unless the reply outlived
+  /// what asked for it.
+  Future<void> _publish<T>(
+    TaskResponse<T> response, {
+    required OnChangedMaybeAsync<T> onData,
+    required OnChangedMaybeAsync<TaskError> onFailure,
+    FunctionCall<bool>? isCurrent,
+    OnBoolValidation<TaskError>? shouldPublish,
+  }) async {
+    if (isDisposed || isCurrent?.call() == false) return;
+
+    Future<void> publishFailure(TaskError error) async {
       if (shouldPublish?.call(error) == false) return;
-      onFailure(error);
+      await onFailure(error);
     }
 
     try {
@@ -85,16 +127,14 @@ mixin DisposalAware on ChangeNotifier {
         case TaskSuccess(:final data):
           await onData(data);
         case TaskFailure(:final error):
-          publishFailure(error);
+          await publishFailure(error);
       }
     } catch (error, trace) {
       // A callback of the caller's own can throw too, and a screen left
       // showing nothing is worse than one showing the generic failure.
-      if (isDisposed || isCurrent?.call() == false) return response;
-      publishFailure(_unexpectedFailure(error, trace));
+      if (isDisposed || isCurrent?.call() == false) return;
+      await publishFailure(_unexpectedFailure(error, trace));
     }
-
-    return response;
   }
 
   Future<TaskResponse<T>> _guarded<T>(FutureCall<TaskResponse<T>> task) async {
@@ -146,13 +186,20 @@ abstract class StateModel extends ChangeNotifier with DisposalAware {
   /// that is not worth showing — one a superseded session caused, say — from
   /// reaching [onError] at all.
   ///
+  /// Both callbacks are awaited. Pass [holdUntilSettled] when the work after
+  /// the reply is part of the action — a payment's receipt and balance
+  /// refresh, say — so the model stays loading, and refuses a second call,
+  /// until [onSuccess] or [onError] has finished. Left out, the flag drops
+  /// before the callbacks run so [onSuccess] can begin the next action.
+  ///
   /// Returns the response, or `null` when the model was already loading.
   Future<TaskResponse<T>?> executeAction<T>(
     FutureCall<TaskResponse<T>> action, {
     OnChangedMaybeAsync<T>? onSuccess,
-    OnChanged<TaskError>? onError,
+    OnChangedMaybeAsync<TaskError>? onError,
     FunctionCall<bool>? isCurrent,
     OnBoolValidation<TaskError>? shouldPublish,
+    bool holdUntilSettled = false,
   }) {
     return runGuardedTask(
       action,
@@ -160,9 +207,10 @@ abstract class StateModel extends ChangeNotifier with DisposalAware {
       setLoading: () => isLoading = true,
       clearLoading: () => isLoading = false,
       onData: (data) async => onSuccess?.call(data),
-      onFailure: (error) => onError?.call(error),
+      onFailure: (error) async => onError?.call(error),
       isCurrent: isCurrent,
       shouldPublish: shouldPublish,
+      holdUntilSettled: holdUntilSettled,
     );
   }
 }
