@@ -54,6 +54,12 @@ mixin DisposalAware on ChangeNotifier {
   /// default exists for — while held, a call begun from inside a callback is
   /// refused like any other.
   ///
+  /// [onDeclined] runs when the reply is dropped instead — [isCurrent] stopped
+  /// agreeing, or [shouldPublish] declined the failure — and no newer call has
+  /// taken the flag since. A data notifier uses it to put back what it held
+  /// before the task, so a reply nobody saw does not leave it looking loaded
+  /// and empty.
+  ///
   /// Returns the task's response, or `null` when the call was refused because
   /// one was already running.
   @protected
@@ -66,6 +72,7 @@ mixin DisposalAware on ChangeNotifier {
     required OnChangedMaybeAsync<TaskError> onFailure,
     FunctionCall<bool>? isCurrent,
     OnBoolValidation<TaskError>? shouldPublish,
+    OnPressed? onDeclined,
     bool holdUntilSettled = false,
   }) async {
     if (isLoading() || isDisposed || isCurrent?.call() == false) return null;
@@ -90,13 +97,16 @@ mixin DisposalAware on ChangeNotifier {
     if (!holdUntilSettled) release();
 
     try {
-      await _publish(
+      final published = await _publish(
         response,
         onData: onData,
         onFailure: onFailure,
         isCurrent: isCurrent,
         shouldPublish: shouldPublish,
       );
+      if (!published && !isDisposed && identical(_taskHolder, holder)) {
+        onDeclined?.call();
+      }
     } finally {
       // Only a held flag is released here: a callback under the default may
       // have raised it again for its own purposes.
@@ -107,33 +117,37 @@ mixin DisposalAware on ChangeNotifier {
   }
 
   /// Hands [response] to [onData] or [onFailure], unless the reply outlived
-  /// what asked for it.
-  Future<void> _publish<T>(
+  /// what asked for it. Returns whether either was called.
+  Future<bool> _publish<T>(
     TaskResponse<T> response, {
     required OnChangedMaybeAsync<T> onData,
     required OnChangedMaybeAsync<TaskError> onFailure,
     FunctionCall<bool>? isCurrent,
     OnBoolValidation<TaskError>? shouldPublish,
   }) async {
-    if (isDisposed || isCurrent?.call() == false) return;
+    if (isDisposed || isCurrent?.call() == false) return false;
 
-    Future<void> publishFailure(TaskError error) async {
-      if (shouldPublish?.call(error) == false) return;
+    Future<bool> publishFailure(TaskError error) async {
+      if (shouldPublish?.call(error) == false) return false;
       await onFailure(error);
+      return true;
     }
 
     try {
       switch (response) {
         case TaskSuccess(:final data):
           await onData(data);
+          return true;
         case TaskFailure(:final error):
-          await publishFailure(error);
+          return await publishFailure(error);
       }
     } catch (error, trace) {
       // A callback of the caller's own can throw too, and a screen left
-      // showing nothing is worse than one showing the generic failure.
-      if (isDisposed || isCurrent?.call() == false) return;
+      // showing nothing is worse than one showing the generic failure. The
+      // callback has already run, so this reply counts as published.
+      if (isDisposed || isCurrent?.call() == false) return true;
       await publishFailure(_unexpectedFailure(error, trace));
+      return true;
     }
   }
 

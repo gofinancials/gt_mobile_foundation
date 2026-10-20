@@ -567,6 +567,52 @@ void main() {
       expect(notifier.isLoading, isFalse);
       expect(response, isA<TaskFailure<_Item>>());
     });
+
+    test('a declined reply puts back what the notifier held', () async {
+      // A session that ends mid-load supersedes the reply. Left as the flag
+      // cleared it, the notifier read as loaded with nothing in it, and a
+      // screen said there was nothing to show.
+      final pristine = FutureDataNotifier<_Item>.pristine();
+      await pristine.executeTask(_fails, shouldPublish: (_) => false);
+      expect(pristine.isPristine, isTrue);
+
+      final loaded = FutureDataNotifier<_Item>.pristine()
+        ..setData(const _Item(7));
+      final before = loaded.value;
+      await loaded.executeTask(_fails, shouldPublish: (_) => false);
+      expect(loaded.value, same(before));
+    });
+
+    test('a reply isCurrent drops puts back what the notifier held', () async {
+      final notifier = FutureDataNotifier<_Item>.pristine();
+      var current = true;
+      final gate = Completer<TaskResponse<_Item>>();
+      final running = notifier.executeTask(
+        () => gate.future,
+        isCurrent: () => current,
+      );
+      current = false;
+      gate.complete(TaskSuccess(data: const _Item(1)));
+      await running;
+      expect(notifier.isPristine, isTrue);
+      expect(notifier.isLoading, isFalse);
+    });
+
+    test('a newer call keeps its own state over a declined reply', () async {
+      final notifier = FutureDataNotifier<_Item>.pristine();
+      final gate = Completer<TaskResponse<_Item>>();
+      final first = notifier.executeTask(
+        () => gate.future,
+        shouldPublish: (_) => false,
+      );
+      // A reset lets a second call run while the first is in flight.
+      notifier.reset();
+      final second = notifier.executeTask(_succeeds);
+      await second;
+      gate.complete(TaskFailure(error: _failure));
+      await first;
+      expect(notifier.data, const _Item(1));
+    });
   });
 
   group('FutureListDataNotifier.executeTask', () {
@@ -637,6 +683,17 @@ void main() {
 
       expect(notifier.hasError, isFalse);
       expect(notifier.isLoading, isFalse);
+    });
+
+    test('a declined reply leaves the list pristine', () async {
+      final notifier = FutureListDataNotifier<_Item>.pristine();
+
+      await notifier.executeTask(
+        () async => TaskFailure(error: _failure),
+        shouldPublish: (_) => false,
+      );
+
+      expect(notifier.isPristine, isTrue);
     });
   });
 
@@ -738,6 +795,18 @@ void main() {
       expect(notifier.hasError, isFalse);
       expect(published, isFalse);
       expect(notifier.isLoading, isFalse);
+    });
+
+    test('a declined page leaves the notifier pristine', () async {
+      final notifier = PaginatedDataNotifier<_Page>.pristine();
+
+      await notifier.executePageTask(
+        () async => TaskFailure(error: _failure),
+        onData: (_) {},
+        shouldPublish: (_) => false,
+      );
+
+      expect(notifier.isPristine, isTrue);
     });
   });
 }
