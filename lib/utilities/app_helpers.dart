@@ -197,12 +197,20 @@ class AppHelpers {
       return {"message": message, "statusCode": responseCode ?? code};
     }
 
+    // A body read as plain text is still the API's map, only undecoded.
+    final data = switch (error.response?.data) {
+      String raw => AppJson.decodedMap(raw),
+      final other => other,
+    };
+
     // A gateway or reverse proxy in front of the API answers a `5xx` on its
     // behalf and never authored or encrypted that body, so it is not the
-    // API's message to show. A `4xx` is the API's own refusal and falls
+    // API's message to show. The API answers some business refusals with a
+    // `500` too, and that body was decrypted or carries its envelope, so it
+    // reads as a `4xx` does. A `4xx` is the API's own refusal and falls
     // through to read normally below, where a body the proxy flagged as its
     // own is still caught.
-    if (responseCode != null && responseCode >= 500) {
+    if (_isProxyFailure(error.response, data)) {
       return {
         "message": _strings.serverUnavailable.tr(),
         "statusCode": responseCode,
@@ -211,11 +219,6 @@ class AppHelpers {
 
     // Reaching here means the server answered, so its own message is the one
     // worth showing.
-    // A body read as plain text is still the API's map, only undecoded.
-    final data = switch (error.response?.data) {
-      String raw => AppJson.decodedMap(raw),
-      final other => other,
-    };
     if (data is Map) {
       return _parseErrorMap(
         data,
@@ -224,6 +227,40 @@ class AppHelpers {
       );
     }
     return {"message": defaultMessage, "statusCode": responseCode ?? 500};
+  }
+
+  /// Whether [response] is a `5xx` the API did not author, read with its body
+  /// already decoded as [data].
+  ///
+  /// A proxy's page is never encrypted and never carries the API's envelope,
+  /// so a body `DecryptInterceptor` decrypted, or one that reads as the
+  /// envelope, is the API's whatever its status.
+  static bool _isProxyFailure(Response? response, Object? data) {
+    if (response == null || (response.statusCode ?? 0) < 500) return false;
+    if (response.isDecrypted) return false;
+    return !_isEnvelope(data);
+  }
+
+  /// Whether [body] is the gateway's envelope: a `responseMessage` beside a
+  /// `responseCode` or an `isSuccessful`, at the top or nested under `data`.
+  ///
+  /// The keys need only be present. A blank message still marks the envelope,
+  /// and [_parseErrorMap] then gives way to the caller's default for it.
+  static bool _isEnvelope(Object? body) {
+    final json = switch (body) {
+      String raw => AppJson.decodedMap(raw),
+      Map map => AppJson.asMap(map),
+      _ => null,
+    };
+    if (json == null) return false;
+    if (_carriesEnvelope(json)) return true;
+    return _isEnvelope(AppJson.valueAt(json, _nestedErrorKeys));
+  }
+
+  /// Whether [json] itself spells the gateway's envelope keys.
+  static bool _carriesEnvelope(Map<String, dynamic> json) {
+    if (!_responseMessageKeys.any(json.containsKey)) return false;
+    return [..._envelopeCodeKeys, ..._envelopeFlagKeys].any(json.containsKey);
   }
 
   /// Reads a bare string [error]: a message a repository threw on purpose, or
@@ -295,6 +332,14 @@ class AppHelpers {
   /// from [_messageKeys] because a body may carry both, and a blank `message`
   /// must not hide the envelope's.
   static const _responseMessageKeys = ['responseMessage', 'ResponseMessage'];
+
+  /// The keys the gateway's own envelope spells its response code with, in
+  /// either case. Narrower than [_codeKeys], whose `Status` a proxy page may
+  /// carry too.
+  static const _envelopeCodeKeys = ['responseCode', 'ResponseCode'];
+
+  /// The keys the gateway's own envelope spells its success flag with.
+  static const _envelopeFlagKeys = ['isSuccessful', 'IsSuccessful'];
 
   /// The keys an error body spells its short error string with.
   static const _errorKeys = ['error', 'Error'];

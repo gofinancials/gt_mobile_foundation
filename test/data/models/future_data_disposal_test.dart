@@ -90,10 +90,7 @@ void main() {
       );
       expect(() => notifier.removeSingleItem(item), returnsNormally);
       expect(() => notifier.addSingleItem(item), returnsNormally);
-      expect(
-        () => notifier.addData(PaginatedData.pristine()),
-        returnsNormally,
-      );
+      expect(() => notifier.addData(PaginatedData.pristine()), returnsNormally);
     });
   });
 }

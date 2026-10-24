@@ -333,9 +333,88 @@ void main() {
         (envelope) => envelope['id'],
       );
 
-      // The gateway answered; it refused in the body. Stamping that 500 sends
-      // whoever reads the failure looking for a server fault that never was.
+      // The gateway answered; it refused in the body, with no code of its own.
+      // Stamping that 500 sends whoever reads the failure looking for a server
+      // fault that never was.
       expect(result.error?.statusCode, '200');
+    });
+
+    test('a refusal carries the code the gateway refused with', () async {
+      // A number with no onboarding record: the gateway answers 200 and code
+      // 2, and code 2 is what moves the customer on to account creation.
+      final result = await service.sendEnvelope(
+        () async => _reply(
+          data: {
+            'isSuccessful': false,
+            'responseCode': '2',
+            'responseMessage': 'Not onboarded',
+          },
+          statusCode: 200,
+        ),
+        (envelope) => envelope['id'],
+      );
+
+      expect(result.error?.statusCode, '2');
+      expect(result.errorMessage, 'Not onboarded');
+    });
+
+    test('a refusal reads the code under either spelling, as sent', () async {
+      for (final (key, code) in [
+        ('responseCode', 2),
+        ('ResponseCode', ' 00 '),
+      ]) {
+        final result = await service.sendEnvelope(
+          () async => _reply(data: {'IsSuccessful': false, key: code}),
+          (envelope) => envelope['id'],
+        );
+
+        expect(result.error?.statusCode, '$code'.trim(), reason: key);
+      }
+    });
+
+    test(
+      'an encrypted refusal reads the inner code, not the wrapper',
+      () async {
+        final envelope = {'isSuccessful': false, 'responseCode': '2'};
+        final result = await service.sendEnvelope(
+          () async => _reply(
+            data: envelope,
+            raw: _wrapper(envelope),
+            responseCode: '00',
+          ),
+          (envelope) => envelope['id'],
+        );
+
+        expect(result.error?.statusCode, '2');
+      },
+    );
+
+    test('a plaintext refusal reads the code its unwrap consumed', () async {
+      final result = await service.sendEnvelope(
+        () async => _reply(
+          data: {'id': 1},
+          raw: {
+            'isSuccessful': false,
+            'responseCode': '2',
+            'data': {'id': 1},
+          },
+        ),
+        (envelope) => envelope['id'],
+      );
+
+      expect(result.error?.statusCode, '2');
+    });
+
+    test('a refusal with a blank code falls back to the status', () async {
+      final result = await service.sendEnvelope(
+        () async => _reply(
+          data: {'isSuccessful': false, 'responseCode': '  '},
+          statusCode: 201,
+        ),
+        (envelope) => envelope['id'],
+      );
+
+      expect(result.error?.statusCode, '201');
     });
 
     test('a decoder that throws is a failure, not a rejected future', () async {
@@ -373,11 +452,12 @@ void main() {
       expect(result.errorMessage, 'malformedResponse');
     });
 
-    test('a failure reads the transport status, not the business code', () async {
+    test('a failure never reads the reply\'s own response code', () async {
       // Without a stated status every reply reads as the 200 fallback, which a
-      // constant would satisfy too. 201 and '00' differ from it and each other.
+      // constant would satisfy too. 201 and '99' differ from it and each other.
+      // The reply's own code is the outer wrapper's, never the envelope's.
       DioResponse created(Map<String, dynamic> data) =>
-          _reply(data: data, statusCode: 201, responseCode: '00');
+          _reply(data: data, statusCode: 201, responseCode: '99');
 
       final refused = await service.sendEnvelope(
         () async => created({'isSuccessful': false}),
@@ -390,6 +470,20 @@ void main() {
 
       expect(refused.error?.statusCode, '201');
       expect(unreadable.error?.statusCode, '201');
+    });
+
+    test('a decoder failure keeps the status, not the accepted code', () async {
+      // The gateway's code on an accepted envelope says it succeeded, so it
+      // cannot label a failure to read what came back.
+      final result = await service.sendEnvelope<int>(
+        () async => _reply(
+          data: {'isSuccessful': true, 'responseCode': '00', 'id': 'x'},
+          statusCode: 201,
+        ),
+        (envelope) => envelope['id'] as int,
+      );
+
+      expect(result.error?.statusCode, '201');
     });
 
     group('reporting a decoder that throws', () {

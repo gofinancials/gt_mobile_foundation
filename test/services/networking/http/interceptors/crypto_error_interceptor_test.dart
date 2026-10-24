@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 
+import '../../../../support/test_config.dart';
+
 /// Captures what the interceptor passes down the error pipeline.
 ///
 /// It deliberately does not delegate to `super`, which would complete the
@@ -202,6 +204,95 @@ void main() {
       final passed = await run(error(data: body));
 
       expect(passed?.response?.data, same(body));
+    });
+  });
+
+  group('DecryptInterceptor marks what it decrypted', () {
+    late AppCryptoServiceImpl cryptoService;
+    late DecryptInterceptor interceptor;
+
+    setUpAll(registerTestConfig);
+
+    setUp(() {
+      cryptoService = AppCryptoServiceImpl(
+        aesKey: '01234567890123456789012345678901',
+        appTag: 'OneBankProDevMobileApiKey00001',
+        tamperProof: true,
+      );
+      interceptor = DecryptInterceptor(
+        cryptoService,
+        mode: .base64,
+        strategy: .colonDelimited,
+      );
+    });
+
+    String encrypt(String plaintext) => cryptoService.encrypt(
+      plaintext,
+      mode: .base64,
+      strategy: .colonDelimited,
+    );
+
+    DioException error(Object? data, int statusCode) {
+      final options = RequestOptions(
+        path: '/onebankonboarding/onboarding/user/PasscodeReset',
+        extra: {sensitiveRequestExtraKey: true},
+      );
+      return DioException(
+        requestOptions: options,
+        type: DioExceptionType.badResponse,
+        response: Response(
+          requestOptions: options,
+          data: data,
+          statusCode: statusCode,
+        ),
+      );
+    }
+
+    Future<DioException?> run(DioException err) async {
+      final handler = _CapturingHandler();
+      interceptor.onError(err, handler);
+      await Future<void>.delayed(Duration.zero);
+      return handler.captured;
+    }
+
+    test('a decrypted body is marked, the original is not', () async {
+      final err = error({'data': encrypt('{"message":"Refused"}')}, 400);
+
+      final passed = await run(err);
+
+      expect(passed?.response?.isDecrypted, isTrue);
+      expect(err.response?.isDecrypted, isFalse);
+    });
+
+    test('a skipped or undecryptable body is not marked', () async {
+      final skipped = await run(
+        error({'data': encrypt('{"message":"never read"}')}, 503),
+      );
+      final undecryptable = await run(error({'data': 'not-a-ciphertext'}, 500));
+
+      expect(skipped?.response?.isDecrypted, isFalse);
+      expect(undecryptable?.response?.isDecrypted, isFalse);
+    });
+
+    test('a gateway 500 refusal reaches the customer as the refusal', () async {
+      final refusals = {
+        'Profile locked. Please click Forgot Passcode? to reset or Contact '
+                'Support':
+            '{"isSuccessful":false,"responseCode":3,"responseMessage":'
+            '"Profile locked. Please click Forgot Passcode? to reset or '
+            'Contact Support"}',
+        'Invalid request, invalid debit Account name.':
+            '{"IsSuccessful":false,"ResponseCode":"3","ResponseMessage":'
+            '"Invalid request, invalid debit Account name."}',
+      };
+
+      for (final MapEntry(key: message, value: body) in refusals.entries) {
+        final passed = await run(error({'data': encrypt(body)}, 500));
+        final parsed = AppHelpers.parseError(passed, defaultMessage: 'GENERIC');
+
+        expect(parsed['message'], message);
+        expect(parsed['statusCode'], 3);
+      }
     });
   });
 }

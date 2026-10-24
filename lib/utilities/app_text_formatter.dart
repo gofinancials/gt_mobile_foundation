@@ -328,6 +328,8 @@ class AppTextFormatter {
   }
 
   /// Returns a short, compact formatted currency string (e.g., "1.5K").
+  ///
+  /// A negative [value] keeps its sign: an overdrawn balance reads `-₦1.5K`.
   static String formatCurrencyShort(
     num? value, {
     bool spaceIcon = false,
@@ -348,13 +350,18 @@ class AppTextFormatter {
       symbol: ignoreSymbol ? "" : "$currencySymbol${spaceIcon ? " " : ""}",
     );
 
-    amount = amount.replaceAll(AppRegex.nonAmount, "");
+    amount = amount.replaceAll(AppRegex.nonSignedAmount, "");
     final amountDouble = double.tryParse(amount);
     if (amountDouble == null) return "";
+    // `-0.0` would print as `-₦0.00`.
+    if (amountDouble == 0) return formatter.format(0);
     return formatter.format(amountDouble);
   }
 
   /// Returns a fully formatted currency string with comma separators.
+  ///
+  /// A negative [value] keeps its sign: an overdrawn balance reads
+  /// `-₦22,096.06`, or `-22,096.06` with [ignoreSymbol].
   static String formatCurrency(
     num? value, {
     bool spaceIcon = false,
@@ -375,9 +382,11 @@ class AppTextFormatter {
       symbol: ignoreSymbol ? "" : "$currencySymbol${spaceIcon ? " " : ""}",
     );
 
-    amount = amount.replaceAll(AppRegex.nonAmount, "");
+    amount = amount.replaceAll(AppRegex.nonSignedAmount, "");
     final amountDouble = double.tryParse(amount);
     if (amountDouble == null) return "";
+    // `-0.0` would print as `-₦0.00`.
+    if (amountDouble == 0) return formatter.format(0);
     return formatter.format(amountDouble);
   }
 

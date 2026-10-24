@@ -10,11 +10,51 @@ class AsyncDataNotifier<T extends Equatable>
   AsyncDataNotifier(super.value);
 }
 
+/// Puts back what a data notifier held before a task whose reply was dropped.
+///
+/// A dropped reply — one [DisposalAware.runGuardedTask] no longer publishes —
+/// still raised and cleared the loading flag, and a cleared flag reads as a
+/// load that finished with nothing: an empty list, no error, no longer
+/// pristine. Restoring the earlier value keeps a screen from claiming there is
+/// nothing to show when nothing was shown. A write made since the flag cleared
+/// wins: the earlier value comes back only over what the task itself left.
+mixin _RestoresDeclinedTasks<V> on ValueNotifier<V>, DisposalAware {
+  Future<TaskResponse<R>?> _runTask<R>(
+    FutureCall<TaskResponse<R>> task, {
+    required FunctionCall<bool> isLoading,
+    required OnPressed setLoading,
+    required OnPressed clearLoading,
+    required OnChangedMaybeAsync<R> onData,
+    required OnChangedMaybeAsync<TaskError> onFailure,
+    FunctionCall<bool>? isCurrent,
+    OnBoolValidation<TaskError>? shouldPublish,
+  }) {
+    final before = value;
+    V? released;
+    return runGuardedTask(
+      task,
+      isLoading: isLoading,
+      setLoading: setLoading,
+      clearLoading: () {
+        clearLoading();
+        released = value;
+      },
+      onData: onData,
+      onFailure: onFailure,
+      isCurrent: isCurrent,
+      shouldPublish: shouldPublish,
+      onDeclined: () {
+        if (identical(value, released)) value = before;
+      },
+    );
+  }
+}
+
 /// {@category Data}
 /// A [ValueNotifier] that manages the state of a [FutureData] object.
 class FutureDataNotifier<T extends Equatable>
     extends ValueNotifier<FutureData<T>>
-    with DisposalAware {
+    with DisposalAware, _RestoresDeclinedTasks<FutureData<T>> {
   /// Creates a [FutureDataNotifier] with the initial [value].
   FutureDataNotifier(super.value);
 
@@ -98,7 +138,7 @@ class FutureDataNotifier<T extends Equatable>
   /// state rather than a spinner that never clears, and drops the write if the
   /// notifier was disposed while the task was in flight. A failure
   /// [shouldPublish] declines is neither written as an error state nor handed
-  /// to [onError].
+  /// to [onError], and a dropped reply leaves the notifier as it was before.
   ///
   /// Returns the response, or `null` when a task was already running.
   Future<TaskResponse<T>?> executeTask(
@@ -108,7 +148,7 @@ class FutureDataNotifier<T extends Equatable>
     FunctionCall<bool>? isCurrent,
     OnBoolValidation<TaskError>? shouldPublish,
   }) {
-    return runGuardedTask(
+    return _runTask(
       task,
       isLoading: () => isLoading,
       setLoading: setLoading,
@@ -131,7 +171,7 @@ class FutureDataNotifier<T extends Equatable>
 /// A [ValueNotifier] that manages the state of a [FutureListData] object.
 class FutureListDataNotifier<T extends Equatable>
     extends ValueNotifier<FutureListData<T>>
-    with DisposalAware {
+    with DisposalAware, _RestoresDeclinedTasks<FutureListData<T>> {
   /// Creates a [FutureListDataNotifier] with the initial [value].
   FutureListDataNotifier(super.value);
 
@@ -227,7 +267,7 @@ class FutureListDataNotifier<T extends Equatable>
   /// state rather than a spinner that never clears, and drops the write if the
   /// notifier was disposed while the task was in flight. A failure
   /// [shouldPublish] declines is neither written as an error state nor handed
-  /// to [onError].
+  /// to [onError], and a dropped reply leaves the notifier as it was before.
   ///
   /// Returns the response, or `null` when a task was already running.
   Future<TaskResponse<List<T>>?> executeTask(
@@ -237,7 +277,7 @@ class FutureListDataNotifier<T extends Equatable>
     FunctionCall<bool>? isCurrent,
     OnBoolValidation<TaskError>? shouldPublish,
   }) {
-    return runGuardedTask(
+    return _runTask(
       task,
       isLoading: () => isLoading,
       setLoading: setLoading,
@@ -260,7 +300,7 @@ class FutureListDataNotifier<T extends Equatable>
 /// A [ValueNotifier] that manages the state of a [PaginatedData] object.
 class PaginatedDataNotifier<T extends Identifiable>
     extends ValueNotifier<PaginatedData<T>>
-    with DisposalAware {
+    with DisposalAware, _RestoresDeclinedTasks<PaginatedData<T>> {
   /// Creates a [PaginatedDataNotifier] with the initial [value].
   PaginatedDataNotifier(super.value);
 
@@ -377,7 +417,8 @@ class PaginatedDataNotifier<T extends Identifiable>
   /// the throw and the disposal check are handled here either way, and
   /// [loadingData] is what stays on screen while the page is in flight. A
   /// failure [shouldPublish] declines is neither written as an error state nor
-  /// handed to [onError].
+  /// handed to [onError], and a dropped reply leaves the notifier as it was
+  /// before.
   ///
   /// Returns the response, or `null` when a task was already running.
   Future<TaskResponse<List<T>>?> executePageTask(
@@ -389,7 +430,7 @@ class PaginatedDataNotifier<T extends Identifiable>
     FunctionCall<bool>? isCurrent,
     OnBoolValidation<TaskError>? shouldPublish,
   }) {
-    return runGuardedTask(
+    return _runTask(
       task,
       isLoading: () => isLoading,
       setLoading: () => setLoading(data: loadingData),
@@ -818,5 +859,8 @@ class PaginatedData<T extends Identifiable> extends AsyncData<T> {
     // error out meant a [PaginatedDataNotifier.setError] that changed nothing
     // else was discarded in silence and the failure never reached the screen.
     error,
+    // Likewise a pristine page and an empty loaded one: putting back the
+    // pristine state after a dropped reply would otherwise be skipped.
+    isPristine,
   ];
 }
