@@ -27,6 +27,7 @@ dependencies:
   # Lives in this repository; see packages/gt_device_integrity.
   gt_device_integrity:
     path: packages/gt_device_integrity
+  image_cropper: ^9.1.0
   image_picker: ^1.2.2
   intl: ^0.20.2
   local_auth: ^2.3.0
@@ -49,6 +50,7 @@ dev_dependencies:
   firebase_core_platform_interface: ^8.1.1
   firebase_messaging_platform_interface: ^4.10.0
   flutter_lints: ^5.0.0
+  image_cropper_platform_interface: ^7.2.0
   image_picker_platform_interface: ^2.11.1
   plugin_platform_interface: ^2.1.8
   share_plus_platform_interface: ^6.1.0

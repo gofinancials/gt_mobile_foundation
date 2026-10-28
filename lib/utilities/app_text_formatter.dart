@@ -700,15 +700,19 @@ class AppPhoneNumberFormatter extends TextInputFormatter {
       final newText = newValue.text.withoutWhiteSpaceAndSpecialChar;
       final oldText = oldValue.text.withoutWhiteSpaceAndSpecialChar;
 
-      if (newText.length <= 4) return newValue;
-
+      // A deletion goes through first, so a field can always be cleared.
       if (newValue.text.length < oldText.length) return newValue;
+
+      // Letters are rejected before the short-input return below, which
+      // would otherwise let them into the first four characters.
+      if (AppRegex.letter.hasMatch(newValue.text)) return oldValue;
+
+      if (newText.length <= 4) return newValue;
 
       if (newText.length > 15) return oldValue;
 
-      if (num.tryParse(newText) == null) return oldValue;
-
-      final formattedText = AppTextFormatter.formatPhone(newText);
+      // The typed text, not newText, so a leading plus survives.
+      final formattedText = AppTextFormatter.formatPhone(newValue.text);
 
       return TextEditingValue(
         text: formattedText,
