@@ -4,6 +4,7 @@ export 'contacts/contacts.dart';
 export 'crashlytics/crashlytics.dart';
 export 'crypto/crypto.dart';
 export 'device_integrity/device_integrity.dart';
+export 'email_app/email_app.dart';
 export 'firebase_config/firebase_config.dart';
 export 'fs/fs.dart';
 export 'media_player/media_player.dart';
