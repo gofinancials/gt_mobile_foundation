@@ -809,6 +809,101 @@ void main() {
       expect(notifier.isPristine, isTrue);
     });
   });
+
+  group('AppConfig.shouldPublishFailure', () {
+    const superseded = TaskError(message: 'Superseded', statusCode: '499');
+
+    TaskCallResponse<_Item> failsSuperseded() async =>
+        TaskFailure(error: superseded);
+
+    // The app's filter declines only the superseded failure, so a test can
+    // tell it apart from a call's own filter.
+    setUp(() => registerFailureFilter((error) => error != superseded));
+    tearDown(() => registerFailureFilter(null));
+
+    test('filters an executeAction that passes no filter', () async {
+      final model = _TestStateModel();
+      var published = false;
+
+      final response = await model.executeAction(
+        failsSuperseded,
+        onError: (_) => published = true,
+      );
+
+      expect(published, isFalse);
+      expect(response, isA<TaskFailure<_Item>>());
+      expect(model.isLoading, isFalse);
+    });
+
+    test('still publishes a failure it accepts', () async {
+      final model = _TestStateModel();
+      TaskError? received;
+
+      await model.executeAction(_fails, onError: (error) => received = error);
+
+      expect(received, _failure);
+    });
+
+    test('a call\'s own filter narrows it rather than replacing it', () async {
+      final model = _TestStateModel();
+      var published = false;
+
+      await model.executeAction(
+        failsSuperseded,
+        onError: (_) => published = true,
+        shouldPublish: (_) => true,
+      );
+
+      expect(published, isFalse, reason: 'the app filter still declines it');
+
+      TaskError? received;
+      await model.executeAction(
+        _fails,
+        onError: (error) => received = error,
+        shouldPublish: (_) => false,
+      );
+
+      expect(received, isNull, reason: 'the call filter declines it too');
+    });
+
+    test('filters an executeTask and puts back what it held', () async {
+      final notifier = FutureDataNotifier<_Item>.pristine();
+      var published = false;
+
+      await notifier.executeTask(
+        failsSuperseded,
+        onError: (_) => published = true,
+      );
+
+      expect(published, isFalse);
+      expect(notifier.hasError, isFalse);
+      expect(notifier.isPristine, isTrue);
+    });
+
+    test('filters a list executeTask', () async {
+      final notifier = FutureListDataNotifier<_Item>.pristine();
+
+      await notifier.executeTask(() async => TaskFailure(error: superseded));
+
+      expect(notifier.hasError, isFalse);
+      expect(notifier.isPristine, isTrue);
+    });
+
+    test('filters an executePageTask', () async {
+      final notifier = PaginatedDataNotifier<_Page>.pristine();
+      var published = false;
+
+      await notifier.executePageTask(
+        () async => TaskFailure(error: superseded),
+        onData: (_) {},
+        onError: (_) => published = true,
+      );
+
+      expect(published, isFalse);
+      expect(notifier.hasError, isFalse);
+      expect(notifier.isPristine, isTrue);
+    });
+  });
 }
 
 class _Page extends Equatable implements Identifiable {

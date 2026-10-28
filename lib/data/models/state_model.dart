@@ -36,10 +36,13 @@ mixin DisposalAware on ChangeNotifier {
   /// [isCurrent] speaks for the caller; [shouldPublish] speaks for the
   /// failure. Some failures are nobody's fault and not worth a screen — the
   /// calls a session renewal supersedes all fail together — and whether that
-  /// is so is read off the [TaskError] itself. A failure it declines never
-  /// reaches [onFailure], so no error state is written and no callback runs;
-  /// the response is still returned. It is asked before [onFailure], not
-  /// inside it, because once [onFailure] runs the failure is already shown.
+  /// is so is read off the [TaskError] itself. The app's
+  /// [AppConfig.shouldPublishFailure] is asked first, so a call that leaves
+  /// [shouldPublish] out is still filtered, and a call that passes one only
+  /// narrows it. A failure either declines never reaches [onFailure], so no
+  /// error state is written and no callback runs; the response is still
+  /// returned. Both are asked before [onFailure], not inside it, because once
+  /// [onFailure] runs the failure is already shown.
   ///
   /// By default the flag is cleared *before* the callbacks run, because a
   /// success callback may begin the next action and would otherwise meet an
@@ -55,7 +58,7 @@ mixin DisposalAware on ChangeNotifier {
   /// refused like any other.
   ///
   /// [onDeclined] runs when the reply is dropped instead — [isCurrent] stopped
-  /// agreeing, or [shouldPublish] declined the failure — and no newer call has
+  /// agreeing, or a filter declined the failure — and no newer call has
   /// taken the flag since. A data notifier uses it to put back what it held
   /// before the task, so a reply nobody saw does not leave it looking loaded
   /// and empty.
@@ -128,6 +131,7 @@ mixin DisposalAware on ChangeNotifier {
     if (isDisposed || isCurrent?.call() == false) return false;
 
     Future<bool> publishFailure(TaskError error) async {
+      if (config.shouldPublishFailure?.call(error) == false) return false;
       if (shouldPublish?.call(error) == false) return false;
       await onFailure(error);
       return true;
@@ -196,9 +200,10 @@ abstract class StateModel extends ChangeNotifier with DisposalAware {
   /// A throw becomes the generic failure message rather than a stuck spinner,
   /// and a model that has been disposed, or that [isCurrent] no longer
   /// recognises, ignores the reply entirely. Pass [isCurrent] to fence a reply
-  /// against state the caller owns, and [shouldPublish] to keep a failure
-  /// that is not worth showing — one a superseded session caused, say — from
-  /// reaching [onError] at all.
+  /// against state the caller owns. A failure the app's
+  /// [AppConfig.shouldPublishFailure] declines — one a superseded session
+  /// caused, say — never reaches [onError]; pass [shouldPublish] to decline
+  /// more for this call alone.
   ///
   /// Both callbacks are awaited. Pass [holdUntilSettled] when the work after
   /// the reply is part of the action — a payment's receipt and balance
