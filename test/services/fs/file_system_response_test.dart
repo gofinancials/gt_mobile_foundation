@@ -44,8 +44,10 @@ void main() {
   });
 
   group('FsResponse', () {
-    FsResponse responseWith(FsErrorType type) =>
-        FsResponse(type: .document, error: FsError(type: type));
+    FsResponse responseWith(FsErrorType type) => FsResponse(
+      type: .document,
+      error: FsError(type: type),
+    );
 
     test('a dismissal is both cancelled and an absent selection', () {
       final response = responseWith(.cancelled);

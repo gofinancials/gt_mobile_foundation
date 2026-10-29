@@ -95,7 +95,8 @@ class JwtInterceptor extends QueuedInterceptorsWrapper {
   /// Only for a request that carried the session's current bearer token and
   /// was not marked public (see [publicRequestExtraKey]), so a reply to a
   /// request sent before the customer signed in again cannot end the session
-  /// they signed in to. A renewal answered with [sessionExpiredStatus] counts
+  /// they signed in to. A public request is never given the bearer, but one
+  /// whose caller set it by hand is still not read as a lapse. A renewal answered with [sessionExpiredStatus] counts
   /// too, since a gateway that refuses to renew has ended the session as
   /// surely as one that refuses the request. It is seen only when [onRenew]
   /// lets the gateway's [DioException] through; a renewal that catches it and
@@ -165,11 +166,20 @@ class JwtInterceptor extends QueuedInterceptorsWrapper {
   /// token read before renewal, because a host whose [onRenew] closed the
   /// session on a refusal has discarded it by now. A request is never sent
   /// with no token when renewal was due, whatever the decision.
+  ///
+  /// A request marked public (see [publicRequestExtraKey]) passes straight
+  /// through: it is not renewed for and is not given the session's bearer.
+  /// A sign-in or a passcode reset belongs to no session, so waiting on a
+  /// renewal for one only stalls the screen, and the bearer would hand the
+  /// gateway a credential for the session the customer is leaving. Headers
+  /// the caller set on it are its own and are left as they are.
   @override
   void onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    if (options.isPublicRequest) return handler.next(options);
+
     final String? token;
 
     try {
@@ -288,7 +298,8 @@ class JwtInterceptor extends QueuedInterceptorsWrapper {
   /// to has ended.
   ///
   /// [request] is the request whose public flag decides, and [bearer] the
-  /// token it was sent for.
+  /// token it was sent for. A public request is never renewed for, so only a
+  /// reply reaches here for one — and then only with a bearer its caller set.
   void _reportLapse(
     DioException error,
     RequestOptions request,

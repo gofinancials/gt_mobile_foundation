@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  package="ng.gofinancials.gt_device_integrity">
+    <!-- Android 11+ hides other packages unless they are named here. These are
+         the root manager and the cloning apps the plugin probes for; the
+         entries merge into the host app's manifest. -->
+    <queries>
+        <package android:name="com.topjohnwu.magisk" />
+        <package android:name="com.parallel.space.lite" />
+        <package android:name="com.lbe.parallel.intl" />
+        <package android:name="com.lbe.parallel" />
+        <package android:name="com.cloneapp.cloner" />
+        <package android:name="com.dualspace.pro" />
+        <package android:name="io.virtualapp" />
+        <package android:name="com.excelliance.multiaccounts" />
+    </queries>
+</manifest>

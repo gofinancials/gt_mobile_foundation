@@ -265,6 +265,165 @@ void main() {
       expect(published, isFalse);
       expect(model.isLoading, isFalse);
     });
+
+    test('an asynchronous onError is awaited', () async {
+      final model = _TestStateModel();
+      final gate = Completer<void>();
+      var settled = false;
+
+      final running = model
+          .executeAction(_fails, onError: (_) => gate.future)
+          .then((_) => settled = true);
+
+      await pumpEventQueue();
+      expect(settled, isFalse, reason: 'onError has not finished');
+      expect(model.isLoading, isFalse, reason: 'the default does not hold');
+
+      gate.complete();
+      await running;
+      expect(settled, isTrue);
+    });
+  });
+
+  group('StateModel.executeAction holding until settled', () {
+    test('stays loading while an async onSuccess runs', () async {
+      final model = _TestStateModel();
+      final gate = Completer<void>();
+      var calls = 0;
+
+      final first = model.executeAction(
+        _succeeds,
+        onSuccess: (_) => gate.future,
+        holdUntilSettled: true,
+      );
+      await pumpEventQueue();
+      expect(model.isLoading, isTrue);
+
+      // A second confirm while the first payment is still being recorded.
+      final second = await model.executeAction(() {
+        calls++;
+        return _succeeds();
+      });
+      expect(second, isNull);
+      expect(calls, 0, reason: 'the bill must not be paid twice');
+
+      gate.complete();
+      await first;
+      expect(model.isLoading, isFalse);
+    });
+
+    test('stays loading while an async onError runs', () async {
+      final model = _TestStateModel();
+      final gate = Completer<void>();
+      TaskError? received;
+
+      final running = model.executeAction(
+        _fails,
+        onError: (error) async {
+          received = error;
+          await gate.future;
+        },
+        holdUntilSettled: true,
+      );
+      await pumpEventQueue();
+      expect(received, _failure);
+      expect(model.isLoading, isTrue);
+      expect(await model.executeAction(_succeeds), isNull);
+
+      gate.complete();
+      await running;
+      expect(model.isLoading, isFalse);
+    });
+
+    test('a throw out of onSuccess still releases the flag', () async {
+      final model = _TestStateModel();
+      bool? loadingInOnError;
+      TaskError? received;
+
+      await model.executeAction(
+        _succeeds,
+        onSuccess: (_) async => throw StateError('callback blew up'),
+        onError: (error) {
+          received = error;
+          loadingInOnError = model.isLoading;
+        },
+        holdUntilSettled: true,
+      );
+
+      expect(received?.message, 'requestFailedUnexpectedly');
+      expect(loadingInOnError, isTrue);
+      expect(model.isLoading, isFalse);
+    });
+
+    test('a throw out of onError still releases the flag', () async {
+      final model = _TestStateModel();
+
+      await expectLater(
+        model.executeAction(
+          _fails,
+          onError: (_) async => throw StateError('callback blew up'),
+          holdUntilSettled: true,
+        ),
+        throwsStateError,
+      );
+      expect(model.isLoading, isFalse, reason: 'no spinner left stranded');
+    });
+
+    test('a call begun inside a held callback is refused', () async {
+      final model = _TestStateModel();
+      TaskResponse<_Item>? chained;
+
+      await model.executeAction(
+        _succeeds,
+        onSuccess: (_) async => chained = await model.executeAction(_succeeds),
+        holdUntilSettled: true,
+      );
+
+      expect(chained, isNull);
+      expect(model.isLoading, isFalse);
+    });
+
+    test('releasing never lowers a newer call\'s hold', () async {
+      final model = _TestStateModel();
+      final firstGate = Completer<void>();
+      final nextGate = Completer<TaskResponse<_Item>>();
+
+      final first = model.executeAction(
+        _succeeds,
+        onSuccess: (_) => firstGate.future,
+        holdUntilSettled: true,
+      );
+      await pumpEventQueue();
+
+      model.reset();
+      final next = model.executeAction(() => nextGate.future);
+      expect(model.isLoading, isTrue);
+
+      firstGate.complete();
+      await first;
+      expect(model.isLoading, isTrue, reason: 'the newer call still runs');
+
+      nextGate.complete(TaskSuccess(data: const _Item(2)));
+      await next;
+      expect(model.isLoading, isFalse);
+    });
+
+    test('a reply arriving after disposal publishes nothing', () async {
+      final model = _TestStateModel();
+      final gate = Completer<TaskResponse<_Item>>();
+      var published = false;
+
+      final running = model.executeAction(
+        () => gate.future,
+        onSuccess: (_) => published = true,
+        holdUntilSettled: true,
+      );
+      model.dispose();
+      gate.complete(TaskSuccess(data: const _Item(1)));
+      await running;
+
+      expect(published, isFalse);
+    });
   });
 
   group('FutureDataNotifier.executeTask', () {
@@ -408,6 +567,52 @@ void main() {
       expect(notifier.isLoading, isFalse);
       expect(response, isA<TaskFailure<_Item>>());
     });
+
+    test('a declined reply puts back what the notifier held', () async {
+      // A session that ends mid-load supersedes the reply. Left as the flag
+      // cleared it, the notifier read as loaded with nothing in it, and a
+      // screen said there was nothing to show.
+      final pristine = FutureDataNotifier<_Item>.pristine();
+      await pristine.executeTask(_fails, shouldPublish: (_) => false);
+      expect(pristine.isPristine, isTrue);
+
+      final loaded = FutureDataNotifier<_Item>.pristine()
+        ..setData(const _Item(7));
+      final before = loaded.value;
+      await loaded.executeTask(_fails, shouldPublish: (_) => false);
+      expect(loaded.value, same(before));
+    });
+
+    test('a reply isCurrent drops puts back what the notifier held', () async {
+      final notifier = FutureDataNotifier<_Item>.pristine();
+      var current = true;
+      final gate = Completer<TaskResponse<_Item>>();
+      final running = notifier.executeTask(
+        () => gate.future,
+        isCurrent: () => current,
+      );
+      current = false;
+      gate.complete(TaskSuccess(data: const _Item(1)));
+      await running;
+      expect(notifier.isPristine, isTrue);
+      expect(notifier.isLoading, isFalse);
+    });
+
+    test('a newer call keeps its own state over a declined reply', () async {
+      final notifier = FutureDataNotifier<_Item>.pristine();
+      final gate = Completer<TaskResponse<_Item>>();
+      final first = notifier.executeTask(
+        () => gate.future,
+        shouldPublish: (_) => false,
+      );
+      // A reset lets a second call run while the first is in flight.
+      notifier.reset();
+      final second = notifier.executeTask(_succeeds);
+      await second;
+      gate.complete(TaskFailure(error: _failure));
+      await first;
+      expect(notifier.data, const _Item(1));
+    });
   });
 
   group('FutureListDataNotifier.executeTask', () {
@@ -478,6 +683,17 @@ void main() {
 
       expect(notifier.hasError, isFalse);
       expect(notifier.isLoading, isFalse);
+    });
+
+    test('a declined reply leaves the list pristine', () async {
+      final notifier = FutureListDataNotifier<_Item>.pristine();
+
+      await notifier.executeTask(
+        () async => TaskFailure(error: _failure),
+        shouldPublish: (_) => false,
+      );
+
+      expect(notifier.isPristine, isTrue);
     });
   });
 
@@ -579,6 +795,113 @@ void main() {
       expect(notifier.hasError, isFalse);
       expect(published, isFalse);
       expect(notifier.isLoading, isFalse);
+    });
+
+    test('a declined page leaves the notifier pristine', () async {
+      final notifier = PaginatedDataNotifier<_Page>.pristine();
+
+      await notifier.executePageTask(
+        () async => TaskFailure(error: _failure),
+        onData: (_) {},
+        shouldPublish: (_) => false,
+      );
+
+      expect(notifier.isPristine, isTrue);
+    });
+  });
+
+  group('AppConfig.shouldPublishFailure', () {
+    const superseded = TaskError(message: 'Superseded', statusCode: '499');
+
+    TaskCallResponse<_Item> failsSuperseded() async =>
+        TaskFailure(error: superseded);
+
+    // The app's filter declines only the superseded failure, so a test can
+    // tell it apart from a call's own filter.
+    setUp(() => registerFailureFilter((error) => error != superseded));
+    tearDown(() => registerFailureFilter(null));
+
+    test('filters an executeAction that passes no filter', () async {
+      final model = _TestStateModel();
+      var published = false;
+
+      final response = await model.executeAction(
+        failsSuperseded,
+        onError: (_) => published = true,
+      );
+
+      expect(published, isFalse);
+      expect(response, isA<TaskFailure<_Item>>());
+      expect(model.isLoading, isFalse);
+    });
+
+    test('still publishes a failure it accepts', () async {
+      final model = _TestStateModel();
+      TaskError? received;
+
+      await model.executeAction(_fails, onError: (error) => received = error);
+
+      expect(received, _failure);
+    });
+
+    test('a call\'s own filter narrows it rather than replacing it', () async {
+      final model = _TestStateModel();
+      var published = false;
+
+      await model.executeAction(
+        failsSuperseded,
+        onError: (_) => published = true,
+        shouldPublish: (_) => true,
+      );
+
+      expect(published, isFalse, reason: 'the app filter still declines it');
+
+      TaskError? received;
+      await model.executeAction(
+        _fails,
+        onError: (error) => received = error,
+        shouldPublish: (_) => false,
+      );
+
+      expect(received, isNull, reason: 'the call filter declines it too');
+    });
+
+    test('filters an executeTask and puts back what it held', () async {
+      final notifier = FutureDataNotifier<_Item>.pristine();
+      var published = false;
+
+      await notifier.executeTask(
+        failsSuperseded,
+        onError: (_) => published = true,
+      );
+
+      expect(published, isFalse);
+      expect(notifier.hasError, isFalse);
+      expect(notifier.isPristine, isTrue);
+    });
+
+    test('filters a list executeTask', () async {
+      final notifier = FutureListDataNotifier<_Item>.pristine();
+
+      await notifier.executeTask(() async => TaskFailure(error: superseded));
+
+      expect(notifier.hasError, isFalse);
+      expect(notifier.isPristine, isTrue);
+    });
+
+    test('filters an executePageTask', () async {
+      final notifier = PaginatedDataNotifier<_Page>.pristine();
+      var published = false;
+
+      await notifier.executePageTask(
+        () async => TaskFailure(error: superseded),
+        onData: (_) {},
+        onError: (_) => published = true,
+      );
+
+      expect(published, isFalse);
+      expect(notifier.hasError, isFalse);
+      expect(notifier.isPristine, isTrue);
     });
   });
 }

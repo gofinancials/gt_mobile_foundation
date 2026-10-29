@@ -68,4 +68,16 @@ abstract class AppConfig {
 
   /// The optional asset path to the RSA public key.
   String? get rsaPublicKeyPath;
+
+  /// Decides, for the whole app, whether a failed task is worth showing.
+  ///
+  /// Asked of every failure [DisposalAware.runGuardedTask] would publish, so
+  /// of every `executeAction`, `executeTask` and `executePageTask`, whether or
+  /// not the call passes a `shouldPublish` of its own. Some failures are
+  /// nobody's fault — the calls a session renewal supersedes all fail
+  /// together — and a filter each call must remember is one some calls
+  /// forget. A call's own `shouldPublish` narrows this one further: a failure
+  /// either declines is not published. Null, the default, publishes every
+  /// failure.
+  OnBoolValidation<TaskError>? get shouldPublishFailure => null;
 }

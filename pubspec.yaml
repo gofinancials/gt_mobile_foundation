@@ -24,16 +24,22 @@ dependencies:
   flutter_native_contact_picker: ^0.0.12
   flutter_secure_storage: ^10.3.1
   get_it: ^8.2.0
+  # Lives in this repository; see packages/gt_device_integrity.
+  gt_device_integrity:
+    path: packages/gt_device_integrity
+  image_cropper: ^9.1.0
   image_picker: ^1.2.2
   intl: ^0.20.2
   local_auth: ^2.3.0
   mime: ^2.0.0
+  open_mail_launcher: ^0.3.1
   pointycastle: ^3.6.2
   path: ^1.9.1
   path_provider: ^2.1.5
   # Veracode 1664/1665 (CWE-331): 2.6.0 pulls in objective_c. Keep < 2.6.0.
   path_provider_foundation: ">=2.5.1 <2.6.0"
   permission_handler: ^12.0.1
+  sensors_plus: ^7.1.1
   share_plus: ^12.0.0
   url_launcher: ^6.3.2
   video_player: ^2.13.0
@@ -45,6 +51,7 @@ dev_dependencies:
   firebase_core_platform_interface: ^8.1.1
   firebase_messaging_platform_interface: ^4.10.0
   flutter_lints: ^5.0.0
+  image_cropper_platform_interface: ^7.2.0
   image_picker_platform_interface: ^2.11.1
   plugin_platform_interface: ^2.1.8
   share_plus_platform_interface: ^6.1.0

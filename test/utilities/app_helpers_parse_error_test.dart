@@ -17,8 +17,8 @@ DioException _dio(DioExceptionType type, {Object? error, Response? response}) =>
       response: response,
     );
 
-Response _res(dynamic data, int code) =>
-    Response(requestOptions: _opts, data: data, statusCode: code);
+Response _res(dynamic data, int code, {Map<String, dynamic>? extra}) =>
+    Response(requestOptions: _opts, data: data, statusCode: code, extra: extra);
 
 void main() {
   setUpAll(registerTestConfig);
@@ -195,7 +195,7 @@ void main() {
     expect(out['statusCode'], 400);
   });
 
-  group('a 5xx is never trusted to be the API', () {
+  group('a 5xx is not trusted to be the API unless it reads as the API', () {
     Map<String, dynamic> parse(Object? body, int code) => AppHelpers.parseError(
       _dio(DioExceptionType.badResponse, response: _res(body, code)),
       defaultMessage: fallback,
@@ -231,6 +231,129 @@ void main() {
       final out = parse({'message': 'Account locked'}, 423);
       expect(out['message'], 'Account locked');
       expect(out['statusCode'], 423);
+    });
+
+    test('an undecryptable 500 body is not shown verbatim', () {
+      final out = parse({'data': 'not-ciphertext-at-all'}, 500);
+      expect(out['message'], 'serverUnavailable');
+      expect(out['statusCode'], 500);
+    });
+
+    test('a responseMessage with no code or flag beside it is not trusted', () {
+      final out = parse({'responseMessage': 'Upstream exploded'}, 500);
+      expect(out['message'], 'serverUnavailable');
+    });
+  });
+
+  group('a 5xx the API wrote shows its message', () {
+    const locked =
+        'Profile locked. Please click Forgot Passcode? to reset or Contact '
+        'Support';
+    const decrypted = {decryptedResponseExtraKey: true};
+
+    Map<String, dynamic> parse(
+      Object? body,
+      int code, {
+      Map<String, dynamic>? extra,
+    }) => AppHelpers.parseError(
+      _dio(
+        DioExceptionType.badResponse,
+        response: _res(body, code, extra: extra),
+      ),
+      defaultMessage: fallback,
+    );
+
+    test('a decrypted 500 refusal nested under data', () {
+      final out = parse(
+        {
+          'data': {
+            'isSuccessful': false,
+            'responseCode': 3,
+            'responseMessage': locked,
+          },
+        },
+        500,
+        extra: decrypted,
+      );
+      expect(out['message'], locked);
+      expect(out['statusCode'], 3);
+    });
+
+    test('a decrypted 500 refusal under the capital-D Data spelling', () {
+      final out = parse(
+        {
+          'Data': {
+            'IsSuccessful': false,
+            'ResponseCode': '3',
+            'ResponseMessage': 'Invalid request, invalid debit Account name.',
+          },
+        },
+        500,
+        extra: decrypted,
+      );
+      expect(out['message'], 'Invalid request, invalid debit Account name.');
+      expect(out['statusCode'], 3);
+    });
+
+    test('a decrypted 500 is trusted even without the envelope', () {
+      final out = parse(
+        {
+          'data': {'message': 'Daily limit exceeded'},
+        },
+        500,
+        extra: decrypted,
+      );
+      expect(out['message'], 'Daily limit exceeded');
+      expect(out['statusCode'], 500);
+    });
+
+    test('a decrypted text 500 reads as text, a blank one as the default', () {
+      final out = parse({'data': 'plain text'}, 500, extra: decrypted);
+      expect(out['message'], 'plain text');
+
+      final empty = parse({'data': ''}, 500, extra: decrypted);
+      expect(empty['message'], fallback);
+    });
+
+    test('a clear 500 envelope at the top level', () {
+      final out = parse({'responseCode': '3', 'responseMessage': locked}, 500);
+      expect(out['message'], locked);
+      expect(out['statusCode'], 3);
+    });
+
+    test('a clear 500 envelope keyed by its success flag', () {
+      final out = parse({
+        'IsSuccessful': false,
+        'ResponseMessage': locked,
+      }, 500);
+      expect(out['message'], locked);
+      expect(out['statusCode'], 500);
+    });
+
+    test('a clear 500 envelope nested under data', () {
+      final out = parse({
+        'data': {'isSuccessful': false, 'responseMessage': locked},
+      }, 500);
+      expect(out['message'], locked);
+    });
+
+    test('a clear 500 envelope read as text', () {
+      final out = parse(
+        '{"responseCode":"3","responseMessage":"$locked"}',
+        500,
+      );
+      expect(out['message'], locked);
+      expect(out['statusCode'], 3);
+    });
+
+    test('a 502, 503 or 504 that carries the envelope is trusted too', () {
+      for (final code in [502, 503, 504]) {
+        final out = parse({
+          'responseCode': '96',
+          'responseMessage': locked,
+        }, code);
+        expect(out['message'], locked, reason: '$code');
+      }
     });
   });
 

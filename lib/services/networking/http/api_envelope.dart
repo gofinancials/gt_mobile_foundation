@@ -11,11 +11,13 @@ import 'package:gt_mobile_foundation/foundation.dart';
 class ApiEnvelope {
   const ApiEnvelope._();
 
+  /// The keys a gateway spells its business code with.
+  static const codeKeys = ['responseCode', 'ResponseCode'];
+
   /// The status keys that live on the outer wrapper of a plaintext response.
   static const statusKeys = [
     ...AppJson.successKeys,
-    'responseCode',
-    'ResponseCode',
+    ...codeKeys,
     ...AppJson.messageKeys,
   ];
 
@@ -74,6 +76,13 @@ class ApiEnvelope {
     return locator<AppConfig>().strings.requestRefused.tr();
   }
 
+  /// The business code the gateway put in [envelope], trimmed, or empty when
+  /// it put none.
+  ///
+  /// Kept as the gateway spelled it, so a `"00"` stays `"00"`.
+  static String code(Map<String, dynamic> envelope) =>
+      AppJson.stringAt(envelope, codeKeys);
+
   static bool _isBlank(Object? body) => switch (body) {
     null => true,
     String text => !text.hasValue,
@@ -98,6 +107,12 @@ extension ApiEnvelopeRequest on AppHttpMixin {
   /// gateway's own message. A mutation keeps [requireSuccessFlag] on, so a
   /// missing flag also fails; a read turns it off, because its payload is the
   /// evidence.
+  ///
+  /// That refusal is stamped with the envelope's business code, falling back
+  /// to the HTTP status only when the envelope carries none, so a caller can
+  /// tell one refusal from another by [TaskError.statusCode]. A [decode]
+  /// failure keeps the HTTP status: its envelope was accepted, and its code
+  /// says so.
   ///
   /// A `2xx` that arrives with no body is accepted whatever
   /// [requireSuccessFlag] says: the status is the gateway's whole answer, and
@@ -133,7 +148,7 @@ extension ApiEnvelopeRequest on AppHttpMixin {
         TaskFailure(
           error: TaskError(
             message: ApiEnvelope.refusalMessage(envelope),
-            statusCode: _statusOf(reply),
+            statusCode: _refusalCodeOf(reply, envelope),
           ),
         ),
       TaskSuccess(data: (final reply, final envelope)) => await decodeHandler(
@@ -161,14 +176,23 @@ extension ApiEnvelopeRequest on AppHttpMixin {
     return status >= 200 && status < 300;
   }
 
+  /// The code a refusal of [envelope] is stamped with: the gateway's business
+  /// code, or the HTTP status [reply] arrived with when it sent none.
+  ///
+  /// This is the order [AppHelpers.parseError] reads a thrown `4xx` in, so one
+  /// refusal carries the same code whichever status it arrives with. It is
+  /// read from the envelope, never [DioResponse.responseCode]: on an encrypted
+  /// reply that is the outer wrapper's code, not the one the gateway refused
+  /// with. Unlike [AppHelpers.parseError], which reads the code as an integer,
+  /// the code is kept as spelled, so a `"00"` is not stamped `"0"`.
+  String _refusalCodeOf(DioResponse reply, Map<String, dynamic> envelope) {
+    final code = ApiEnvelope.code(envelope);
+    if (code.hasValue) return code;
+    return _statusOf(reply);
+  }
+
   /// The HTTP status [reply] arrived with, never the business code the gateway
   /// nested in its body.
-  ///
-  /// This is not what [AppHelpers.parseError] does for a thrown error: there a
-  /// body's `responseCode` is preferred and the HTTP status is the fallback.
-  /// So one refusal is stamped with the gateway's code when it arrives as a
-  /// `4xx` and with `200` when it arrives here, and a caller telling refusals
-  /// apart by [TaskError.statusCode] has to know which path it came down.
   ///
   /// A reply that reached here arrived, so `200` is the reading when the
   /// transport did not state one.

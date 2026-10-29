@@ -6,5 +6,6 @@ export 'app_helpers.dart';
 export 'app_json.dart';
 export 'app_logger.dart';
 export 'app_mime_resolver.dart';
+export 'app_secret_codec.dart';
 export 'app_secrets.dart';
 export 'app_text_formatter.dart';

@@ -92,6 +92,9 @@ class AppRegex {
   /// A value made only of digits, with at least one.
   static final digitsOnly = RegExp(r"^\d+$");
 
+  /// A letter in any script, for rejecting it from a numeric field.
+  static final letter = RegExp(r"\p{L}", unicode: true);
+
   /// What marks a string as an HTML page rather than a message.
   static final htmlMarkup = RegExp(
     r"^\s*<|<html|<!doctype",

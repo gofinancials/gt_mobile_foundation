@@ -328,6 +328,8 @@ class AppTextFormatter {
   }
 
   /// Returns a short, compact formatted currency string (e.g., "1.5K").
+  ///
+  /// A negative [value] keeps its sign: an overdrawn balance reads `-₦1.5K`.
   static String formatCurrencyShort(
     num? value, {
     bool spaceIcon = false,
@@ -348,13 +350,18 @@ class AppTextFormatter {
       symbol: ignoreSymbol ? "" : "$currencySymbol${spaceIcon ? " " : ""}",
     );
 
-    amount = amount.replaceAll(AppRegex.nonAmount, "");
+    amount = amount.replaceAll(AppRegex.nonSignedAmount, "");
     final amountDouble = double.tryParse(amount);
     if (amountDouble == null) return "";
+    // `-0.0` would print as `-₦0.00`.
+    if (amountDouble == 0) return formatter.format(0);
     return formatter.format(amountDouble);
   }
 
   /// Returns a fully formatted currency string with comma separators.
+  ///
+  /// A negative [value] keeps its sign: an overdrawn balance reads
+  /// `-₦22,096.06`, or `-22,096.06` with [ignoreSymbol].
   static String formatCurrency(
     num? value, {
     bool spaceIcon = false,
@@ -375,9 +382,11 @@ class AppTextFormatter {
       symbol: ignoreSymbol ? "" : "$currencySymbol${spaceIcon ? " " : ""}",
     );
 
-    amount = amount.replaceAll(AppRegex.nonAmount, "");
+    amount = amount.replaceAll(AppRegex.nonSignedAmount, "");
     final amountDouble = double.tryParse(amount);
     if (amountDouble == null) return "";
+    // `-0.0` would print as `-₦0.00`.
+    if (amountDouble == 0) return formatter.format(0);
     return formatter.format(amountDouble);
   }
 
@@ -691,15 +700,19 @@ class AppPhoneNumberFormatter extends TextInputFormatter {
       final newText = newValue.text.withoutWhiteSpaceAndSpecialChar;
       final oldText = oldValue.text.withoutWhiteSpaceAndSpecialChar;
 
-      if (newText.length <= 4) return newValue;
-
+      // A deletion goes through first, so a field can always be cleared.
       if (newValue.text.length < oldText.length) return newValue;
+
+      // Letters are rejected before the short-input return below, which
+      // would otherwise let them into the first four characters.
+      if (AppRegex.letter.hasMatch(newValue.text)) return oldValue;
+
+      if (newText.length <= 4) return newValue;
 
       if (newText.length > 15) return oldValue;
 
-      if (num.tryParse(newText) == null) return oldValue;
-
-      final formattedText = AppTextFormatter.formatPhone(newText);
+      // The typed text, not newText, so a leading plus survives.
+      final formattedText = AppTextFormatter.formatPhone(newValue.text);
 
       return TextEditingValue(
         text: formattedText,

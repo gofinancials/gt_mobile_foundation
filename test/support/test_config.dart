@@ -7,6 +7,11 @@ import 'package:gt_mobile_foundation/foundation.dart';
 /// `locator<AppConfig>().strings` resolve. Each string is its own locale key,
 /// which is what an uninitialised `tr()` returns, so tests assert on the key.
 class _TestConfig implements AppConfig {
+  _TestConfig([this.shouldPublishFailure]);
+
+  @override
+  final OnBoolValidation<TaskError>? shouldPublishFailure;
+
   /// Non-null because [noSuchMethod] returning null for a non-nullable getter
   /// throws; the phone canonicaliser reads it.
   @override
@@ -65,4 +70,12 @@ class _TestConfig implements AppConfig {
 void registerTestConfig() {
   if (locator.isRegistered<AppConfig>()) return;
   locator.registerSingleton<AppConfig>(_TestConfig());
+}
+
+/// Re-registers the test config with [filter] as the app-wide
+/// [AppConfig.shouldPublishFailure]; null restores the default, which
+/// publishes every failure.
+void registerFailureFilter(OnBoolValidation<TaskError>? filter) {
+  if (locator.isRegistered<AppConfig>()) locator.unregister<AppConfig>();
+  locator.registerSingleton<AppConfig>(_TestConfig(filter));
 }
