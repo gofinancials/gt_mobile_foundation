@@ -42,8 +42,13 @@ extension BuildContextExtension on BuildContext {
     }
   }
 
-  /// Resets the current focus scope to an empty, unfocused node.
-  resetFocus() => requestFocus(FocusNode());
+  /// Drops the current focus, wherever it is, without requesting focus
+  /// anywhere else.
+  ///
+  /// The field's scope forgets it, so a closing route won't hand focus back to
+  /// it. This context is not used: a caller below the top route must not pull
+  /// focus onto its own route.
+  resetFocus() => FocusManager.instance.primaryFocus?.unfocus();
 
   /// Requests focus for the specified [node] within this context's scope.
   requestFocus(FocusNode node) {
