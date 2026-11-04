@@ -46,6 +46,7 @@ void main() {
     expect(report.developerMode, isTrue);
     expect(report.installer, 'com.android.vending');
     expect(report.signature, 'AB12');
+    expect(report.iosAppOnMac, isNull);
   });
 
   test('leaves unmeasured iOS signals null instead of guessing', () async {
@@ -55,17 +56,36 @@ void main() {
         'packageName': 'ng.sterling.onebankpersonal',
         'rooted': false,
         'emulator': true,
+        'iosAppOnMac': false,
       },
     );
 
     final report = await const GtDeviceIntegrity().report();
 
     expect(report.emulator, isTrue);
+    expect(report.iosAppOnMac, isFalse);
     expect(report.rooted, isFalse);
     expect(report.cloneEnvironment, isNull);
     expect(report.developerMode, isNull);
     expect(report.installer, isNull);
     expect(report.signature, isNull);
+  });
+
+  test('reads an iPhone app on a Mac', () async {
+    answer(
+      (_) => {
+        'platform': 'ios',
+        'packageName': 'ng.sterling.onebankpersonal',
+        'rooted': false,
+        'emulator': false,
+        'iosAppOnMac': true,
+      },
+    );
+
+    final report = await const GtDeviceIntegrity().report();
+
+    expect(report.iosAppOnMac, isTrue);
+    expect(report.rooted, isFalse);
   });
 
   test('a sideloaded Android build has no installer', () async {
@@ -105,6 +125,7 @@ void main() {
       rooted: false,
       emulator: true,
       developerMode: false,
+      iosAppOnMac: false,
     );
 
     final copy = GtDeviceIntegrityReport.fromMap(report.toMap());

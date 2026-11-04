@@ -31,6 +31,14 @@ void main() {
     'signature': signature,
   };
 
+  Map<String, Object?> ios({bool rooted = false, bool iosAppOnMac = false}) => {
+    'platform': 'ios',
+    'packageName': 'ng.sterling.onebankpersonal',
+    'rooted': rooted,
+    'emulator': false,
+    'iosAppOnMac': iosAppOnMac,
+  };
+
   tearDown(() => messenger.setMockMethodCallHandler(channel, null));
 
   group('AppDeviceIntegrityVerdict', () {
@@ -42,6 +50,7 @@ void main() {
       bool developerMode = false,
       bool unsafeInstaller = false,
       bool signatureInvalid = false,
+      bool iosAppOnMac = false,
       bool debugBuild = false,
     }) => AppDeviceIntegrityVerdict(
       enforced: enforced,
@@ -51,6 +60,7 @@ void main() {
       developerMode: developerMode,
       unsafeInstaller: unsafeInstaller,
       signatureInvalid: signatureInvalid,
+      iosAppOnMac: iosAppOnMac,
       debugBuild: debugBuild,
     );
 
@@ -78,6 +88,18 @@ void main() {
         expect(reported.summary, 'device_approved');
       },
     );
+
+    test('reports an iPhone app on a Mac without blocking', () {
+      final mac = verdict(iosAppOnMac: true);
+
+      expect(mac.isBlocked, isFalse);
+      expect(mac.signals, ['ios_app_on_mac']);
+      expect(mac.summary, 'device_approved');
+    });
+
+    test('still blocks a jailbroken device that is not a Mac', () {
+      expect(verdict(rooted: true, iosAppOnMac: false).isBlocked, isTrue);
+    });
 
     test('blocks an emulator except in a debug build, even with su', () {
       expect(verdict(emulator: true).isBlocked, isTrue);
@@ -118,6 +140,37 @@ void main() {
       expect(verdict.platform, 'android');
       expect(verdict.report?.packageName, 'ng.sterling.onebankpersonal');
       expect(verdict.failureReason, isNull);
+    });
+
+    test('lets an iPhone app on a Mac through', () async {
+      answer(() async => ios(iosAppOnMac: true));
+
+      const service = AppDeviceIntegrityServiceImpl();
+      final verdict = await service.evaluate(enforced: true);
+
+      expect(verdict.isBlocked, isFalse);
+      expect(verdict.iosAppOnMac, isTrue);
+      expect(verdict.platform, 'ios');
+      expect(verdict.summary, 'device_approved');
+    });
+
+    test('blocks a jailbroken iPhone', () async {
+      answer(() async => ios(rooted: true));
+
+      const service = AppDeviceIntegrityServiceImpl();
+      final verdict = await service.evaluate(enforced: true);
+
+      expect(verdict.isBlocked, isTrue);
+      expect(verdict.iosAppOnMac, isFalse);
+    });
+
+    test('reads an Android report without the Mac reading', () async {
+      answer(() async => android());
+
+      const service = AppDeviceIntegrityServiceImpl();
+      final verdict = await service.evaluate(enforced: true);
+
+      expect(verdict.iosAppOnMac, isFalse);
     });
 
     test(

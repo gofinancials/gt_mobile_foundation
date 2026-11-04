@@ -14,11 +14,13 @@ void main() {
     expect(report.packageName, isNotEmpty);
     if (report.platform == 'android') {
       expect(report.cloneEnvironment, isNotNull);
+      expect(report.iosAppOnMac, isNull);
       expect(report.developerMode, isNotNull);
       expect(report.signature, isNotNull);
     } else {
       expect(report.developerMode, isNull);
       expect(report.installer, isNull);
+      expect(report.iosAppOnMac, isNotNull);
     }
   });
 }

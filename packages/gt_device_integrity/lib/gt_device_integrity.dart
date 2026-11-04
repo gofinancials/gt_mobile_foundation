@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 ///
 /// Every field is a measurement, not a judgement: gt_mobile_foundation decides
 /// which signals block the app. A field is null where the platform cannot
-/// measure it (iOS reports only [rooted] and [emulator]).
+/// measure it (iOS reports only [rooted], [emulator] and [iosAppOnMac]).
 class GtDeviceIntegrityReport {
   const GtDeviceIntegrityReport({
     required this.platform,
@@ -17,6 +17,7 @@ class GtDeviceIntegrityReport {
     this.developerMode,
     this.installer,
     this.signature,
+    this.iosAppOnMac,
   });
 
   factory GtDeviceIntegrityReport.fromMap(Map<String, Object?> map) {
@@ -31,6 +32,7 @@ class GtDeviceIntegrityReport {
       developerMode: map['developerMode'] as bool?,
       installer: map['installer'] as String?,
       signature: map['signature'] as String?,
+      iosAppOnMac: map['iosAppOnMac'] as bool?,
     );
   }
 
@@ -42,14 +44,16 @@ class GtDeviceIntegrityReport {
 
   /// Rooted (Android: su binaries, Magisk, test-keys) or jailbroken (iOS:
   /// jailbreak files, or a write outside the sandbox that succeeds). Always
-  /// false on the iOS simulator.
+  /// false on the iOS simulator and for an iPhone app on a Mac, whose system
+  /// files would otherwise read as a jailbreak; see [iosAppOnMac].
   final bool rooted;
 
   /// An Android emulator or the iOS simulator.
   final bool emulator;
 
   /// Android: running inside a cloning app (a parallel-space sandbox path, a
-  /// renamed process, or a known cloning app installed).
+  /// nested sandbox, or a renamed process). A cloning app merely being
+  /// installed is not counted.
   final bool? cloneEnvironment;
 
   /// Android: the process name differs from [packageName]. Also counted in
@@ -70,6 +74,9 @@ class GtDeviceIntegrityReport {
   /// Android: SHA-256 of the first signing certificate, upper-case hex.
   final String? signature;
 
+  /// iOS: an iPhone app running on an Apple Silicon Mac.
+  final bool? iosAppOnMac;
+
   Map<String, Object?> toMap() => {
     'platform': platform,
     'packageName': packageName,
@@ -81,6 +88,7 @@ class GtDeviceIntegrityReport {
     'developerMode': developerMode,
     'installer': installer,
     'signature': signature,
+    'iosAppOnMac': iosAppOnMac,
   };
 }
 

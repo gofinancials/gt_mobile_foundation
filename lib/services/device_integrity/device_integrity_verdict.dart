@@ -7,7 +7,9 @@ import 'package:gt_mobile_foundation/foundation.dart';
 /// The rules are NewMobileChannel's: only device-integrity signals block.
 /// Developer mode, the installer and the signature are reported but never
 /// block, because pilot builds ship through Firebase App Distribution and
-/// testers keep USB debugging on.
+/// testers keep USB debugging on. An iPhone app on a Mac is reported but does
+/// not block; a listing that must not run on a Mac opts out of Mac
+/// availability in App Store Connect.
 class AppDeviceIntegrityVerdict {
   /// Creates a verdict from readings already judged by
   /// [AppDeviceIntegrityService].
@@ -19,6 +21,7 @@ class AppDeviceIntegrityVerdict {
     this.developerMode = false,
     this.unsafeInstaller = false,
     this.signatureInvalid = false,
+    this.iosAppOnMac = false,
     this.platform = '',
     this.failureReason,
     this.report,
@@ -36,6 +39,7 @@ class AppDeviceIntegrityVerdict {
        developerMode = false,
        unsafeInstaller = false,
        signatureInvalid = false,
+       iosAppOnMac = false,
        report = null,
        debugBuild = kDebugMode;
 
@@ -59,6 +63,9 @@ class AppDeviceIntegrityVerdict {
 
   /// Signed by a certificate outside the allow-list (Android). Reported only.
   final bool signatureInvalid;
+
+  /// An iPhone app running on an Apple Silicon Mac (iOS). Reported only.
+  final bool iosAppOnMac;
 
   /// `android` or `ios`, or empty when the device was not read.
   final String platform;
@@ -89,6 +96,7 @@ class AppDeviceIntegrityVerdict {
     if (unsafeInstaller) 'unsafe_installer',
     if (signatureInvalid) 'signature_mismatch',
     if (emulator) 'emulator',
+    if (iosAppOnMac) 'ios_app_on_mac',
   ];
 
   /// One line for logs: `device_approved`, or what blocked it.

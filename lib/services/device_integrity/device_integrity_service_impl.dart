@@ -62,6 +62,7 @@ class AppDeviceIntegrityServiceImpl implements AppDeviceIntegrityService {
       signatureInvalid:
           signatureAllowList.isNotEmpty &&
           !signatureAllowList.contains(signature),
+      iosAppOnMac: report.iosAppOnMac ?? false,
       platform: report.platform,
       report: report,
     );

@@ -6,7 +6,8 @@ import UIKit
 ///
 /// The checks are NewMobileChannel's AppDelegate security channel. iOS cannot
 /// read developer mode, the installer, the signature or a clone environment,
-/// so those entries are absent rather than guessed.
+/// so those entries are absent rather than guessed. Unlike NMC, an iPhone app
+/// on a Mac is reported as such rather than as jailbroken.
 public class GtDeviceIntegrityPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "gt_device_integrity", binaryMessenger: registrar.messenger())
@@ -28,7 +29,14 @@ public class GtDeviceIntegrityPlugin: NSObject, FlutterPlugin {
       "packageName": Bundle.main.bundleIdentifier ?? "",
       "rooted": isJailbroken(),
       "emulator": isSimulator(),
+      "iosAppOnMac": isiOSAppOnMac(),
     ]
+  }
+
+  /// An iPhone app running on an Apple Silicon Mac. It runs the device build,
+  /// so the simulator guard does not apply.
+  private func isiOSAppOnMac() -> Bool {
+    return ProcessInfo.processInfo.isiOSAppOnMac
   }
 
   private func isSimulator() -> Bool {
@@ -43,6 +51,12 @@ public class GtDeviceIntegrityPlugin: NSObject, FlutterPlugin {
     #if targetEnvironment(simulator)
     return false
     #else
+    // macOS ships /bin/bash, /usr/sbin/sshd and /usr/bin/ssh, so the paths
+    // below say nothing about a Mac. It is reported as iosAppOnMac instead.
+    if isiOSAppOnMac() {
+      return false
+    }
+
     let jailbreakPaths = [
       "/Applications/Cydia.app",
       "/Library/MobileSubstrate/MobileSubstrate.dylib",

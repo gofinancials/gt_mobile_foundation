@@ -18,8 +18,9 @@ import java.security.MessageDigest
  * Reads what the device says about itself. Every entry is a measurement;
  * deciding which ones block the app belongs to gt_mobile_foundation.
  *
- * The checks are NewMobileChannel's SecurityPlugin, with one difference: NMC
- * folds root into its clone result, and this reports the two separately.
+ * The checks are NewMobileChannel's SecurityPlugin, with two differences: NMC
+ * folds root into its clone result, and this reports the two separately; and
+ * NMC also counts a cloning app being installed, which this does not.
  */
 class GtDeviceIntegrityPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private lateinit var channel: MethodChannel
@@ -87,18 +88,10 @@ class GtDeviceIntegrityPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         // nests the sandbox deeper.
         val segments = context.filesDir.path.split("/").filter { it.isNotEmpty() }
         if (segments.size > 6) return true
-        if (isProcessNameMismatch()) return true
 
-        val cloneApps = listOf(
-            "com.parallel.space.lite",
-            "com.lbe.parallel.intl",
-            "com.lbe.parallel",
-            "com.cloneapp.cloner",
-            "com.dualspace.pro",
-            "io.virtualapp",
-            "com.excelliance.multiaccounts",
-        )
-        return cloneApps.any { isPackageInstalled(it) }
+        // A cloning app merely being installed is not counted: it does not
+        // mean this app is running inside it.
+        return isProcessNameMismatch()
     }
 
     private fun isProcessNameMismatch(): Boolean {
