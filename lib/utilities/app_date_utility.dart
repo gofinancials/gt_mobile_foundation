@@ -43,6 +43,26 @@ class AppDateUtil {
     return hasSameDayIndex && isInSameMonth && isInSameYear;
   }
 
+  /// Returns the number of whole calendar years from [from] to [to].
+  ///
+  /// This is the years between the two dates, minus one if [to] falls before
+  /// the anniversary of [from] in [to]'s year. Leap days count, so someone
+  /// born on 29 February turns a year older on 1 March in common years.
+  /// Times of day are ignored. Returns a negative number when [to] is before
+  /// [from].
+  static int yearsBetween({required DateTime from, required DateTime to}) {
+    if (to.isBefore(from)) return -yearsBetween(from: to, to: from);
+
+    final years = to.year - from.year;
+    final isLaterMonth = to.month > from.month;
+    final isSameMonth = to.month == from.month;
+    final isOnOrAfterDay = to.day >= from.day;
+    final isLaterInSameMonth = isSameMonth && isOnOrAfterDay;
+    final hasReachedAnniversary = isLaterMonth || isLaterInSameMonth;
+
+    return hasReachedAnniversary ? years : years - 1;
+  }
+
   /// Returns `true` if [date] occurred strictly before the current local day.
   static bool isBeforeToday({required DateTime date}) {
     final stringOther = DateFormat("yyyy-MM-dd").format(date);

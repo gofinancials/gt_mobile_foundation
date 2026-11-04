@@ -245,7 +245,7 @@ class AppTextFormatter {
     }
 
     final now = DateTime.now();
-    final yearsSince = now.difference(datetime).inPreciseYears;
+    final yearsSince = AppDateUtil.yearsBetween(from: datetime, to: now);
     final daysSince = now.difference(datetime).inDays;
     final weeksSince = now.difference(datetime).inWeeks;
     final monthsSince = now.difference(datetime).inMonths;
@@ -258,7 +258,7 @@ class AppTextFormatter {
       return strings.weeksOld.tr({"age": "$weeksSince"});
     }
 
-    if (monthsSince <= 11) {
+    if (yearsSince < 1) {
       return strings.monthsOld.tr({"age": "$monthsSince"});
     }
 

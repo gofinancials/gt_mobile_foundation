@@ -206,4 +206,98 @@ void main() {
       expect(AppValidators.phoneValidator('', isRequired: false), isNull);
     });
   });
+
+  group('AppValidators.dobValidator', () {
+    final now = DateTime(2026, 11, 4, 15, 30);
+    const validator = AppValidators.dobValidator;
+
+    String? validate(
+      String date, {
+      int minAge = 18,
+      int? maxAge,
+      DateTime? at,
+    }) {
+      final today = at ?? now;
+
+      return validator(date, minAge: minAge, maxAge: maxAge, now: today);
+    }
+
+    String? validateUnder18(String date) {
+      return validate(date, minAge: 0, maxAge: 18);
+    }
+
+    test('rejects 18 x 365 days, which falls short of 18 calendar years', () {
+      // 6570 days: the old `inDays / 365` check read this as exactly 18.
+      final birthday = DateTime(2008, 11, 8);
+      final elapsed = now.difference(birthday);
+
+      expect(elapsed.inDays, 6570);
+      expect(validate('2008-11-08'), 'mustBeNYears');
+    });
+
+    test('accepts someone whose 18th birthday is today', () {
+      expect(validate('2008-11-04'), isNull);
+    });
+
+    test('rejects someone whose 18th birthday is tomorrow', () {
+      expect(validate('2008-11-05'), 'mustBeNYears');
+    });
+
+    test('counts a 29 February birthday from 1 March in common years', () {
+      const leapDay = '2008-02-29';
+      final dayBefore = DateTime(2026, 2, 28);
+      final dayAfter = DateTime(2026, 3, 1);
+
+      expect(validate(leapDay, at: dayBefore), 'mustBeNYears');
+      expect(validate(leapDay, at: dayAfter), isNull);
+    });
+
+    test('accepts a newborn born today with minAge 0', () {
+      expect(validate('2026-11-04', minAge: 0), isNull);
+    });
+
+    test('rejects a future date even with minAge 0', () {
+      expect(validate('2026-11-05', minAge: 0), 'invalidDate');
+    });
+
+    test('treats maxAge as exclusive', () {
+      expect(validateUnder18('2008-11-05'), isNull);
+      expect(validateUnder18('2008-11-04'), 'mustBeUnderNYears');
+    });
+
+    test('prefers maxAgeErrorMessage for the maxAge failure', () {
+      final result = validator(
+        '2000-01-01',
+        minAge: 0,
+        maxAge: 18,
+        errorMessage: 'error',
+        maxAgeErrorMessage: 'too old',
+        now: now,
+      );
+
+      expect(result, 'too old');
+    });
+
+    test('falls back to errorMessage for the maxAge failure', () {
+      final result = validator(
+        '2000-01-01',
+        minAge: 0,
+        maxAge: 18,
+        errorMessage: 'error',
+        now: now,
+      );
+
+      expect(result, 'error');
+    });
+
+    test('rejects an unparseable date', () {
+      expect(validate('not-a-date'), 'invalidDate');
+    });
+
+    test('allows an optional field left empty', () {
+      final result = validator('', isRequired: false);
+
+      expect(result, isNull);
+    });
+  });
 }
