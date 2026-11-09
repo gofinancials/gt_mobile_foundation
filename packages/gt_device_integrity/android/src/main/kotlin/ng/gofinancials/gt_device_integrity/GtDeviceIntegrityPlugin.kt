@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
 import android.provider.Settings
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -13,6 +15,8 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /**
  * Reads what the device says about itself. Every entry is a measurement;
@@ -21,29 +25,69 @@ import java.security.MessageDigest
  * The checks are NewMobileChannel's SecurityPlugin, with two differences: NMC
  * folds root into its clone result, and this reports the two separately; and
  * NMC also counts a cloning app being installed, which this does not.
+ *
+ * The report is read on a background thread: the instrumentation probe opens
+ * a socket, and reading `/proc` should not hold up the UI. Attestation goes
+ * through [PlayIntegrityAttestation].
  */
 class GtDeviceIntegrityPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private lateinit var channel: MethodChannel
     private lateinit var context: Context
+    private lateinit var executor: ExecutorService
+    private lateinit var attestation: PlayIntegrityAttestation
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val instrumentation = InstrumentationProbe()
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         context = binding.applicationContext
+        executor = Executors.newSingleThreadExecutor()
+        attestation = PlayIntegrityAttestation(context)
         channel = MethodChannel(binding.binaryMessenger, "gt_device_integrity")
         channel.setMethodCallHandler(this)
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
+        executor.shutdown()
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        val projectNumber = (call.argument<Any>("cloudProjectNumber") as? Number)?.toLong()
+
         when (call.method) {
-            "report" -> result.success(report())
+            "report" -> reportInBackground(result)
+            "prepareAttestation" -> attestation.prepare(projectNumber, result)
+            "attest" -> attestation.attest(call.argument("challenge"), projectNumber, result)
+            "attestationToken" -> attestation.token(call.argument("data"), projectNumber, result)
             else -> result.notImplemented()
         }
     }
 
-    private fun report(): Map<String, Any?> = mapOf(
+    private fun reportInBackground(result: MethodChannel.Result) {
+        executor.execute {
+            val outcome = runCatching { report() }
+            val error = outcome.exceptionOrNull()
+
+            mainHandler.post {
+                if (error != null) return@post result.error("report_failed", error.message, null)
+
+                result.success(outcome.getOrNull())
+            }
+        }
+    }
+
+    private fun report(): Map<String, Any?> {
+        val readings = instrumentation.read()
+
+        return baseReport() + mapOf(
+            "frida" to readings.frida,
+            "hookingFramework" to readings.hookingFramework,
+            "debuggerAttached" to readings.debuggerAttached,
+            "instrumentationEvidence" to readings.evidence,
+        )
+    }
+
+    private fun baseReport(): Map<String, Any?> = mapOf(
         "platform" to "android",
         "packageName" to context.packageName,
         "rooted" to isRooted(),
@@ -76,7 +120,17 @@ class GtDeviceIntegrityPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         if (suPaths.any { File(it).exists() }) return true
         val pathDirs = System.getenv("PATH")?.split(":").orEmpty()
         if (pathDirs.any { File(it, "su").exists() }) return true
+        if (hasMagiskMount()) return true
         return isPackageInstalled("com.topjohnwu.magisk")
+    }
+
+    /** Magisk hides its app under a random package name, but its mounts still show. */
+    private fun hasMagiskMount(): Boolean {
+        return try {
+            File("/proc/self/mounts").readLines().any { it.contains("magisk", ignoreCase = true) }
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun isCloneEnvironment(): Boolean {

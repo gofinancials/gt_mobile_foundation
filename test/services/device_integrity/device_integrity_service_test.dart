@@ -51,6 +51,9 @@ void main() {
       bool unsafeInstaller = false,
       bool signatureInvalid = false,
       bool iosAppOnMac = false,
+      bool frida = false,
+      bool hookingFramework = false,
+      bool debuggerAttached = false,
       bool debugBuild = false,
     }) => AppDeviceIntegrityVerdict(
       enforced: enforced,
@@ -61,6 +64,9 @@ void main() {
       unsafeInstaller: unsafeInstaller,
       signatureInvalid: signatureInvalid,
       iosAppOnMac: iosAppOnMac,
+      frida: frida,
+      hookingFramework: hookingFramework,
+      debuggerAttached: debuggerAttached,
       debugBuild: debugBuild,
     );
 
@@ -108,6 +114,38 @@ void main() {
         verdict(emulator: true, rooted: true, debugBuild: true).isBlocked,
         isFalse,
       );
+    });
+
+    test('blocks instrumentation outside debug builds', () {
+      final fridaVerdict = verdict(frida: true);
+      final hookedVerdict = verdict(hookingFramework: true);
+      final debuggedVerdict = verdict(debuggerAttached: true);
+
+      expect(fridaVerdict.isBlocked, isTrue);
+      expect(hookedVerdict.isBlocked, isTrue);
+      expect(debuggedVerdict.isBlocked, isTrue);
+      expect(fridaVerdict.summary, 'frida');
+      expect(hookedVerdict.summary, 'hooking_framework');
+      expect(debuggedVerdict.summary, 'debugger_attached');
+    });
+
+    test('reports instrumentation in a debug build without blocking', () {
+      final debugVerdict = verdict(
+        frida: true,
+        hookingFramework: true,
+        debuggerAttached: true,
+        debugBuild: true,
+      );
+      const signals = ['frida', 'hooking_framework', 'debugger_attached'];
+
+      expect(debugVerdict.isBlocked, isFalse);
+      expect(debugVerdict.signals, signals);
+    });
+
+    test('still blocks root in a debug build', () {
+      final rootedVerdict = verdict(rooted: true, debugBuild: true);
+
+      expect(rootedVerdict.isBlocked, isTrue);
     });
 
     test('never blocks when the build does not enforce', () {
@@ -211,6 +249,30 @@ void main() {
       expect(unchecked.signatureInvalid, isFalse);
       expect(checked.signatureInvalid, isTrue);
       expect(checked.isBlocked, isFalse);
+    });
+
+    test('judges the instrumentation readings', () async {
+      final report = {...android(), 'frida': true, 'debuggerAttached': false};
+
+      answer(() async => report);
+
+      const service = AppDeviceIntegrityServiceImpl();
+      final verdict = await service.evaluate(enforced: true);
+
+      expect(verdict.frida, isTrue);
+      expect(verdict.hookingFramework, isFalse);
+      expect(verdict.debuggerAttached, isFalse);
+      expect(verdict.signals, contains('frida'));
+    });
+
+    test('does not approve an answer that names no platform', () async {
+      answer(() async => <String, Object?>{});
+
+      const service = AppDeviceIntegrityServiceImpl();
+      final verdict = await service.evaluate(enforced: true);
+
+      expect(verdict.failureReason, 'security_error');
+      expect(verdict.report, isNull);
     });
 
     test('lets the device through when the platform fails', () async {
