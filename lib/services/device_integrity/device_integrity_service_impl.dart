@@ -51,17 +51,22 @@ class AppDeviceIntegrityServiceImpl implements AppDeviceIntegrityService {
   }) {
     final installer = report.installer;
     final signature = report.signature;
+    final isTrustedInstaller = trustedInstallers.contains(installer);
+    final isAllowedSignature = signatureAllowList.contains(signature);
+    final checksSignature = signatureAllowList.isNotEmpty;
+
     return AppDeviceIntegrityVerdict(
       enforced: enforced,
       rooted: report.rooted,
       cloneEnvironment: report.cloneEnvironment ?? false,
       emulator: report.emulator,
       developerMode: report.developerMode ?? false,
-      unsafeInstaller:
-          installer.hasValue && !trustedInstallers.contains(installer),
-      signatureInvalid:
-          signatureAllowList.isNotEmpty &&
-          !signatureAllowList.contains(signature),
+      unsafeInstaller: installer.hasValue && !isTrustedInstaller,
+      signatureInvalid: checksSignature && !isAllowedSignature,
+      iosAppOnMac: report.iosAppOnMac ?? false,
+      frida: report.frida ?? false,
+      hookingFramework: report.hookingFramework ?? false,
+      debuggerAttached: report.debuggerAttached ?? false,
       platform: report.platform,
       report: report,
     );

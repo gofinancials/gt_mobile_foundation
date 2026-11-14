@@ -43,6 +43,7 @@ class _TestConfig implements AppConfig {
     invalidPhone: 'invalidPhone',
     invalidDate: 'invalidDate',
     mustBeNYears: 'mustBeNYears',
+    mustBeUnderNYears: 'mustBeUnderNYears',
     invalidUrl: 'invalidUrl',
     invalidAmount: 'invalidAmount',
     amountMinimum: 'amountMinimum',

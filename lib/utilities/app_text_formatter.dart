@@ -224,6 +224,40 @@ class AppTextFormatter {
     return "${withPlus ? '+' : ''}$callingCode$national";
   }
 
+  /// The groups of a NIPOST digital postcode, in the order it is written.
+  static const _postcodeGroups = [
+    'state',
+    'lga',
+    'district',
+    'area',
+    'building',
+  ];
+
+  /// [postcode] as it is written on an address, or `null` when it is neither
+  /// a legacy six-digit Nigerian postcode nor a NIPOST digital one.
+  ///
+  /// Spaces, hyphens and case are ignored, as NIPOST's own API ignores them.
+  /// A digital code comes back uppercased in its spaced groups
+  /// (`ek01-a03fk01` → `EK 01 A03 FK 01`); a legacy code comes back as its
+  /// six digits. Whether the code exists is not checked: NIPOST's lookup
+  /// needs an API key, so that belongs on the backend.
+  static String? canonicalPostcode(String? postcode) {
+    if (postcode == null) return null;
+
+    final compact = postcode.replaceAll(AppRegex.postcodeSeparators, '');
+    final match = AppRegex.nigerianPostcode.firstMatch(compact.toUpperCase());
+
+    if (match == null) return null;
+
+    final legacy = match.namedGroup('legacy');
+
+    if (legacy != null) return legacy;
+
+    final groups = _postcodeGroups.map(match.namedGroup);
+
+    return groups.join(' ');
+  }
+
   /// Whether [tel] reduces to a well-formed national number.
   static bool isCanonicalisablePhone(
     String? tel, {
@@ -245,7 +279,7 @@ class AppTextFormatter {
     }
 
     final now = DateTime.now();
-    final yearsSince = now.difference(datetime).inPreciseYears;
+    final yearsSince = AppDateUtil.yearsBetween(from: datetime, to: now);
     final daysSince = now.difference(datetime).inDays;
     final weeksSince = now.difference(datetime).inWeeks;
     final monthsSince = now.difference(datetime).inMonths;
@@ -258,7 +292,7 @@ class AppTextFormatter {
       return strings.weeksOld.tr({"age": "$weeksSince"});
     }
 
-    if (monthsSince <= 11) {
+    if (yearsSince < 1) {
       return strings.monthsOld.tr({"age": "$monthsSince"});
     }
 
