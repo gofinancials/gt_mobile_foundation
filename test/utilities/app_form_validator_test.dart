@@ -300,4 +300,52 @@ void main() {
       expect(result, isNull);
     });
   });
+
+  group('AppValidators.postcodeValidator', () {
+    String? validate(String? text, {bool isRequired = true}) {
+      const message = 'invalidPostcode';
+      final validator = AppValidators.postcodeValidator;
+
+      return validator(text, errorMessage: message, isRequired: isRequired);
+    }
+
+    final valid = <String, String>{
+      'a legacy code': '100001',
+      'a spaced digital code': 'FC 02 A09 DB 09',
+      'a hyphenated digital code': 'FC-02-A09-DB-09',
+      'a compact lower-case digital code': 'fc02a09db09',
+    };
+
+    valid.forEach((label, value) {
+      test('accepts $label', () {
+        expect(validate(value), isNull);
+      });
+    });
+
+    final invalid = <String, String>{
+      'five digits': '10000',
+      'a digital code with LGA 00': 'FC00A09DB09',
+      'a digital code one character short': 'FC02A09DB9',
+      'letters only': 'ABCDEF',
+    };
+
+    invalid.forEach((label, value) {
+      test('rejects $label', () {
+        expect(validate(value), 'invalidPostcode');
+      });
+    });
+
+    test('asks for a required postcode left empty', () {
+      expect(validate(''), 'fieldRequired');
+      expect(validate(null), 'fieldRequired');
+    });
+
+    test('allows an optional postcode left empty', () {
+      expect(validate('', isRequired: false), isNull);
+    });
+
+    test('still rejects a bad optional postcode', () {
+      expect(validate('10000', isRequired: false), 'invalidPostcode');
+    });
+  });
 }

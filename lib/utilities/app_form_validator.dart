@@ -568,4 +568,30 @@ class AppValidators {
 
     return errorMessage;
   }
+
+  /// Validates [text] as a Nigerian postcode: a legacy six-digit code
+  /// (`100001`) or a NIPOST digital one (`EK 01 A03 FK 01`), with or without
+  /// spaces or hyphens, in any case.
+  ///
+  /// Accepts what [AppTextFormatter.canonicalPostcode] can read; save that
+  /// canonical form rather than what was typed. Whether the code exists is
+  /// not checked.
+  static String? postcodeValidator(
+    String? text, {
+    required String errorMessage,
+    String? emptyMessage,
+    bool isRequired = true,
+  }) {
+    final isEmpty = _isEmpty(text);
+
+    if (!isRequired && isEmpty) return null;
+
+    if (isEmpty) return emptyMessage ?? strings.fieldRequired.tr();
+
+    final postcode = AppTextFormatter.canonicalPostcode(text);
+
+    if (postcode != null) return null;
+
+    return errorMessage;
+  }
 }
