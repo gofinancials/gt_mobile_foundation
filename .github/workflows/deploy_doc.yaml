@@ -28,7 +28,9 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: "stable"
-          cache: true
+          # Tag runs can only restore caches from their own tag or `main`, so
+          # they always miss and then save a fresh ~1.9 GB copy per tag.
+          cache: ${{ github.ref_type != 'tag' }}
 
       - name: Install Dependencies
         run: flutter pub get
