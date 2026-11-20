@@ -46,6 +46,10 @@ android {
     }
 }
 
+dependencies {
+    implementation("com.google.android.play:integrity:1.6.0")
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17

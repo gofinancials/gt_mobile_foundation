@@ -5,9 +5,15 @@ import 'package:gt_mobile_foundation/foundation.dart';
 /// Whether this device may run the app, and the readings behind the decision.
 ///
 /// The rules are NewMobileChannel's: only device-integrity signals block.
+/// Root, a clone environment and, outside debug builds, an emulator or
+/// instrumentation (Frida, a hooking framework, an attached debugger) block.
+/// Instrumentation is ignored in debug builds because Android Studio and
+/// Xcode attach a debugger and inject their own libraries.
 /// Developer mode, the installer and the signature are reported but never
 /// block, because pilot builds ship through Firebase App Distribution and
-/// testers keep USB debugging on.
+/// testers keep USB debugging on. An iPhone app on a Mac is reported but does
+/// not block; a listing that must not run on a Mac opts out of Mac
+/// availability in App Store Connect.
 class AppDeviceIntegrityVerdict {
   /// Creates a verdict from readings already judged by
   /// [AppDeviceIntegrityService].
@@ -19,6 +25,10 @@ class AppDeviceIntegrityVerdict {
     this.developerMode = false,
     this.unsafeInstaller = false,
     this.signatureInvalid = false,
+    this.iosAppOnMac = false,
+    this.frida = false,
+    this.hookingFramework = false,
+    this.debuggerAttached = false,
     this.platform = '',
     this.failureReason,
     this.report,
@@ -36,6 +46,10 @@ class AppDeviceIntegrityVerdict {
        developerMode = false,
        unsafeInstaller = false,
        signatureInvalid = false,
+       iosAppOnMac = false,
+       frida = false,
+       hookingFramework = false,
+       debuggerAttached = false,
        report = null,
        debugBuild = kDebugMode;
 
@@ -60,6 +74,20 @@ class AppDeviceIntegrityVerdict {
   /// Signed by a certificate outside the allow-list (Android). Reported only.
   final bool signatureInvalid;
 
+  /// An iPhone app running on an Apple Silicon Mac (iOS). Reported only.
+  final bool iosAppOnMac;
+
+  /// Frida is in the process or listening for it. Blocks outside debug
+  /// builds.
+  final bool frida;
+
+  /// A hooking framework (Xposed, LSPosed, Substrate, ElleKit and the like)
+  /// is loaded. Blocks outside debug builds.
+  final bool hookingFramework;
+
+  /// A debugger is attached. Blocks outside debug builds.
+  final bool debuggerAttached;
+
   /// `android` or `ios`, or empty when the device was not read.
   final String platform;
 
@@ -78,7 +106,12 @@ class AppDeviceIntegrityVerdict {
   bool get isBlocked {
     if (!enforced) return false;
     if (emulator) return !debugBuild;
-    return rooted || cloneEnvironment;
+
+    final isTampered = rooted || cloneEnvironment;
+    final isInstrumented = frida || hookingFramework || debuggerAttached;
+    final blocksInstrumentation = isInstrumented && !debugBuild;
+
+    return isTampered || blocksInstrumentation;
   }
 
   /// Every signal that was raised, blocking or not, for logs and analytics.
@@ -89,6 +122,10 @@ class AppDeviceIntegrityVerdict {
     if (unsafeInstaller) 'unsafe_installer',
     if (signatureInvalid) 'signature_mismatch',
     if (emulator) 'emulator',
+    if (iosAppOnMac) 'ios_app_on_mac',
+    if (frida) 'frida',
+    if (hookingFramework) 'hooking_framework',
+    if (debuggerAttached) 'debugger_attached',
   ];
 
   /// One line for logs: `device_approved`, or what blocked it.

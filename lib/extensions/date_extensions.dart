@@ -57,6 +57,13 @@ extension DateExtension on DateTime {
     return AppDateUtil.isAfterToday(date: this);
   }
 
+  /// Returns the number of whole calendar years from this date to [other].
+  ///
+  /// See [AppDateUtil.yearsBetween].
+  int yearsUntil(DateTime other) {
+    return AppDateUtil.yearsBetween(from: this, to: other);
+  }
+
   /// Returns a new [DateTime] instance representing the start of this date's day (00:00:00).
   DateTime get startOfDay {
     return DateTime(year, month, day);
@@ -94,10 +101,20 @@ extension DateExtension on DateTime {
 /// {@category Extensions}
 /// Extension on [Duration] providing getters for converting duration into larger time units.
 extension DurationExtensions on Duration {
-  /// Converts the duration into an integer number of years (approximated as 365 days).
+  /// Converts the duration into an integer number of years, approximated as
+  /// 365 days each.
+  ///
+  /// A [Duration] has no start date, so it cannot count leap days and drifts
+  /// by about a day every four years. For ages and anniversaries, count
+  /// calendar years with [AppDateUtil.yearsBetween] or
+  /// [DateExtension.yearsUntil] instead.
   int get inYears => inDays ~/ 365;
 
-  /// Converts the duration into a precise floating-point number of years.
+  /// Converts the duration into a floating-point number of years,
+  /// approximated as 365 days each.
+  ///
+  /// Has the same leap-day drift as [inYears]; prefer
+  /// [AppDateUtil.yearsBetween] when both dates are known.
   double get inPreciseYears => inDays / 365;
 
   /// Converts the duration into the ceiling number of weeks.
@@ -157,8 +174,17 @@ extension DateRangeExtension on DateTimeRange {
     return "$startText - $endText";
   }
 
-  /// Returns `true` if the duration between start and end is one year or less.
+  /// Returns `true` if [end] is on or before the first anniversary of [start],
+  /// counted in calendar years.
   bool get isLessThanAYear {
-    return end.difference(start).inPreciseYears <= 1;
+    final years = AppDateUtil.yearsBetween(from: start, to: end);
+
+    if (years < 1) return true;
+
+    final isSameMonth = end.month == start.month;
+    final isSameDay = end.day == start.day;
+    final isAnniversary = isSameMonth && isSameDay;
+
+    return years == 1 && isAnniversary;
   }
 }

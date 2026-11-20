@@ -15,6 +15,7 @@ Reports raw device-integrity signals (root, jailbreak, clone, emulator, installe
   s.source           = { :path => '.' }
   s.source_files = 'gt_device_integrity/Sources/gt_device_integrity/**/*'
   s.dependency 'Flutter'
+  s.frameworks = 'CryptoKit', 'DeviceCheck', 'Security'
   s.platform = :ios, '15.0'
 
   # Flutter.framework does not contain a i386 slice.

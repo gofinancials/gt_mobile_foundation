@@ -141,13 +141,31 @@ class AppValidators {
     return null;
   }
 
-  /// Validates that a parsed [date] meets the [minAge] requirement.
+  /// Validates a date of birth [date] against an age range.
+  ///
+  /// Age is counted in calendar years: the years between [date] and today,
+  /// minus one if this year's birthday hasn't come yet.
+  ///
+  /// - [minAge] is inclusive: `minAge: 18` accepts someone whose 18th
+  ///   birthday is today.
+  /// - [maxAge] is exclusive: `maxAge: 18` means "under 18" and rejects
+  ///   someone whose 18th birthday is today. `null` means no upper bound.
+  /// - A date after today is always rejected, so `minAge: 0` accepts today's
+  ///   date (a newborn) but not tomorrow's.
+  ///
+  /// [errorMessage] replaces every failure message except the empty one.
+  /// [maxAgeErrorMessage] replaces the [maxAge] failure message and takes
+  /// precedence over [errorMessage]. [now] defaults to [DateTime.now] and
+  /// exists for tests.
   static String? dobValidator(
     String? date, {
     String? errorMessage,
     String? emptyMessage,
+    String? maxAgeErrorMessage,
     int minAge = 18,
+    int? maxAge,
     bool isRequired = true,
+    DateTime? now,
   }) {
     final isEmpty = _isEmpty(date);
 
@@ -161,15 +179,26 @@ class AppValidators {
 
     if (parsedDate == null) return errorMessage ?? strings.invalidDate.tr();
 
-    final now = DateTime.now();
+    final today = (now ?? DateTime.now()).startOfDay;
+    final birthday = parsedDate.startOfDay;
+    final isInFuture = birthday.isAfter(today);
 
-    final yearsSinceDate = (now.difference(parsedDate).inDays / 365);
+    if (isInFuture) return errorMessage ?? strings.invalidDate.tr();
 
-    if (yearsSinceDate < minAge) {
+    final age = AppDateUtil.yearsBetween(from: birthday, to: today);
+
+    if (age < minAge) {
       return errorMessage ?? strings.mustBeNYears.tr({"age": "$minAge"});
     }
 
-    return null;
+    final isUnderMaxAge = maxAge == null || age < maxAge;
+
+    if (isUnderMaxAge) return null;
+
+    final maxAgeMessage = strings.mustBeUnderNYears.tr({"age": "$maxAge"});
+    final fallbackMessage = errorMessage ?? maxAgeMessage;
+
+    return maxAgeErrorMessage ?? fallbackMessage;
   }
 
   /// Validates a [date] string, optionally ensuring it is greater/less than [otherDate].
@@ -536,6 +565,32 @@ class AppValidators {
     if (isEmpty) return emptyMessage ?? strings.fieldRequired.tr();
 
     if (AppRegex.nubanRegex.hasMatch(number)) return null;
+
+    return errorMessage;
+  }
+
+  /// Validates [text] as a Nigerian postcode: a legacy six-digit code
+  /// (`100001`) or a NIPOST digital one (`EK 01 A03 FK 01`), with or without
+  /// spaces or hyphens, in any case.
+  ///
+  /// Accepts what [AppTextFormatter.canonicalPostcode] can read; save that
+  /// canonical form rather than what was typed. Whether the code exists is
+  /// not checked.
+  static String? postcodeValidator(
+    String? text, {
+    required String errorMessage,
+    String? emptyMessage,
+    bool isRequired = true,
+  }) {
+    final isEmpty = _isEmpty(text);
+
+    if (!isRequired && isEmpty) return null;
+
+    if (isEmpty) return emptyMessage ?? strings.fieldRequired.tr();
+
+    final postcode = AppTextFormatter.canonicalPostcode(text);
+
+    if (postcode != null) return null;
 
     return errorMessage;
   }

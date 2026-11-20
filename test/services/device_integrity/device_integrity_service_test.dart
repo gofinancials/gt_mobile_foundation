@@ -31,6 +31,14 @@ void main() {
     'signature': signature,
   };
 
+  Map<String, Object?> ios({bool rooted = false, bool iosAppOnMac = false}) => {
+    'platform': 'ios',
+    'packageName': 'ng.sterling.onebankpersonal',
+    'rooted': rooted,
+    'emulator': false,
+    'iosAppOnMac': iosAppOnMac,
+  };
+
   tearDown(() => messenger.setMockMethodCallHandler(channel, null));
 
   group('AppDeviceIntegrityVerdict', () {
@@ -42,6 +50,10 @@ void main() {
       bool developerMode = false,
       bool unsafeInstaller = false,
       bool signatureInvalid = false,
+      bool iosAppOnMac = false,
+      bool frida = false,
+      bool hookingFramework = false,
+      bool debuggerAttached = false,
       bool debugBuild = false,
     }) => AppDeviceIntegrityVerdict(
       enforced: enforced,
@@ -51,6 +63,10 @@ void main() {
       developerMode: developerMode,
       unsafeInstaller: unsafeInstaller,
       signatureInvalid: signatureInvalid,
+      iosAppOnMac: iosAppOnMac,
+      frida: frida,
+      hookingFramework: hookingFramework,
+      debuggerAttached: debuggerAttached,
       debugBuild: debugBuild,
     );
 
@@ -79,6 +95,18 @@ void main() {
       },
     );
 
+    test('reports an iPhone app on a Mac without blocking', () {
+      final mac = verdict(iosAppOnMac: true);
+
+      expect(mac.isBlocked, isFalse);
+      expect(mac.signals, ['ios_app_on_mac']);
+      expect(mac.summary, 'device_approved');
+    });
+
+    test('still blocks a jailbroken device that is not a Mac', () {
+      expect(verdict(rooted: true, iosAppOnMac: false).isBlocked, isTrue);
+    });
+
     test('blocks an emulator except in a debug build, even with su', () {
       expect(verdict(emulator: true).isBlocked, isTrue);
       expect(verdict(emulator: true, debugBuild: true).isBlocked, isFalse);
@@ -86,6 +114,38 @@ void main() {
         verdict(emulator: true, rooted: true, debugBuild: true).isBlocked,
         isFalse,
       );
+    });
+
+    test('blocks instrumentation outside debug builds', () {
+      final fridaVerdict = verdict(frida: true);
+      final hookedVerdict = verdict(hookingFramework: true);
+      final debuggedVerdict = verdict(debuggerAttached: true);
+
+      expect(fridaVerdict.isBlocked, isTrue);
+      expect(hookedVerdict.isBlocked, isTrue);
+      expect(debuggedVerdict.isBlocked, isTrue);
+      expect(fridaVerdict.summary, 'frida');
+      expect(hookedVerdict.summary, 'hooking_framework');
+      expect(debuggedVerdict.summary, 'debugger_attached');
+    });
+
+    test('reports instrumentation in a debug build without blocking', () {
+      final debugVerdict = verdict(
+        frida: true,
+        hookingFramework: true,
+        debuggerAttached: true,
+        debugBuild: true,
+      );
+      const signals = ['frida', 'hooking_framework', 'debugger_attached'];
+
+      expect(debugVerdict.isBlocked, isFalse);
+      expect(debugVerdict.signals, signals);
+    });
+
+    test('still blocks root in a debug build', () {
+      final rootedVerdict = verdict(rooted: true, debugBuild: true);
+
+      expect(rootedVerdict.isBlocked, isTrue);
     });
 
     test('never blocks when the build does not enforce', () {
@@ -118,6 +178,37 @@ void main() {
       expect(verdict.platform, 'android');
       expect(verdict.report?.packageName, 'ng.sterling.onebankpersonal');
       expect(verdict.failureReason, isNull);
+    });
+
+    test('lets an iPhone app on a Mac through', () async {
+      answer(() async => ios(iosAppOnMac: true));
+
+      const service = AppDeviceIntegrityServiceImpl();
+      final verdict = await service.evaluate(enforced: true);
+
+      expect(verdict.isBlocked, isFalse);
+      expect(verdict.iosAppOnMac, isTrue);
+      expect(verdict.platform, 'ios');
+      expect(verdict.summary, 'device_approved');
+    });
+
+    test('blocks a jailbroken iPhone', () async {
+      answer(() async => ios(rooted: true));
+
+      const service = AppDeviceIntegrityServiceImpl();
+      final verdict = await service.evaluate(enforced: true);
+
+      expect(verdict.isBlocked, isTrue);
+      expect(verdict.iosAppOnMac, isFalse);
+    });
+
+    test('reads an Android report without the Mac reading', () async {
+      answer(() async => android());
+
+      const service = AppDeviceIntegrityServiceImpl();
+      final verdict = await service.evaluate(enforced: true);
+
+      expect(verdict.iosAppOnMac, isFalse);
     });
 
     test(
@@ -158,6 +249,30 @@ void main() {
       expect(unchecked.signatureInvalid, isFalse);
       expect(checked.signatureInvalid, isTrue);
       expect(checked.isBlocked, isFalse);
+    });
+
+    test('judges the instrumentation readings', () async {
+      final report = {...android(), 'frida': true, 'debuggerAttached': false};
+
+      answer(() async => report);
+
+      const service = AppDeviceIntegrityServiceImpl();
+      final verdict = await service.evaluate(enforced: true);
+
+      expect(verdict.frida, isTrue);
+      expect(verdict.hookingFramework, isFalse);
+      expect(verdict.debuggerAttached, isFalse);
+      expect(verdict.signals, contains('frida'));
+    });
+
+    test('does not approve an answer that names no platform', () async {
+      answer(() async => <String, Object?>{});
+
+      const service = AppDeviceIntegrityServiceImpl();
+      final verdict = await service.evaluate(enforced: true);
+
+      expect(verdict.failureReason, 'security_error');
+      expect(verdict.report, isNull);
     });
 
     test('lets the device through when the platform fails', () async {

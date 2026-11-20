@@ -211,6 +211,23 @@ class AppRegex {
   static final emailDomainLabel = RegExp(r'^[A-Za-z0-9-]+$');
   static final postalCode = RegExp(r'^\d{6}$');
 
+  /// A Nigerian postcode with its separators removed and its letters
+  /// uppercased: either a legacy six-digit code (`100001`) or a NIPOST
+  /// National Digital Alphanumeric Postcode (`EK01A03FK01`).
+  ///
+  /// A digital code is 11 characters in five groups: state (2 letters), LGA
+  /// (2 digits), district (3 letters or digits), area (2 letters) and
+  /// building (2 digits). The numeric groups are zero-filled and never `00`.
+  /// Named groups: `legacy`, or `state`, `lga`, `district`, `area` and
+  /// `building`. Use [postcodeSeparators] to strip a code before matching.
+  static final nigerianPostcode = RegExp(
+    r'^(?:(?<legacy>\d{6})|(?<state>[A-Z]{2})(?<lga>0[1-9]|[1-9]\d)(?<district>[A-Z0-9]{3})(?<area>[A-Z]{2})(?<building>0[1-9]|[1-9]\d))$',
+  );
+
+  /// The spaces and hyphens a postcode may be written with
+  /// (`EK 01 A03 FK 01`, `EK-01-A03-FK-01`).
+  static final postcodeSeparators = RegExp(r'[\s-]');
+
   static String getMatchGroupValue({
     required RegExp pattern,
     required String input,

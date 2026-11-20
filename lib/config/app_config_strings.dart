@@ -85,6 +85,10 @@ class AppConfigStrings {
   /// Validation message requiring a minimum age.
   final String mustBeNYears;
 
+  /// Validation message requiring an age below a maximum. Receives the
+  /// exclusive maximum age as the `age` argument.
+  final String mustBeUnderNYears;
+
   /// Validation message for an invalid URL format.
   final String invalidUrl;
 
@@ -172,6 +176,7 @@ class AppConfigStrings {
     required this.invalidPhone,
     required this.invalidDate,
     required this.mustBeNYears,
+    required this.mustBeUnderNYears,
     required this.invalidUrl,
     required this.invalidAmount,
     required this.amountMinimum,
