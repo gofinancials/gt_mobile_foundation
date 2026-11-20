@@ -1,0 +1,397 @@
+name: security-scan
+
+on:
+  pull_request:
+  push:
+    branches: ["**"]
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: security-scan
+    runs-on: ubicloud-standard-2
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Scan for malware indicators
+        run: |
+          cat > "$RUNNER_TEMP/security_scan.py" <<'PYEOF'
+          #!/usr/bin/env python3
+          import datetime
+          import json
+          import os
+          import re
+          import subprocess
+          import sys
+
+          IOC_STRINGS = (
+              "A8-" + "5069-6",
+              "NONCE_" + "FANOUT",
+              "global['" + "_V']",
+              "global['" + "!']",
+              "global.i" + " = '",
+              "__inz" + "CR",
+              ".inz" + ".cjs",
+              "166.88." + "134.75",
+              "194.11." + "226.41",
+              "150.251." + "113.223",
+              "app-cursor" + "-eval",
+              "temp_auto" + "_push.bat",
+              "temp_interactive" + "_push.bat",
+              "github_actions" + "_security.yml",
+          )
+          MARKERS = [(repr(s), re.compile(re.escape(s))) for s in IOC_STRINGS] + [
+              ("_$_ string-table decoder", re.compile(r"_\$_[0-9a-f]{4}\s*=")),
+              ("String.fromCharCode(" + "127) decoder", re.compile(r"String\.fromCharCode\(\s*127\s*\)")),
+              ("blockchain dead-drop host used by PolinRider second stage", re.compile(r"api\.trongrid\.io|fullnode\.mainnet\.aptoslabs\.com|bsc-dataseed\d*\.binance\.org")),
+              ("run of invisible Unicode characters", re.compile("[​-‍⁠︀-️\U000e0100-\U000e01ef]{10,}")),
+              ("workflow serialises every secret", re.compile(r"toJSON\(\s*secrets\s*\)")),
+              ("PolinRider campaign id variable", re.compile(r"\bvar\s+[\w$]+\s*=\s*'-\d{4}-\d+'")),
+              ("ignored config" + ".bat dropper", re.compile(r"^\s*/?config\.bat\s*$")),
+          ]
+          HIDDEN_CODE = re.compile(r"[ \t]{150,}\S")
+          HEX_ESCAPE = re.compile(r"\\x[0-9a-fA-F]{2}")
+          JS_TOKENS = re.compile(r"\b(require|eval|Function)\s*\(|global\[|\bvar\s+[\w$]+\s*=|=>\s*\{|module\.exports|\bfunction\s*[\w$]*\s*\(")
+          AUTO_TASKS_ON = re.compile(r'"task\.allowAutomaticTasks"\s*:\s*(true|"on")')
+          NODE_RUN = re.compile(r"\bnode\s+(?:\./)?([^\s&|;'\"]+)")
+          JS_RUNNABLE_EXT = (".js", ".mjs", ".cjs", ".ts", ".mts", ".cts")
+          BAD_DEPENDENCIES = ("jsonweb" + "auth",)
+          DANGEROUS_IN_CONFIG = re.compile(
+              r"child_process|\beval\s*\(|\bnew\s+Function\s*\(|fromCharCode|\batob\s*\(|require\(\s*['\"](https?|net|dgram)['\"]\s*\)"
+          )
+          CONFIG_NAME = re.compile(
+              r"(^|/)([\w-]+\.config\.(c|m)?[jt]s|\.(eslintrc|babelrc|prettierrc|stylelintrc|lintstagedrc)\.c?js)$",
+              re.IGNORECASE,
+          )
+          FOLDER_OPEN = re.compile(r'"runOn"\s*:\s*"folderOpen"')
+          CODE_EXT = (
+              ".js", ".mjs", ".cjs", ".jsx", ".ts", ".mts", ".cts", ".tsx", ".json", ".py",
+              ".sh", ".ps1", ".vbs", ".bat", ".cmd", ".rb", ".php", ".vue", ".svelte",
+          )
+          DISGUISE_EXT = (
+              ".woff", ".woff2", ".ttf", ".otf", ".eot", ".llf", ".dict",
+              ".png", ".jpg", ".jpeg", ".gif", ".ico", ".webp", ".bmp", ".mp3", ".mp4",
+          )
+          SKIP_SUFFIX = (".min.js", ".min.mjs", ".map", "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "composer.lock")
+          SKIP_DIRS = ("node_modules/", "dist/", "build/", ".next/", "coverage/", "vendor/", ".nuxt/", "out/")
+          LIFECYCLE = ("preinstall", "install", "postinstall", "prepare", "prepublish")
+          IMPLANT_SUFFIX = (".inz" + ".cjs", ".inz" + ".orig")
+          GHOSTACTION_WORKFLOW = ".github/workflows/github_actions" + "_security.yml"
+          LONG_LINE = 3000
+          HEX_LIMIT = 300
+          CONFIG_SIZE_LIMIT = 10000
+          MAX_BYTES = 5 * 1024 * 1024
+          ZERO_SHA = "0" * 40
+          DEFAULT_COMMIT_WINDOW = ["-n", "50", "HEAD"]
+
+
+          def git(*args):
+              return subprocess.run(["git", *args], capture_output=True, text=True, check=True).stdout
+
+
+          def is_skipped(low):
+              padded = "/" + low
+              return any("/" + d in padded for d in SKIP_DIRS) or low.endswith(SKIP_SUFFIX)
+
+
+          def classify(path):
+              low = path.replace("\\", "/").lower()
+              return {
+                  "path": path,
+                  "low": low,
+                  "skip": is_skipped(low),
+                  "code": low.endswith(CODE_EXT),
+                  "json": low.endswith(".json"),
+                  "config": bool(CONFIG_NAME.search(low)),
+                  "disguise": low.endswith(DISGUISE_EXT),
+              }
+
+
+          def long_line_findings(kind, n, size):
+              if kind["config"]:
+                  return [("error", n, f"Very long obfuscated-looking line in a build config ({size} chars)")]
+              if kind["json"]:
+                  return []
+              return [("warning", n, f"Very long line ({size} chars) - confirm it is generated or vendored code")]
+
+
+          def is_hidden_code(kind, line):
+              match = HIDDEN_CODE.search(line)
+              if not match:
+                  return False
+              return kind["code"] or bool(JS_TOKENS.search(line, match.end() - 1))
+
+
+          def line_findings(kind, n, line):
+              found = [("error", n, f"Known malware indicator: {label}") for label, rx in MARKERS if rx.search(line)]
+              if is_hidden_code(kind, line):
+                  found.append(("error", n, "Code hidden after a long run of whitespace (pushed off-screen)"))
+              if kind["code"] and len(line) > LONG_LINE:
+                  found += long_line_findings(kind, n, len(line))
+              return found
+
+
+          def implant_name_findings(kind, text):
+              if kind["low"].endswith(IMPLANT_SUFFIX):
+                  return [("error", 1, "File name matches the PolinRider editor-trojan implant")]
+              if kind["low"].endswith(GHOSTACTION_WORKFLOW):
+                  return [("error", 1, "File name matches the GhostAction secret-stealing workflow")]
+              return []
+
+
+          def config_findings(kind, text):
+              if not kind["config"]:
+                  return []
+              found = []
+              match = DANGEROUS_IN_CONFIG.search(text)
+              if match:
+                  line_no = text[: match.start()].count("\n") + 1
+                  found.append(("error", line_no, f"Build config uses {match.group(0)!r} - configs should not spawn processes or eval code"))
+              if len(text) > CONFIG_SIZE_LIMIT:
+                  found.append(("warning", 1, f"Build config is unusually large ({len(text)} bytes)"))
+              return found
+
+
+          def hex_findings(kind, text):
+              total = len(HEX_ESCAPE.findall(text))
+              if not kind["code"] or total <= HEX_LIMIT:
+                  return []
+              severity = "error" if kind["config"] else "warning"
+              return [(severity, 1, f"Heavy hex-escape obfuscation ({total} \\xNN sequences)")]
+
+
+          def tasks_findings(kind, text):
+              if kind["low"].endswith(".vscode/tasks.json") and FOLDER_OPEN.search(text):
+                  return [("error", 1, "VS Code task runs automatically when the folder is opened (runOn: folderOpen)")]
+              return []
+
+
+          def disguise_findings(kind, text):
+              if kind["disguise"] and JS_TOKENS.search(text):
+                  return [("error", 1, "Binary-named file (font/image/media) is actually text containing JavaScript")]
+              return []
+
+
+          def vscode_settings_findings(kind, text):
+              if kind["low"].endswith(".vscode/settings.json") and AUTO_TASKS_ON.search(text):
+                  return [("error", 1, "Workspace forces task.allowAutomaticTasks on so folder-open tasks run without a prompt")]
+              return []
+
+
+          def load_package(text):
+              try:
+                  data = json.loads(text)
+              except ValueError:
+                  return {}
+              return data if isinstance(data, dict) else {}
+
+
+          def runs_hidden_file(package_dir, target):
+              low = target.lower()
+              if target.startswith("-") or low.endswith(JS_RUNNABLE_EXT):
+                  return False
+              if low.endswith(DISGUISE_EXT):
+                  return True
+              has_extension = "." in os.path.basename(target)
+              return not has_extension and os.path.isfile(os.path.join(package_dir, target))
+
+
+          def script_findings(package_dir, scripts):
+              found = []
+              for name, command in scripts.items():
+                  for target in NODE_RUN.findall(str(command)):
+                      if runs_hidden_file(package_dir, target):
+                          found.append(("error", 1, f"npm script {name!r} runs node on non-JavaScript file {target!r}: {str(command)[:120]}"))
+              return found
+
+
+          def dependency_findings(data):
+              found = []
+              for key in ("dependencies", "devDependencies", "optionalDependencies"):
+                  found += [("error", 1, f"Known-malicious package {dep!r} in {key}") for dep in BAD_DEPENDENCIES if dep in (data.get(key) or {})]
+              return found
+
+
+          def package_findings(kind, text):
+              if not kind["low"].endswith("package.json"):
+                  return []
+              data = load_package(text)
+              scripts = data.get("scripts") if isinstance(data.get("scripts"), dict) else {}
+              found = [("warning", 1, f"Install lifecycle script {name!r}: {str(scripts[name])[:120]}") for name in LIFECYCLE if name in scripts]
+              found += script_findings(os.path.dirname(kind["path"]), scripts)
+              return found + dependency_findings(data)
+
+
+          FILE_CHECKS = (
+              implant_name_findings, config_findings, hex_findings, tasks_findings,
+              vscode_settings_findings, disguise_findings, package_findings,
+          )
+
+
+          def scan_text(path, text):
+              kind = classify(path)
+              if kind["skip"]:
+                  return []
+              found = []
+              for n, line in enumerate(text.split("\n"), 1):
+                  found += line_findings(kind, n, line)
+              for check in FILE_CHECKS:
+                  found += check(kind, text)
+              return [(path, *f) for f in found]
+
+
+          def read_text(path):
+              try:
+                  if os.path.getsize(path) > MAX_BYTES:
+                      return None
+                  with open(path, "rb") as f:
+                      data = f.read()
+              except OSError:
+                  return None
+              if b"\0" in data[:8000]:
+                  return None
+              return data.decode("utf-8", "replace")
+
+
+          def tracked_files():
+              return [p for p in git("ls-files", "-z").split("\0") if p]
+
+
+          def scan_tree():
+              results = []
+              for path in tracked_files():
+                  text = read_text(path)
+                  if text is not None:
+                      results += scan_text(path, text)
+              return results
+
+
+          def parse_commit(line):
+              sha, an, ae, ad, cn, ce, cd = line.split("\x1f")
+              return {
+                  "sha": sha[:8], "an": an, "ae": ae, "cn": cn, "ce": ce,
+                  "ad": datetime.datetime.fromisoformat(ad),
+                  "cd": datetime.datetime.fromisoformat(cd),
+              }
+
+
+          def load_commits(rev_args):
+              fmt = "%H%x1f%an%x1f%ae%x1f%aI%x1f%cn%x1f%ce%x1f%cI"
+              try:
+                  out = git("log", f"--format={fmt}", *rev_args)
+              except subprocess.CalledProcessError:
+                  return []
+              return [parse_commit(line) for line in out.splitlines() if line.count("\x1f") == 6]
+
+
+          def is_split_identity(c):
+              if c["cn"] in ("GitHub", c["an"]) or c["ae"] != c["ce"]:
+                  return False
+              return c["cn"] in c["an"].split() and c["ad"].utcoffset() != c["cd"].utcoffset()
+
+
+          def commit_findings(c):
+              found = []
+              if (c["ad"] - c["cd"]).total_seconds() > 3600:
+                  found.append(("error", c["sha"], f"Commit {c['sha']}: committed {c['ad'] - c['cd']} BEFORE it was authored - forged-commit signature"))
+              if is_split_identity(c):
+                  found.append(("error", c["sha"], f"Commit {c['sha']}: author {c['an']!r} ({c['ad']:%z}) re-committed as {c['cn']!r} ({c['cd']:%z}) - PolinRider forged-commit signature"))
+              return found
+
+
+          def scan_commits(rev_args):
+              results = []
+              for c in load_commits(rev_args):
+                  results += [("(commits)", *f) for f in commit_findings(c)]
+              return results
+
+
+          def sha_exists(sha):
+              return subprocess.run(["git", "cat-file", "-e", f"{sha}^{{commit}}"], capture_output=True).returncode == 0
+
+
+          def new_branch_range(event, after):
+              own = event.get("ref", "").replace("refs/heads/", "origin/", 1)
+              return [after, "--not", f"--exclude={own}", "--remotes=origin"]
+
+
+          def push_range(event):
+              before, after = event.get("before", ZERO_SHA), event.get("after", "HEAD")
+              if before == ZERO_SHA or not sha_exists(before):
+                  return new_branch_range(event, after)
+              return [f"{before}..{after}"]
+
+
+          def pr_range(event):
+              pr = event["pull_request"]
+              return [f"{pr['base']['sha']}..{pr['head']['sha']}"]
+
+
+          def scheduled_range(event):
+              return ["--since=8.days.ago", "HEAD"]
+
+
+          RANGE_BY_EVENT = {
+              "push": push_range,
+              "pull_request": pr_range,
+              "pull_request_target": pr_range,
+              "schedule": scheduled_range,
+              "workflow_dispatch": scheduled_range,
+          }
+
+
+          def commit_range(argv):
+              if argv[:1] == ["--range"] and len(argv) > 1:
+                  return argv[1:]
+              resolver = RANGE_BY_EVENT.get(os.environ.get("GITHUB_EVENT_NAME", ""))
+              event_path = os.environ.get("GITHUB_EVENT_PATH")
+              if resolver is None or not event_path:
+                  return DEFAULT_COMMIT_WINDOW
+              with open(event_path) as f:
+                  return resolver(json.load(f))
+
+
+          def annotate(results):
+              for path, severity, line, message in results:
+                  if os.environ.get("GITHUB_ACTIONS"):
+                      location = f"file={path},line={line}" if isinstance(line, int) else ""
+                      print(f"::{severity} {location}::{message}")
+                  else:
+                      print(f"{severity.upper():7} {path}:{line}  {message}")
+
+
+          def write_summary(results):
+              summary = os.environ.get("GITHUB_STEP_SUMMARY")
+              if not summary:
+                  return
+              rows = [f"- **{severity}** `{path}`:{line} - {message}" for path, severity, line, message in results[:300]]
+              with open(summary, "a") as s:
+                  s.write("## Malware scan\n\n" + ("\n".join(rows) if rows else "No indicators found.") + "\n")
+
+
+          def main(argv):
+              results = scan_tree() + scan_commits(commit_range(argv))
+              annotate(results)
+              write_summary(results)
+              errors = sum(1 for r in results if r[1] == "error")
+              print(f"\n{errors} error(s), {len(results) - errors} warning(s)")
+              return 1 if errors else 0
+
+
+          if __name__ == "__main__":
+              sys.exit(main(sys.argv[1:]))
+          PYEOF
+          python3 -I "$RUNNER_TEMP/security_scan.py"
