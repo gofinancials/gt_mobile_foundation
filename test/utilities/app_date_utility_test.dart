@@ -89,4 +89,26 @@ void main() {
       expect(isLessThanAYear(dayAfterAnniversary), isFalse);
     });
   });
+
+  group('AppDateUtil.isBeforeToday and isAfterToday', () {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lateYesterday = today.subtract(const Duration(minutes: 1));
+    final lateToday = DateTime(now.year, now.month, now.day, 23, 59);
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+
+    test('isBeforeToday is true only for earlier days', () {
+      expect(AppDateUtil.isBeforeToday(date: lateYesterday), isTrue);
+      expect(AppDateUtil.isBeforeToday(date: today), isFalse);
+      expect(AppDateUtil.isBeforeToday(date: lateToday), isFalse);
+      expect(AppDateUtil.isBeforeToday(date: tomorrow), isFalse);
+    });
+
+    test('isAfterToday is true only for later days', () {
+      expect(AppDateUtil.isAfterToday(date: tomorrow), isTrue);
+      expect(AppDateUtil.isAfterToday(date: lateToday), isFalse);
+      expect(AppDateUtil.isAfterToday(date: today), isFalse);
+      expect(AppDateUtil.isAfterToday(date: lateYesterday), isFalse);
+    });
+  });
 }

@@ -79,7 +79,7 @@ extension DateExtension on DateTime {
 
   /// Formats this date as a string. Optionally accepts a custom date [format].
   String format([String? format]) {
-    return AppTextFormatter.formatDate(toIso8601String(), format: format);
+    return AppTextFormatter.formatDateTime(this, format: format);
   }
 
   /// Returns a relative human-readable string indicating the time elapsed since this date.

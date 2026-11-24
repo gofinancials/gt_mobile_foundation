@@ -1,4 +1,4 @@
-import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
 
 /// {@category Utilities}
 /// A utility class for safely comparing [DateTime] instances.
@@ -65,21 +65,17 @@ class AppDateUtil {
 
   /// Returns `true` if [date] occurred strictly before the current local day.
   static bool isBeforeToday({required DateTime date}) {
-    final stringOther = DateFormat("yyyy-MM-dd").format(date);
-    final stringToday = DateFormat("yyyy-MM-dd").format(DateTime.now());
-    final otherDate = DateTime.parse(stringOther);
-    final todayDate = DateTime.parse(stringToday);
+    final day = DateUtils.dateOnly(date);
+    final today = DateUtils.dateOnly(DateTime.now());
 
-    return todayDate.difference(otherDate).inDays > 0;
+    return day.isBefore(today);
   }
 
   /// Returns `true` if [date] occurs strictly after the current local day.
   static bool isAfterToday({required DateTime date}) {
-    final stringOther = DateFormat("yyyy-MM-dd").format(date);
-    final stringToday = DateFormat("yyyy-MM-dd").format(DateTime.now());
-    final otherDate = DateTime.parse(stringOther);
-    final todayDate = DateTime.parse(stringToday);
+    final day = DateUtils.dateOnly(date);
+    final today = DateUtils.dateOnly(DateTime.now());
 
-    return otherDate.difference(todayDate).inDays > 0;
+    return day.isAfter(today);
   }
 }
