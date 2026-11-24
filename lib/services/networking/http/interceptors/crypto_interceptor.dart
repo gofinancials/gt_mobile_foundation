@@ -32,9 +32,34 @@ class EncryptInterceptor extends InterceptorsWrapper {
 
   /// Encodes the provided [data] to JSON if necessary and returns the encrypted ciphertext
   /// using the configured [_service], [mode], and [strategy].
+  ///
+  /// A large body, such as a document upload carrying a base64 file, is
+  /// encoded and encrypted on background isolates, so the UI keeps drawing
+  /// while it is prepared.
   Future<String> _getCiphertext(dynamic data) async {
-    final plaintext = data is String ? data : await AppHelpers.encodeJson(data);
-    return _service.encrypt(plaintext, mode: mode, strategy: strategy);
+    final inBackground = AppHelpers.isLargePayload(data);
+    final plaintext = await _plaintext(data, inBackground: inBackground);
+    return _encrypt(plaintext, inBackground: inBackground);
+  }
+
+  /// [data] as the text to encrypt.
+  Future<String> _plaintext(dynamic data, {required bool inBackground}) async {
+    if (data is String) return data;
+    return AppHelpers.encodeJson(data, inBackground: inBackground);
+  }
+
+  /// [text] encrypted, off the UI isolate when [inBackground] and the service
+  /// can do that. Any other [AppCryptoService] encrypts in place.
+  Future<String> _encrypt(String text, {required bool inBackground}) async {
+    final service = _service;
+    if (!inBackground) return _encryptHere(text);
+    if (service is! AppCryptoServiceImpl) return _encryptHere(text);
+    return service.encryptInBackground(text, mode: mode, strategy: strategy);
+  }
+
+  /// [text] encrypted on the calling isolate.
+  String _encryptHere(String text) {
+    return _service.encrypt(text, mode: mode, strategy: strategy);
   }
 
   /// Returns the encrypted application tag.
@@ -183,6 +208,20 @@ class DecryptInterceptor extends InterceptorsWrapper {
     return AppRegex.ciphertext.hasMatch(data);
   }
 
+  /// [data] decrypted, off the UI isolate when it is large and the service
+  /// can do that. Any other [AppCryptoService] decrypts in place.
+  Future<String> _decrypt(String data) async {
+    final service = _service;
+    if (!AppHelpers.isLargePayload(data)) return _decryptHere(data);
+    if (service is! AppCryptoServiceImpl) return _decryptHere(data);
+    return service.decryptInBackground(data, mode: mode, strategy: strategy);
+  }
+
+  /// [data] decrypted on the calling isolate.
+  String _decryptHere(String data) {
+    return _service.decrypt(data, mode: mode, strategy: strategy);
+  }
+
   /// [response] with its body decrypted, or [response] itself when there was
   /// nothing to decrypt or decryption did not succeed.
   Future<Response> _decrypted(Response response) async {
@@ -192,7 +231,7 @@ class DecryptInterceptor extends InterceptorsWrapper {
     if (!_isEncrypted(data, response.requestOptions)) return response;
 
     final decryptWatch = Stopwatch()..start();
-    final plainText = _service.decrypt(data, mode: mode, strategy: strategy);
+    final plainText = await _decrypt(data);
     decryptWatch.stop();
     response.requestOptions.recordPhase("decrypt", decryptWatch.elapsed);
 

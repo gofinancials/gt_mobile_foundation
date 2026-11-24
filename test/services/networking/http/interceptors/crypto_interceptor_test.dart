@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
@@ -344,5 +346,151 @@ void main() {
         });
       },
     );
+
+    group('large bodies, decrypted and encrypted in the background', () {
+      final document = 'A' * (256 * 1024);
+      final requestBody = _TestBody({
+        'documentType': 'NIN_SLIP',
+        'file': document,
+      });
+      final replyData = {'documentId': 7, 'preview': document};
+      final services = <String, AppCryptoService Function()>{
+        'AppCryptoServiceImpl': () => cryptoService,
+        'another AppCryptoService': () => _DelegatingCrypto(cryptoService),
+      };
+
+      for (final entry in services.entries) {
+        test('${entry.key} uploads a document and reads the reply', () async {
+          final crypto = entry.value();
+          final encodedReply = await AppHelpers.encodeJson(replyData);
+          final encryptedReply = cryptoService.encrypt(
+            encodedReply,
+            mode: .base64,
+            strategy: .colonDelimited,
+          );
+          final gateway = _Gateway(encryptedReply);
+          final model = AppHttpModel(
+            'https://example.com',
+            interceptors: gateway.interceptors(crypto),
+          );
+          final service = _TestHttpService(model);
+
+          final result = await service.post(
+            '/onboarding/uploaddocument',
+            body: requestBody,
+            isSensitiveRequest: true,
+          );
+
+          final requestCiphertext = gateway.sentCiphertext;
+          final sentPlaintext = cryptoService.decrypt(
+            requestCiphertext,
+            mode: .base64,
+            strategy: .colonDelimited,
+          );
+          final requestJson = requestBody.toJson();
+          final expectedPlaintext = await AppHelpers.encodeJson(requestJson);
+          expect(sentPlaintext, expectedPlaintext);
+          expect(result.data, replyData);
+        });
+      }
+    });
   });
+}
+
+/// A gateway that records the encrypted request and answers with [reply].
+class _Gateway {
+  _Gateway(this.reply);
+
+  /// The ciphertext the gateway answers with under `data`.
+  final String reply;
+
+  late RequestOptions sent;
+
+  /// The ciphertext the request carried under `data`.
+  String get sentCiphertext => (sent.data as Map)['data'] as String;
+
+  /// The crypto interceptors around this gateway, using [crypto].
+  List<Interceptor> interceptors(AppCryptoService crypto) => [
+    EncryptInterceptor(crypto, mode: .base64, strategy: .colonDelimited),
+    InterceptorsWrapper(onRequest: _answer),
+    DecryptInterceptor(crypto, mode: .base64, strategy: .colonDelimited),
+  ];
+
+  void _answer(RequestOptions options, RequestInterceptorHandler handler) {
+    sent = options;
+    final body = {'responseCode': '00', 'message': 'Successful', 'data': reply};
+    final response = Response(
+      requestOptions: options,
+      data: body,
+      statusCode: 200,
+    );
+    handler.resolve(response, true);
+  }
+}
+
+/// An [AppCryptoService] that is not [AppCryptoServiceImpl], so the
+/// interceptors cannot move its work to a background isolate.
+class _DelegatingCrypto implements AppCryptoService {
+  _DelegatingCrypto(this._inner);
+
+  final AppCryptoService _inner;
+
+  @override
+  String get appTag => _inner.appTag;
+
+  @override
+  AppCryptoPayloadStrategy get defaultStrategy => _inner.defaultStrategy;
+
+  @override
+  Future<void> init() => _inner.init();
+
+  @override
+  String encrypt(
+    String data, {
+    AppCryptoMode mode = .base16,
+    AppCryptoPayloadStrategy strategy = .auto,
+    Uint8List? associatedData,
+  }) {
+    return _inner.encrypt(
+      data,
+      mode: mode,
+      strategy: strategy,
+      associatedData: associatedData,
+    );
+  }
+
+  @override
+  String decrypt(
+    String data, {
+    AppCryptoMode mode = .base16,
+    AppCryptoPayloadStrategy strategy = .auto,
+    Uint8List? associatedData,
+  }) {
+    return _inner.decrypt(
+      data,
+      mode: mode,
+      strategy: strategy,
+      associatedData: associatedData,
+    );
+  }
+
+  @override
+  String? tryDecrypt(
+    String? data, {
+    AppCryptoMode mode = .base16,
+    AppCryptoPayloadStrategy strategy = .auto,
+    Uint8List? associatedData,
+  }) {
+    return _inner.tryDecrypt(
+      data,
+      mode: mode,
+      strategy: strategy,
+      associatedData: associatedData,
+    );
+  }
+
+  @override
+  String? encryptRsa(String data, {AppCryptoMode mode = .base16}) {
+    return _inner.encryptRsa(data, mode: mode);
+  }
 }
