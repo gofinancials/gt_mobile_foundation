@@ -198,8 +198,18 @@ class AppRegex {
   );
   static final sixDigits = RegExp(r'^\d{6}$');
   static final controlCharacters = RegExp(r'[\u0000-\u001F\u007F]');
-  static final name = RegExp(r"^[A-Za-z .'-]+$");
-  static final nameBoundary = RegExp(r"^[ .'-]|[ .'-]$");
+
+  /// A name: at least one character, of any kind.
+  ///
+  /// Names carry accents, Yoruba and Igbo marks, Hausa hooked letters and the
+  /// curly apostrophe iOS types, so only an empty name is refused.
+  static final name = RegExp(r'^.+$', dotAll: true);
+
+  /// Punctuation a name cannot start or end with.
+  ///
+  /// A name may end with a dot, as a middle initial (`A.`) or a suffix
+  /// (`Jr.`) does, but not start with one.
+  static final nameBoundary = RegExp(r"^[ .'-]|[ '-]$");
   static final containsLetter = RegExp(r'[A-Za-z]');
   static final address = RegExp(r"^[A-Za-z0-9 #&(),./'-]+$");
   static final label = RegExp(r"^[A-Za-z0-9 &(),./'-]+$");
