@@ -4,6 +4,14 @@ import 'package:flutter/services.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
 import 'package:intl/intl.dart';
 
+/// What a currency formatter is built from, and so what it is cached by.
+typedef _CurrencyKey = ({
+  String locale,
+  String name,
+  String symbol,
+  int decimals,
+});
+
 /// {@category Utilities}
 /// A centralized utility class for formatting text, numbers, currencies, dates,
 /// and phone numbers according to the app's locale and configuration settings.
@@ -20,6 +28,85 @@ class AppTextFormatter {
   }
 
   static String? get languageCode => locale?.languageCode.upper;
+
+  /// Formatters built so far. Each key holds the locale the formatter was
+  /// built with, so a locale change builds new ones instead of reusing stale
+  /// ones. Instances never leave this class, because intl formatters can be
+  /// mutated.
+  static final _dateFormats = <(String, String), DateFormat>{};
+  static final _currencyFormats = <_CurrencyKey, NumberFormat>{};
+  static final _compactCurrencyFormats = <_CurrencyKey, NumberFormat>{};
+  static final _compactFormats = <String, NumberFormat>{};
+  static final _patternFormats = <(String?, String), NumberFormat>{};
+
+  /// The locale intl formats with: [locale] when set, otherwise intl's own.
+  static String get _formatLocale => _locale ?? Intl.getCurrentLocale();
+
+  static String _localeUnless(bool ignoreLocale) {
+    if (ignoreLocale) return Intl.getCurrentLocale();
+    return _formatLocale;
+  }
+
+  static DateFormat _dateFormat(String pattern) {
+    final locale = _formatLocale;
+    final key = (pattern, locale);
+    return _dateFormats.putIfAbsent(key, () => DateFormat(pattern, locale));
+  }
+
+  static NumberFormat _currencyFormat(_CurrencyKey key) {
+    NumberFormat build() {
+      return NumberFormat.currency(
+        locale: key.locale,
+        name: key.name,
+        decimalDigits: key.decimals,
+        symbol: key.symbol,
+      );
+    }
+
+    return _currencyFormats.putIfAbsent(key, build);
+  }
+
+  static NumberFormat _compactCurrencyFormat(_CurrencyKey key) {
+    NumberFormat build() {
+      return NumberFormat.compactCurrency(
+        locale: key.locale,
+        name: key.name,
+        decimalDigits: key.decimals,
+        symbol: key.symbol,
+      );
+    }
+
+    return _compactCurrencyFormats.putIfAbsent(key, build);
+  }
+
+  static NumberFormat _compactFormat(String locale) {
+    NumberFormat build() => NumberFormat.compact(locale: locale);
+    return _compactFormats.putIfAbsent(locale, build);
+  }
+
+  static NumberFormat _patternFormat(String? pattern, String locale) {
+    final key = (pattern, locale);
+    NumberFormat build() => NumberFormat(pattern, locale);
+    return _patternFormats.putIfAbsent(key, build);
+  }
+
+  static _CurrencyKey _currencyKey({
+    required bool spaceIcon,
+    required bool ignoreSymbol,
+    required String symbol,
+    required int decimals,
+  }) {
+    final spacing = spaceIcon ? " " : "";
+    final name = ignoreSymbol ? '' : symbol;
+    final shownSymbol = ignoreSymbol ? "" : "$symbol$spacing";
+    final locale = _formatLocale;
+    return (
+      locale: locale,
+      name: name,
+      symbol: shownSymbol,
+      decimals: decimals,
+    );
+  }
 
   /// Formats the given [tel] string as a standardized phone number layout.
   static String formatPhone(String tel) {
@@ -224,6 +311,40 @@ class AppTextFormatter {
     return "${withPlus ? '+' : ''}$callingCode$national";
   }
 
+  /// The groups of a NIPOST digital postcode, in the order it is written.
+  static const _postcodeGroups = [
+    'state',
+    'lga',
+    'district',
+    'area',
+    'building',
+  ];
+
+  /// [postcode] as it is written on an address, or `null` when it is neither
+  /// a legacy six-digit Nigerian postcode nor a NIPOST digital one.
+  ///
+  /// Spaces, hyphens and case are ignored, as NIPOST's own API ignores them.
+  /// A digital code comes back uppercased in its spaced groups
+  /// (`ek01-a03fk01` → `EK 01 A03 FK 01`); a legacy code comes back as its
+  /// six digits. Whether the code exists is not checked: NIPOST's lookup
+  /// needs an API key, so that belongs on the backend.
+  static String? canonicalPostcode(String? postcode) {
+    if (postcode == null) return null;
+
+    final compact = postcode.replaceAll(AppRegex.postcodeSeparators, '');
+    final match = AppRegex.nigerianPostcode.firstMatch(compact.toUpperCase());
+
+    if (match == null) return null;
+
+    final legacy = match.namedGroup('legacy');
+
+    if (legacy != null) return legacy;
+
+    final groups = _postcodeGroups.map(match.namedGroup);
+
+    return groups.join(' ');
+  }
+
   /// Whether [tel] reduces to a well-formed national number.
   static bool isCanonicalisablePhone(
     String? tel, {
@@ -245,7 +366,7 @@ class AppTextFormatter {
     }
 
     final now = DateTime.now();
-    final yearsSince = now.difference(datetime).inPreciseYears;
+    final yearsSince = AppDateUtil.yearsBetween(from: datetime, to: now);
     final daysSince = now.difference(datetime).inDays;
     final weeksSince = now.difference(datetime).inWeeks;
     final monthsSince = now.difference(datetime).inMonths;
@@ -258,7 +379,7 @@ class AppTextFormatter {
       return strings.weeksOld.tr({"age": "$weeksSince"});
     }
 
-    if (monthsSince <= 11) {
+    if (yearsSince < 1) {
       return strings.monthsOld.tr({"age": "$monthsSince"});
     }
 
@@ -286,7 +407,7 @@ class AppTextFormatter {
         return strings.momentsAgo.tr();
       }
       if (useTime) {
-        return formatDate(datetime.toIso8601String(), format: "HH:mm");
+        return formatDateTime(datetime, format: "HH:mm");
       }
       if (minutesPast > 1 && hoursPast < 1) {
         return strings.minutesAgo.tr({"minute": "$minutesPast"});
@@ -306,20 +427,22 @@ class AppTextFormatter {
       return strings.daysAgo.tr({"day": "$daysPast"});
     }
 
-    return formatDate(
-      datetime.toIso8601String(),
-      format: "MMM dd${useTime ? ' HH:mm' : ''}",
-    );
+    final timePattern = useTime ? ' HH:mm' : '';
+    return formatDateTime(datetime, format: "MMM dd$timePattern");
   }
 
   /// Parses and formats the given [date] string using the specified [format] or [fallback].
   static String formatDate(String? date, {String? format, String? fallback}) {
-    final formatter = DateFormat(format ?? "MM-dd-yyyy", _locale);
     final datetime = DateTime.tryParse(date ?? "");
 
     if (datetime == null) return fallback ?? "";
 
-    return formatter.format(datetime);
+    return formatDateTime(datetime, format: format);
+  }
+
+  /// Formats [date] with [format], or `MM-dd-yyyy` when [format] is null.
+  static String formatDateTime(DateTime date, {String? format}) {
+    return _dateFormat(format ?? "MM-dd-yyyy").format(date);
   }
 
   /// Returns a masked string representation of a currency value (e.g., "$*****").
@@ -342,13 +465,13 @@ class AppTextFormatter {
     String amount = "$value";
     if (amount.isEmpty) return "";
 
-    String currencySymbol = symbol;
-    final formatter = NumberFormat.compactCurrency(
-      locale: _locale,
-      name: ignoreSymbol ? '' : currencySymbol,
-      decimalDigits: decimals,
-      symbol: ignoreSymbol ? "" : "$currencySymbol${spaceIcon ? " " : ""}",
+    final key = _currencyKey(
+      spaceIcon: spaceIcon,
+      ignoreSymbol: ignoreSymbol,
+      symbol: symbol,
+      decimals: decimals,
     );
+    final formatter = _compactCurrencyFormat(key);
 
     amount = amount.replaceAll(AppRegex.nonSignedAmount, "");
     final amountDouble = double.tryParse(amount);
@@ -374,13 +497,13 @@ class AppTextFormatter {
     String amount = "$value";
     if (amount.isEmpty) return "";
 
-    String currencySymbol = symbol;
-    final formatter = NumberFormat.currency(
-      locale: _locale,
-      name: ignoreSymbol ? '' : currencySymbol,
-      decimalDigits: decimals,
-      symbol: ignoreSymbol ? "" : "$currencySymbol${spaceIcon ? " " : ""}",
+    final key = _currencyKey(
+      spaceIcon: spaceIcon,
+      ignoreSymbol: ignoreSymbol,
+      symbol: symbol,
+      decimals: decimals,
     );
+    final formatter = _currencyFormat(key);
 
     amount = amount.replaceAll(AppRegex.nonSignedAmount, "");
     final amountDouble = double.tryParse(amount);
@@ -398,7 +521,7 @@ class AppTextFormatter {
   ]) {
     if (!amount.hasValue) return "";
 
-    final formatter = NumberFormat(pattern, ignoreLocale ? null : _locale);
+    final formatter = _patternFormat(pattern, _localeUnless(ignoreLocale));
     amount = amount.withoutWhiteSpaceAndSpecialChar.replaceAll(
       AppRegex.nonAmount,
       "",
@@ -410,9 +533,7 @@ class AppTextFormatter {
   static String formatNumber(String amount, [bool ignoreLocale = false]) {
     if (!amount.hasValue) return "";
 
-    final formatter = NumberFormat.compact(
-      locale: ignoreLocale ? null : _locale,
-    );
+    final formatter = _compactFormat(_localeUnless(ignoreLocale));
     amount = amount.replaceAll(AppRegex.nonAmount, "");
     final amountDouble = double.tryParse(amount);
     if (amountDouble == null || amountDouble == 0) return "0";
@@ -423,7 +544,7 @@ class AppTextFormatter {
   static String formatNumberLong(String amount) {
     if (!amount.hasValue) return "";
 
-    final formatter = NumberFormat();
+    final formatter = _patternFormat(null, Intl.getCurrentLocale());
     amount = amount.replaceAll(AppRegex.nonAmount, "");
     final amountDouble = double.tryParse(amount);
     if (amountDouble == null || amountDouble == 0) return "0";

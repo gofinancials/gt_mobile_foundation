@@ -1,4 +1,4 @@
-import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
 
 /// {@category Utilities}
 /// A utility class for safely comparing [DateTime] instances.
@@ -43,23 +43,39 @@ class AppDateUtil {
     return hasSameDayIndex && isInSameMonth && isInSameYear;
   }
 
+  /// Returns the number of whole calendar years from [from] to [to].
+  ///
+  /// This is the years between the two dates, minus one if [to] falls before
+  /// the anniversary of [from] in [to]'s year. Leap days count, so someone
+  /// born on 29 February turns a year older on 1 March in common years.
+  /// Times of day are ignored. Returns a negative number when [to] is before
+  /// [from].
+  static int yearsBetween({required DateTime from, required DateTime to}) {
+    if (to.isBefore(from)) return -yearsBetween(from: to, to: from);
+
+    final years = to.year - from.year;
+    final isLaterMonth = to.month > from.month;
+    final isSameMonth = to.month == from.month;
+    final isOnOrAfterDay = to.day >= from.day;
+    final isLaterInSameMonth = isSameMonth && isOnOrAfterDay;
+    final hasReachedAnniversary = isLaterMonth || isLaterInSameMonth;
+
+    return hasReachedAnniversary ? years : years - 1;
+  }
+
   /// Returns `true` if [date] occurred strictly before the current local day.
   static bool isBeforeToday({required DateTime date}) {
-    final stringOther = DateFormat("yyyy-MM-dd").format(date);
-    final stringToday = DateFormat("yyyy-MM-dd").format(DateTime.now());
-    final otherDate = DateTime.parse(stringOther);
-    final todayDate = DateTime.parse(stringToday);
+    final day = DateUtils.dateOnly(date);
+    final today = DateUtils.dateOnly(DateTime.now());
 
-    return todayDate.difference(otherDate).inDays > 0;
+    return day.isBefore(today);
   }
 
   /// Returns `true` if [date] occurs strictly after the current local day.
   static bool isAfterToday({required DateTime date}) {
-    final stringOther = DateFormat("yyyy-MM-dd").format(date);
-    final stringToday = DateFormat("yyyy-MM-dd").format(DateTime.now());
-    final otherDate = DateTime.parse(stringOther);
-    final todayDate = DateTime.parse(stringToday);
+    final day = DateUtils.dateOnly(date);
+    final today = DateUtils.dateOnly(DateTime.now());
 
-    return otherDate.difference(todayDate).inDays > 0;
+    return day.isAfter(today);
   }
 }

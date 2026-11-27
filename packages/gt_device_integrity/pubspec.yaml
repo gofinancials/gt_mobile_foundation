@@ -1,5 +1,5 @@
 name: gt_device_integrity
-description: "Reports raw device-integrity signals (root, jailbreak, clone, emulator, installer, signature) for gt_mobile_foundation to judge."
+description: "Reports raw device-integrity signals (root, jailbreak, clone, emulator, instrumentation, installer, signature) for gt_mobile_foundation to judge, and produces Play Integrity and App Attest tokens."
 version: 0.0.1
 homepage: https://github.com/gofinancials/gt_mobile_foundation/tree/main/packages/gt_device_integrity
 publish_to: none

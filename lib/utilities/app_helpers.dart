@@ -22,6 +22,41 @@ class AppHelpers {
   /// background isolate. Mirrors the threshold Dio's own transformer uses.
   static const _jsonIsolateThreshold = 50 * 1024;
 
+  /// Whether [data] carries enough text to move its JSON or crypto work to a
+  /// background isolate.
+  ///
+  /// It adds up the strings [data] holds instead of encoding it, so a body
+  /// carrying a base64 file is caught before the encode that would drop
+  /// frames. It stops counting once past the threshold. Numbers, booleans and
+  /// objects that encode themselves are not counted.
+  static bool isLargePayload(Object? data) {
+    return _textLength(data, _jsonIsolateThreshold) >= _jsonIsolateThreshold;
+  }
+
+  /// The length of the text in [data], counted until it reaches [limit].
+  static int _textLength(Object? data, int limit) {
+    return switch (data) {
+      String text => text.length,
+      Map map => _mapTextLength(map, limit),
+      Iterable items => _totalTextLength(items, limit),
+      _ => 0,
+    };
+  }
+
+  static int _mapTextLength(Map map, int limit) {
+    final keysLength = _totalTextLength(map.keys, limit);
+    return keysLength + _totalTextLength(map.values, limit - keysLength);
+  }
+
+  static int _totalTextLength(Iterable items, int limit) {
+    var total = 0;
+    for (final item in items) {
+      if (total >= limit) break;
+      total += _textLength(item, limit - total);
+    }
+    return total;
+  }
+
   static FutureOr<dynamic> _parseAndDecode(String response) {
     return jsonDecode(response);
   }
@@ -57,7 +92,8 @@ class AppHelpers {
   /// Unlike [parseJson] there is no cheap way to size the payload up front —
   /// measuring it means encoding it — so the encode runs on the calling isolate
   /// by default. Pass [inBackground] when the caller already knows the payload
-  /// is large enough to justify the isolate hop.
+  /// is large enough to justify the isolate hop, for example from
+  /// [isLargePayload].
   ///
   /// Returns an empty string if encoding fails.
   static FutureOr<String> encodeJson(Object data, {bool inBackground = false}) {

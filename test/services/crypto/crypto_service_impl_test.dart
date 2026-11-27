@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:encrypt/encrypt.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gt_mobile_foundation/foundation.dart';
@@ -522,6 +523,149 @@ void main() {
         // Decrypting with default (wrong) AAD returns original encrypted text
         final failedDecrypted = cryptoService.decrypt(encrypted);
         expect(failedDecrypted, equals(encrypted));
+      });
+    });
+
+    group('Wire parity with the pointycastle implementation', () {
+      const plainText = '{"documentType":"NIN_SLIP","name":"Adé Ọlá ✓"}';
+
+      /// Written by the pointycastle implementation, before the switch.
+      const pointycastleBase16 =
+          '67f61f89a81fd8ea4181da0a0927b17a0293add7f07d49bc9883465a2716249b'
+          'dcaaad568f291ec55231e86fc69aab66984d8f8282a0b979fe00b2b3376e70c7'
+          'b5375cd74a098abd3263fe04be369a0b';
+      const pointycastleBase64 =
+          'IJkBn8tn2Lk+PYlw:PZWBlXpbSMIGf3Qz3KCren/kpARrVA1atEVpvG1B6GpcfkY/'
+          'T3VCn4YX2etBErRNiCnB+Ty3wvzuuHNShOnKOqudQCY=';
+
+      /// pointycastle AES-GCM, keyed as the service is.
+      Encrypter pointycastle() {
+        final key = Key.fromUtf8(testKey);
+        return Encrypter(AES(key, mode: .gcm));
+      }
+
+      test('decrypts contiguous Base16 written by pointycastle', () {
+        final decrypted = cryptoService.decrypt(pointycastleBase16);
+
+        expect(decrypted, plainText);
+      });
+
+      test('decrypts upper-case Base16 written by pointycastle', () {
+        final upperCase = pointycastleBase16.toUpperCase();
+
+        expect(cryptoService.decrypt(upperCase), plainText);
+      });
+
+      test('decrypts colon-delimited Base64 written by pointycastle', () {
+        final decrypted = cryptoService.decrypt(
+          pointycastleBase64,
+          mode: .base64,
+        );
+
+        expect(decrypted, plainText);
+      });
+
+      for (final tamperProof in [true, false]) {
+        test(
+          'writes the bytes pointycastle writes, tamperProof $tamperProof',
+          () {
+            final service = AppCryptoServiceImpl(
+              aesKey: testKey,
+              appTag: tag,
+              tamperProof: tamperProof,
+            );
+            final aad = tamperProof ? tag.encoded : null;
+            final sealed = service.encrypt(plainText, strategy: .contiguous);
+            final bytes = Encrypted.fromBase16(sealed).bytes;
+            final iv = IV(bytes.sublist(0, 12));
+            final expected = pointycastle().encrypt(
+              plainText,
+              iv: iv,
+              associatedData: aad,
+            );
+
+            expect(bytes.sublist(12), expected.bytes);
+          },
+        );
+      }
+
+      test('pointycastle decrypts what the service writes', () {
+        final sealed = cryptoService.encrypt(
+          plainText,
+          mode: .base64,
+          strategy: .colonDelimited,
+        );
+        final [iv, cipherText] = sealed.split(':');
+        final ivBytes = IV.fromBase64(iv);
+        final encrypted = Encrypted.fromBase64(cipherText);
+        final opened = pointycastle().decrypt(
+          encrypted,
+          iv: ivBytes,
+          associatedData: tag.encoded,
+        );
+
+        expect(opened, plainText);
+      });
+
+      test('refuses a key AES cannot use, as pointycastle did', () {
+        final service = AppCryptoServiceImpl(
+          aesKey: 'short-key',
+          appTag: tag,
+          tamperProof: true,
+        );
+
+        expect(service.encrypt(plainText), plainText);
+      });
+
+      test('works with a 16-byte key', () {
+        final service = AppCryptoServiceImpl(
+          aesKey: '0123456789abcdef',
+          appTag: tag,
+          tamperProof: true,
+        );
+        final sealed = service.encrypt(plainText);
+
+        expect(service.decrypt(sealed), plainText);
+      });
+    });
+
+    group('Background isolate', () {
+      final largeBody = '{"file":"${'A' * (256 * 1024)}"}';
+
+      test('encryptInBackground writes what decrypt reads', () async {
+        final sealed = await cryptoService.encryptInBackground(
+          largeBody,
+          mode: .base64,
+        );
+
+        expect(cryptoService.decrypt(sealed, mode: .base64), largeBody);
+      });
+
+      test('decryptInBackground reads what encrypt writes', () async {
+        final sealed = cryptoService.encrypt(
+          largeBody,
+          strategy: .colonDelimited,
+        );
+        final opened = await cryptoService.decryptInBackground(sealed);
+
+        expect(opened, largeBody);
+      });
+
+      test('decryptInBackground returns text it cannot decrypt', () async {
+        final opened = await cryptoService.decryptInBackground('not-encrypted');
+
+        expect(opened, 'not-encrypted');
+      });
+
+      test('honours a per-call associatedData', () async {
+        final customAad = Uint8List.fromList([9, 8, 7]);
+        final sealed = await cryptoService.encryptInBackground(
+          largeBody,
+          associatedData: customAad,
+        );
+        final opened = cryptoService.decrypt(sealed, associatedData: customAad);
+
+        expect(opened, largeBody);
       });
     });
   });
